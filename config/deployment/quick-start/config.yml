@@ -1,0 +1,46 @@
+# Quick Start Configuration (1-Minute Setup)
+# For: Solo developers, personal projects, testing
+# Cost: FREE (using free tiers)
+# Setup time: <1 minute
+
+llm:
+  # Use Google Gemini for free tier
+  providers:
+    - google  # 60 RPM free, 1M tokens/month
+  
+  google:
+    api_key: ${GOOGLE_API_KEY}
+    models:
+      simple: gemini-1.5-flash    # Free tier
+      medium: gemini-1.5-flash    # Free tier
+      complex: gemini-1.5-pro     # Free tier
+    max_tokens: 4096
+    timeout: 60
+  
+  # Conservative cost tracking
+  track_costs: true
+  cost_budget_per_review: 0.05  # Very low for free tier
+  strategy: cost_optimized
+
+review:
+  # Minimal analysis for speed
+  analysis_depth: shallow
+  
+  # Only essential agent
+  enabled_agents:
+    - security  # Most critical
+  
+  # Approval settings
+  can_auto_approve: true
+  min_confidence_for_approval: 0.70  # Lower threshold
+  max_findings_before_reject: 5
+  critical_severity_auto_reject: true
+
+context:
+  # Minimal context storage
+  storage: artifacts
+  max_size_kb: 20  # Small footprint
+
+logging:
+  level: INFO
+  format: text

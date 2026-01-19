@@ -1,0 +1,130 @@
+# Enterprise Configuration (Self-Hosted)
+# For: Large teams (10+ developers), companies
+# Cost: Infrastructure + modest API costs
+# Features: Local LLM, webhooks, full observability
+
+llm:
+  # Hybrid: local for simple, cloud for complex
+  providers:
+    - local      # Primary: free, fast
+    - anthropic  # For complex tasks
+    - openai     # Fallback
+  
+  # Local LLM (Ollama)
+  local:
+    url: ${OLLAMA_URL}
+    models:
+      simple: llama3.1:8b       # Fast, free
+      medium: codellama:13b     # Code-specific
+      complex: llama3.1:70b     # High quality (if GPU available)
+    timeout: 120
+  
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY}
+    models:
+      simple: claude-3-5-haiku-20241022
+      medium: claude-3-5-sonnet-20241022
+      complex: claude-opus-4-20250514    # Best for critical reviews
+    max_tokens: 8192
+    timeout: 120
+  
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    models:
+      simple: gpt-4o-mini
+      medium: gpt-4o
+      complex: gpt-4o
+    max_tokens: 8192
+    timeout: 120
+  
+  # Cost optimization with local
+  track_costs: true
+  cost_budget_per_review: 0.50
+  strategy: quality_optimized
+  
+  # Fallback strategy
+  fallback_to_cloud: true  # If local unavailable
+
+review:
+  # Deep analysis
+  analysis_depth: deep
+  
+  # All agents
+  enabled_agents:
+    - security
+    - architecture
+    - qa
+    - performance
+  
+  # Conservative approval
+  can_auto_approve: false  # Always require human for enterprise
+  min_confidence_for_approval: 0.95
+  max_findings_before_reject: 15
+  critical_severity_auto_reject: true
+  
+  # Strict blocking rules
+  require_human_for:
+    - has_database_migration
+    - touches_auth_module
+    - breaking_api_changes
+    - modifies_critical_path
+    - touches_payment_system
+    - touches_user_data
+
+context:
+  # Full context with history
+  storage: database  # PostgreSQL/MongoDB
+  max_size_kb: 100
+  enable_learning: true
+  enable_history: true
+  history_depth: 6  # months
+
+# Webhook mode (optional)
+webhook:
+  enabled: true
+  host: 0.0.0.0
+  port: 8000
+  secret: ${WEBHOOK_SECRET}
+
+# Team customization
+team:
+  # Custom rules per team
+  enable_custom_rules: true
+  custom_rules_path: /config/team-rules/
+  
+  # Expert mapping
+  enable_expert_routing: true
+  expert_map_path: /config/experts.yml
+
+logging:
+  level: INFO
+  format: json
+  output: file  # Also: stdout, syslog
+  file_path: /var/log/ai-reviewer/app.log
+  rotation: daily
+
+metrics:
+  # Full observability
+  backend: prometheus
+  url: ${PROMETHEUS_URL}
+  port: 9090
+  
+  # Additional metrics
+  enable_detailed_metrics: true
+  track_agent_performance: true
+  track_model_performance: true
+
+# High availability
+ha:
+  enable_redis: true
+  redis_url: ${REDIS_URL}
+  enable_queue: true
+  queue_backend: redis
+  worker_count: 4
+
+# Security
+security:
+  enable_prompt_injection_detection: true
+  enable_secrets_scanning: true
+  enable_rate_limiting: true
+  rate_limit_per_hour: 1000
