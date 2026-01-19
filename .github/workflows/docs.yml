@@ -2,33 +2,54 @@ name: Documentation
 
 on:
   push:
-    branches: [main]
+    branches: [main]  # Only deploy docs from main
   pull_request:
-    branches: [main]
+    branches: [main]  # Check docs build on PRs
 
 permissions:
   contents: write
 
 jobs:
-  deploy:
+  build:
+    name: Build documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
+
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      
+          python-version: "3.13"
+
       - name: Install dependencies
         run: |
           pip install mkdocs-material mkdocstrings[python]
-      
+
+      - name: Build documentation
+        run: mkdocs build --strict  # Fail on warnings
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          pip install mkdocs-material mkdocstrings[python]
+
       - name: Build documentation
         run: mkdocs build
-      
+
       - name: Deploy to GitHub Pages
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

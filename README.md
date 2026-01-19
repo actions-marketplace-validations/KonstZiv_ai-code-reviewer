@@ -63,8 +63,8 @@ uv pip install ai-code-reviewer
 ## 🚀 Deployment Scenarios
 
 ### 1. Solo Developer (FREE)
-**Perfect for:** Personal projects, testing  
-**Cost:** $0 (uses free tiers)  
+**Perfect for:** Personal projects, testing
+**Cost:** $0 (uses free tiers)
 **Setup:** 1 minute
 
 ```yaml
@@ -93,8 +93,8 @@ jobs:
 ---
 
 ### 2. Small Team ($10-30/month)
-**Perfect for:** Startups, small teams (2-10 devs)  
-**Cost:** ~$10-30/month  
+**Perfect for:** Startups, small teams (2-10 devs)
+**Cost:** ~$10-30/month
 **Features:** Multiple agents, hybrid LLM routing
 
 ```yaml
@@ -110,8 +110,8 @@ llm:
 ---
 
 ### 3. Enterprise (Self-Hosted)
-**Perfect for:** Large teams, companies  
-**Cost:** Infrastructure + modest API costs  
+**Perfect for:** Large teams, companies
+**Cost:** Infrastructure + modest API costs
 **Features:** Local LLMs, webhooks, full observability
 
 ```yaml
@@ -119,10 +119,10 @@ llm:
   providers:
     - local      # Ollama (free)
     - anthropic  # Complex tasks
-  
+
 webhook:
   enabled: true
-  
+
 metrics:
   backend: prometheus
 ```
@@ -290,12 +290,11 @@ We welcome contributions! This project is designed for **human-AI pair programmi
 - [x] Project structure
 - [ ] Multi-LLM router
 - [ ] First agent (Security)
-- [ ] GitLab integration
+- [ ] GitHub integration
 - [ ] Quick-start deployment
 
 ### Phase 2: Core Features
 - [ ] 3 agents (Security, Architecture, QA)
-- [ ] GitHub integration
 - [ ] Repository context
 - [ ] Small-team deployment
 
@@ -317,13 +316,21 @@ We welcome contributions! This project is designed for **human-AI pair programmi
 | Small Team (hybrid) | ~500 | $10-30 |
 | Enterprise (local + cloud) | ~2000 | $50-100 |
 
-[Cost Optimization Guide →](https://ai-code-reviewer.readthedocs.io/guides/cost-optimization/)
+[Cost Optimization Guide →](https://konstziv.github.io/ai-code-reviewer/guides/cost-optimization/)
 
 ---
 
 ## 📜 License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## 👤 Author
+
+**Kostyantin Zivenko**
+- Email: kos.zivenko@gmail.com
+- GitHub: [@KonstZiv](https://github.com/KonstZiv)
 
 ---
 
@@ -334,16 +341,16 @@ Built with:
 - [Anthropic](https://www.anthropic.com/) — Claude API
 - [OpenAI](https://openai.com/) — GPT API
 - [Google](https://ai.google.dev/) — Gemini API
-- [Ruff](https://github.com/astral-sh/ruff) — Python linting
+- [DeepSeek](https://www.deepseek.com/) — DeepSeek API
+- [Ruff](https://github.com/astral-sh/ruff) — Python linting & formatting
 
 ---
 
 ## 💬 Support
 
-- 📖 [Documentation](https://ai-code-reviewer.readthedocs.io)
-- 🐛 [Issues](https://github.com/your-org/ai-code-reviewer/issues)
-- 💬 [Discussions](https://github.com/your-org/ai-code-reviewer/discussions)
-- 🗨️ [Discord](https://discord.gg/your-server)
+- 📖 [Documentation](https://konstziv.github.io/ai-code-reviewer)
+- 🐛 [Issues](https://github.com/KonstZiv/ai-code-reviewer/issues)
+- 💬 [Discussions](https://github.com/KonstZiv/ai-code-reviewer/discussions)
 
 ---
 
