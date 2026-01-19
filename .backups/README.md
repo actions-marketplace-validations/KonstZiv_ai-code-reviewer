@@ -2,7 +2,7 @@
 
 **Autonomous AI agent for intelligent code review in CI/CD pipelines**
 
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
@@ -11,7 +11,7 @@
 ## ✨ Features
 
 - 🚀 **1-Minute Setup** — Start reviewing code in under a minute
-- 🧠 **Multi-LLM Support** — Claude, GPT, Gemini, DeepSeek, Ollama
+- 🧠 **Multi-LLM Support** — Claude, GPT, Gemini, DeepSeek
 - 💰 **Cost Optimized** — Hybrid approach: local + cloud LLMs
 - 🔍 **Smart Analysis** — Security, architecture, QA agents
 - 🎯 **Context Aware** — Learns from your codebase
@@ -30,12 +30,12 @@ pip install ai-code-reviewer
 export GOOGLE_API_KEY=your_key_here
 
 # 3. Review!
-ai-review github --pr-number $PR_NUMBER --repo owner/repo
+ai-review gitlab --mr-iid 123 --project-id your/project
 ```
 
 That's it! 🎉
 
-See [Quick Start Guide](https://konstziv.github.io/ai-code-reviewer/getting-started/quick-start/) for details.
+See [Quick Start Guide](https://ai-code-reviewer.readthedocs.io/getting-started/quick-start/) for details.
 
 ---
 
@@ -48,20 +48,14 @@ pip install ai-code-reviewer
 
 ### From Source
 ```bash
-git clone https://github.com/KonstZiv/ai-code-reviewer.git
+git clone https://github.com/your-org/ai-code-reviewer.git
 cd ai-code-reviewer
-
-# Using uv (recommended - 10-100x faster)
-uv venv
-source .venv/bin/activate  # Linux/Mac
-uv sync --all-groups       # Install all dependencies (PEP 735)
-uv run pre-commit install
-
-# Or using pip (if you must)
-python -m venv .venv
-source .venv/bin/activate
 pip install -e ".[dev]"
-pre-commit install
+```
+
+### With uv (recommended)
+```bash
+uv pip install ai-code-reviewer
 ```
 
 ---
@@ -86,7 +80,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
       - run: pip install ai-code-reviewer
       - run: ai-review github --pr-number ${{ github.event.pull_request.number }}
         env:
@@ -94,7 +88,7 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 ```
 
-[Full Guide →](https://konstziv.github.io/ai-code-reviewer/guides/github-actions/)
+[Full Guide →](https://ai-code-reviewer.readthedocs.io/guides/github-actions/)
 
 ---
 
@@ -111,7 +105,7 @@ llm:
   strategy: balanced
 ```
 
-[Full Guide →](https://konstziv.github.io/ai-code-reviewer/deployment/small-team/)
+[Full Guide →](https://ai-code-reviewer.readthedocs.io/deployment/small-team/)
 
 ---
 
@@ -133,7 +127,7 @@ metrics:
   backend: prometheus
 ```
 
-[Full Guide →](https://konstziv.github.io/ai-code-reviewer/deployment/enterprise/)
+[Full Guide →](https://ai-code-reviewer.readthedocs.io/deployment/enterprise/)
 
 ---
 
@@ -159,7 +153,7 @@ graph LR
 4. **Synthesize** — Combine findings into coherent feedback
 5. **Post Review** — Constructive comments in MR/PR
 
-[Architecture Deep Dive →](https://konstziv.github.io/ai-code-reviewer/guides/architecture/)
+[Architecture Deep Dive →](https://ai-code-reviewer.readthedocs.io/guides/architecture/)
 
 ---
 
@@ -205,6 +199,7 @@ GOOGLE_API_KEY=...
 OPENAI_API_KEY=sk-...
 
 # Git platform
+GITLAB_TOKEN=glpat-...
 GITHUB_TOKEN=ghp_...
 ```
 
@@ -223,7 +218,7 @@ review:
     - qa
 ```
 
-[Full Configuration Guide →](https://konstziv.github.io/ai-code-reviewer/configuration/)
+[Full Configuration Guide →](https://ai-code-reviewer.readthedocs.io/configuration/)
 
 ---
 
@@ -232,55 +227,20 @@ review:
 ### Setup
 ```bash
 # Clone
-git clone https://github.com/KonstZiv/ai-code-reviewer.git
+git clone https://github.com/your-org/ai-code-reviewer.git
 cd ai-code-reviewer
 
-# Install uv (fast package manager)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Setup environment
-uv venv
-source .venv/bin/activate
-uv sync --all-groups
-
-# Setup pre-commit hooks
-uv run pre-commit install
+# Install with dev dependencies
+uv pip install -e ".[dev]"
 
 # Configure
 cp .env.example .env
 # Edit .env with your API keys
 
 # Test
-uv run pytest
-uv run ruff check .
-uv run mypy src/
-```
-
-### Quick Commands
-
-```bash
-# Run tests
-uv run pytest
-
-# Check code quality
-uv run ruff check .
-uv run ruff format .
-uv run mypy src/
-
-# Run pre-commit manually
-uv run pre-commit run --all-files
-
-# Build docs
-uv run mkdocs serve
-```
-
-Or use Makefile:
-```bash
-make setup    # Complete setup
-make test     # Run tests
-make lint     # Check code quality
-make format   # Format code
-make docs     # Serve documentation
+pytest
+ruff check .
+mypy .
 ```
 
 ### Project Structure
@@ -304,13 +264,13 @@ ai-code-reviewer/
 
 ## 📚 Documentation
 
-Full documentation: [https://konstziv.github.io/ai-code-reviewer](https://konstziv.github.io/ai-code-reviewer)
+Full documentation: [https://ai-code-reviewer.readthedocs.io](https://ai-code-reviewer.readthedocs.io)
 
-- [Quick Start](https://konstziv.github.io/ai-code-reviewer/getting-started/quick-start/)
-- [Deployment Guides](https://konstziv.github.io/ai-code-reviewer/deployment/)
-- [Configuration](https://konstziv.github.io/ai-code-reviewer/configuration/)
-- [API Reference](https://konstziv.github.io/ai-code-reviewer/api/)
-- [Development](https://konstziv.github.io/ai-code-reviewer/development/)
+- [Quick Start](https://ai-code-reviewer.readthedocs.io/getting-started/quick-start/)
+- [Deployment Guides](https://ai-code-reviewer.readthedocs.io/deployment/)
+- [Configuration](https://ai-code-reviewer.readthedocs.io/configuration/)
+- [API Reference](https://ai-code-reviewer.readthedocs.io/api/)
+- [Development](https://ai-code-reviewer.readthedocs.io/development/)
 
 ---
 
@@ -383,7 +343,6 @@ Built with:
 - [Google](https://ai.google.dev/) — Gemini API
 - [DeepSeek](https://www.deepseek.com/) — DeepSeek API
 - [Ruff](https://github.com/astral-sh/ruff) — Python linting & formatting
-- [uv](https://github.com/astral-sh/uv) — Fast Python package manager
 
 ---
 

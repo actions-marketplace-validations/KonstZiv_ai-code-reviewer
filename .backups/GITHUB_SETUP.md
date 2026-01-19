@@ -17,31 +17,7 @@ cd ai-code-reviewer
 ls -la
 ```
 
-### Step 2: Setup Development Environment
-
-```bash
-# Install uv (if not installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create virtual environment
-uv venv
-
-# Activate
-source .venv/bin/activate  # Linux/Mac
-# or .venv\Scripts\activate  # Windows
-
-# Install dependencies (PEP 735)
-uv sync --all-groups
-
-# Setup pre-commit hooks
-uv run pre-commit install
-
-# Verify setup
-uv run ruff check .
-uv run mypy src/
-```
-
-### Step 3: Initialize Git
+### Step 2: Initialize Git
 
 ```bash
 # Initialize git repository
@@ -54,15 +30,14 @@ git add .
 git commit -m "feat: initial project structure with multi-LLM support
 
 - Complete project structure
-- Multi-LLM router (Anthropic, OpenAI, Google, DeepSeek, Ollama)
+- Multi-LLM router (Anthropic, OpenAI, Google, DeepSeek)
 - 3 deployment scenarios (free, small team, enterprise)
 - MkDocs documentation
 - GitHub Actions workflows
-- AI-friendly task tracking
-- Pre-commit hooks (ruff, mypy)"
+- AI-friendly task tracking"
 ```
 
-### Step 4: Create GitHub Repository
+### Step 3: Create GitHub Repository
 
 #### Option A: Using GitHub Web UI (Recommended)
 
@@ -83,7 +58,7 @@ git commit -m "feat: initial project structure with multi-LLM support
 ```bash
 # Install GitHub CLI (if not installed)
 # macOS: brew install gh
-# Linux: see https://github.com/cli/cli#installation
+# Linux: https://github.com/cli/cli#installation
 
 # Login
 gh auth login
@@ -96,7 +71,7 @@ gh repo create ai-code-reviewer \
   --push
 ```
 
-### Step 5: Push to GitHub
+### Step 4: Push to GitHub
 
 If you used Web UI (Option A):
 
@@ -153,7 +128,7 @@ Docs will be available at: `https://YOUR_USERNAME.github.io/ai-code-reviewer/`
 3. Check:
    - ✅ Require a pull request before merging
    - ✅ Require status checks to pass
-     - Search and add: `Code Quality`, `Tests (Python 3.13)`
+     - Search and add: `test (3.11)`, `test (3.12)`
    - ✅ Require conversation resolution before merging
 4. **Create**
 
@@ -169,11 +144,10 @@ Docs will be available at: `https://YOUR_USERNAME.github.io/ai-code-reviewer/`
 - [ ] Branch protection rules set (optional)
 - [ ] README.md displays correctly on GitHub
 - [ ] Documentation building (check Actions tab)
-- [ ] Pre-commit hooks installed locally
 
 ---
 
-## 🎯 First Development Cycle
+## 🎯 First Pull Request
 
 ### Create Development Branch
 
@@ -185,17 +159,7 @@ git checkout -b feature/multi-llm-router
 # (See CURRENT_TASK/TASK_DESCRIPTION.md)
 vim src/ai_reviewer/llm/base.py
 
-# Test as you go
-uv run pytest tests/unit/test_llm_router.py -v
-
-# Run quality checks
-uv run ruff check .
-uv run mypy src/
-
-# Or use Makefile
-make quick  # format + lint + type check
-
-# Commit changes (pre-commit hooks will run automatically)
+# Commit changes
 git add .
 git commit -m "feat(llm): implement base abstractions for multi-LLM router"
 
@@ -209,33 +173,26 @@ git push -u origin feature/multi-llm-router
 # Using GitHub CLI
 gh pr create \
   --title "feat(llm): Multi-LLM Router Implementation" \
-  --body "Implements base abstractions and router logic for multi-LLM support.
-
-See CURRENT_TASK/TASK_DESCRIPTION.md for details.
-
-## Changes
-- Base LLM client interface
-- Request/Response models
-- Router foundation"
+  --body "Implements base abstractions and router logic for multi-LLM support. See CURRENT_TASK/TASK_DESCRIPTION.md for details."
 
 # Or manually on GitHub
 # Go to repository → Pull requests → New pull request
 ```
 
-### Watch CI/CD Run
+### Watch AI Review in Action
 
-GitHub Actions will automatically:
-1. ✅ Run code quality checks (ruff, mypy)
-2. ✅ Run tests on Python 3.13 & 3.14
-3. ✅ Check documentation builds
-4. ✅ Report coverage
+Once you have the full system working, AI will:
+1. Detect PR creation
+2. Run analysis
+3. Post review comments
+4. Update PR status
 
 ---
 
 ## 📁 Repository Structure on GitHub
 
 ```
-KonstZiv/ai-code-reviewer
+your-username/ai-code-reviewer
 ├── .github/
 │   ├── workflows/           # CI/CD workflows
 │   ├── ISSUE_TEMPLATE/      # Issue templates
@@ -245,7 +202,6 @@ KonstZiv/ai-code-reviewer
 ├── docs/                    # Documentation
 ├── GENERAL_PROJECT_DESCRIPTION/
 ├── CURRENT_TASK/
-├── Makefile                 # Development shortcuts
 └── ... (all project files)
 ```
 
@@ -309,47 +265,48 @@ Add tags like:
 - `langchain`
 - `cicd`
 
+### Add Social Image
+
+**Settings** → **About** → **Upload image**
+
+Create a banner with project logo/name.
+
 ### Update Description
 
 **Settings** → **About** → **Description**
 
 Short tagline: `AI-powered code review agent for CI/CD pipelines`
 
-Add website: `https://konstziv.github.io/ai-code-reviewer/`
+Add website: `https://YOUR_USERNAME.github.io/ai-code-reviewer/`
 
 ---
 
-## 📈 Development Workflow with Make
+## 📈 Next Steps After Setup
 
-Using Makefile for common tasks:
+1. **Read current task:**
+   ```bash
+   cat CURRENT_TASK/TASK_DESCRIPTION.md
+   ```
 
-```bash
-# Show all available commands
-make help
+2. **Start development:**
+   ```bash
+   # Create feature branch
+   git checkout -b feature/multi-llm-router
 
-# Complete setup (first time)
-make setup     # Create venv
-source .venv/bin/activate
-make install   # Install all deps (PEP 735: uv sync --all-groups)
+   # Implement
+   vim src/ai_reviewer/llm/base.py
 
-# Daily development
-make quick     # Format + lint + type check
-make test      # Run tests
-make docs      # Serve docs locally
+   # Test
+   pytest
 
-# Before pushing
-make check     # Run all checks (lint + test)
+   # Commit & push
+   git add . && git commit -m "feat(llm): ..."
+   git push -u origin feature/multi-llm-router
+   ```
 
-# Or manually with uv
-uv run ruff format .
-uv run ruff check .
-uv run mypy src/
-uv run pytest
+3. **Create first PR**
 
-# Install specific group only
-uv sync --group dev   # Dev dependencies only
-uv sync --group docs  # Docs dependencies only
-```
+4. **Watch CI/CD run**
 
 ---
 
@@ -379,28 +336,15 @@ git remote add origin git@github.com:YOUR_USERNAME/ai-code-reviewer.git
 
 1. Check **Actions** tab → **Documentation** workflow
 2. Verify `mkdocs.yml` is valid
-3. Check Python version in workflow (should be 3.13)
-
-### Pre-commit hooks failing?
-
-```bash
-# Update hooks
-uv run pre-commit autoupdate
-
-# Run manually to see errors
-uv run pre-commit run --all-files
-
-# Skip hooks temporarily (not recommended)
-git commit --no-verify
-```
+3. Check Python version in workflow
 
 ---
 
 ## 💬 Get Help
 
-- 📖 [Full Documentation](https://konstziv.github.io/ai-code-reviewer)
-- 🐛 [Open an Issue](https://github.com/KonstZiv/ai-code-reviewer/issues)
-- 💬 [Discussions](https://github.com/KonstZiv/ai-code-reviewer/discussions)
+- 📖 [Full Documentation](https://ai-code-reviewer.readthedocs.io)
+- 🐛 [Open an Issue](https://github.com/YOUR_USERNAME/ai-code-reviewer/issues)
+- 💬 [Discussions](https://github.com/YOUR_USERNAME/ai-code-reviewer/discussions)
 
 ---
 
@@ -408,8 +352,4 @@ git commit --no-verify
 
 Your repository is ready for development. Start coding! 🚀
 
-**Next Steps:**
-1. Read `CURRENT_TASK/TASK_DESCRIPTION.md`
-2. Start implementing: `vim src/ai_reviewer/llm/base.py`
-3. Use `make quick` before committing
-4. Create PR and watch CI/CD run
+**Next:** Read `CURRENT_TASK/TASK_DESCRIPTION.md` and start implementing the Multi-LLM Router.
