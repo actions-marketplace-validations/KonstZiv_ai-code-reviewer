@@ -2,9 +2,9 @@ name: Documentation
 
 on:
   push:
-    branches: [main]  # Only deploy docs from main
+    branches: [main]
   pull_request:
-    branches: [main]  # Check docs build on PRs
+    branches: [main]
 
 permissions:
   contents: write
@@ -16,17 +16,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: |
-          pip install mkdocs-material mkdocstrings[python]
+        run: uv sync --group dev
 
       - name: Build documentation
-        run: mkdocs build --strict  # Fail on warnings
+        run: uv run mkdocs build --strict
 
   deploy:
     name: Deploy to GitHub Pages
@@ -37,20 +39,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: |
-          pip install mkdocs-material mkdocstrings[python]
-
-      - name: Build documentation
-        run: mkdocs build
+        run: uv sync --group dev
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
+        run: uv run mkdocs gh-deploy --force
