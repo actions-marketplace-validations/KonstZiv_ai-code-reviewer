@@ -3,7 +3,7 @@
 **Autonomous AI agent for intelligent code review in CI/CD pipelines**
 
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 ---
@@ -362,7 +362,7 @@ We welcome contributions! This project is designed for **human-AI pair programmi
 
 ## 📜 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache License 2.0 – see LICENSE file for details.
 
 ---
 

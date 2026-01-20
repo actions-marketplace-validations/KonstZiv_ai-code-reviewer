@@ -2,11 +2,18 @@
 
 This document provides a complete overview of the AI Code Reviewer project structure.
 
-Last Updated: 2026-01-19
+**Last Updated:** 2026-01-20
+
+**Project Status:** 🚧 Early Development
+- Structure established
+- Dependencies configured
+- Implementation in progress (see CURRENT_TASK/)
 
 ---
 
 ## Directory Tree
+
+**Current structure** (showing only what exists):
 
 ```
 ai-code-reviewer/
@@ -20,163 +27,73 @@ ai-code-reviewer/
 │   ├── TASK_DESCRIPTION.md            # Current task specification
 │   └── PROCESS_TASK.md                # Task progress tracking
 │
-├── src/ai_reviewer/                   # Source code
-│   ├── __init__.py                    # Package initialization
-│   │
-│   ├── core/                          # Core models & orchestration
-│   │   ├── __init__.py
-│   │   ├── models.py                  # Pydantic models (ReviewContext, etc)
-│   │   ├── orchestrator.py            # Main workflow orchestrator (LangGraph)
-│   │   └── config.py                  # Configuration management
-│   │
-│   ├── llm/                           # Multi-LLM routing
-│   │   ├── __init__.py
-│   │   ├── base.py                    # Base abstractions
-│   │   ├── router.py                  # LLM router logic
-│   │   ├── anthropic_client.py        # Claude integration
-│   │   ├── openai_client.py           # GPT integration
-│   │   ├── google_client.py           # Gemini integration
-│   │   ├── deepseek_client.py         # DeepSeek integration
-│   │   └── cost_tracker.py            # Cost tracking
-│   │
-│   ├── agents/                        # Review agents
-│   │   ├── __init__.py
-│   │   ├── base.py                    # ReviewAgent abstract class
-│   │   ├── security.py                # Security agent
-│   │   ├── architecture.py            # Architecture agent
-│   │   ├── qa.py                      # QA agent
-│   │   └── performance.py             # Performance agent (future)
-│   │
-│   ├── integrations/                  # Git platform integrations
-│   │   ├── __init__.py
-│   │   ├── base.py                    # Abstract integration
-│   │   ├── gitlab.py                  # GitLab API client
-│   │   └── github.py                  # GitHub API client
-│   │
-│   ├── utils/                         # Utilities
-│   │   ├── __init__.py
-│   │   ├── git.py                     # Git operations
-│   │   ├── errors.py                  # Error handling
-│   │   └── logging.py                 # Logging setup
-│   │
-│   └── cli.py                         # Command-line interface
+├── theory/                            # Theoretical foundation
+│   └── ai_code_review_unified_flow.md # Research & design
 │
-├── tests/                             # Test suite
+├── src/ai_reviewer/                   # Source code (structure only)
+│   ├── __init__.py                    # Package initialization
+│   ├── core/__init__.py               # Core module (empty - to be implemented)
+│   ├── llm/__init__.py                # LLM routing (empty - to be implemented)
+│   ├── agents/__init__.py             # Review agents (empty - to be implemented)
+│   ├── integrations/__init__.py       # Git integrations (empty - to be implemented)
+│   └── utils/__init__.py              # Utilities (empty - to be implemented)
+│
+├── tests/                             # Test structure
 │   ├── __init__.py
-│   │
-│   ├── unit/                          # Unit tests
-│   │   ├── __init__.py
-│   │   ├── test_models.py
-│   │   ├── test_llm_router.py
-│   │   ├── test_security_agent.py
-│   │   └── ...
-│   │
-│   ├── integration/                   # Integration tests
-│   │   ├── __init__.py
-│   │   ├── test_llm_providers.py
-│   │   ├── test_gitlab_api.py
-│   │   └── ...
-│   │
-│   └── e2e/                           # End-to-end tests
-│       ├── __init__.py
-│       └── test_review_flow.py
+│   ├── unit/__init__.py               # Unit tests (to be added)
+│   ├── integration/__init__.py        # Integration tests (to be added)
+│   └── e2e/__init__.py                # E2E tests (to be added)
 │
 ├── docs/                              # MkDocs documentation
 │   ├── index.md                       # Landing page
-│   │
-│   ├── getting-started/               # Getting started guides
-│   │   ├── quick-start.md
-│   │   ├── installation.md
-│   │   ├── first-review.md
-│   │   └── configuration.md
-│   │
-│   ├── deployment/                    # Deployment scenarios
-│   │   ├── index.md
-│   │   ├── solo-dev.md                # FREE tier setup
-│   │   ├── small-team.md              # $10-30/month setup
-│   │   └── enterprise.md              # Self-hosted setup
-│   │
-│   ├── guides/                        # Integration guides
-│   │   ├── gitlab-ci.md
-│   │   ├── github-actions.md
-│   │   ├── webhook-mode.md
-│   │   ├── architecture.md
-│   │   ├── how-it-works.md
-│   │   ├── agents.md
-│   │   ├── llm-routing.md
-│   │   ├── cost-optimization.md
-│   │   └── local-dev.md
-│   │
-│   ├── configuration/                 # Configuration reference
-│   │   ├── index.md
-│   │   ├── llm-providers.md
-│   │   ├── review-settings.md
-│   │   ├── repository-context.md
-│   │   └── environment.md
-│   │
-│   ├── development/                   # Developer documentation
-│   │   ├── contributing.md
-│   │   ├── architecture.md
-│   │   ├── adding-agents.md
-│   │   ├── adding-providers.md
-│   │   ├── testing.md
-│   │   └── project-structure.md
-│   │
-│   ├── api/                           # API reference
-│   │   ├── core-models.md
-│   │   ├── llm-router.md
-│   │   ├── agents.md
-│   │   └── integrations.md
-│   │
-│   ├── troubleshooting/               # Troubleshooting
-│   │   ├── common-issues.md
-│   │   ├── faq.md
-│   │   └── debugging.md
-│   │
-│   └── about/                         # About pages
-│       ├── changelog.md
-│       ├── roadmap.md
-│       └── license.md
+│   └── guides/
+│       └── github-actions.md          # GitHub Actions guide
 │
-├── config/                            # Configuration templates
-│   ├── deployment/                    # Deployment-specific configs
-│   │   ├── quick-start/
-│   │   │   └── config.yml             # Free tier config
-│   │   ├── small-team/
-│   │   │   └── config.yml             # $10-30/month config
-│   │   └── enterprise/
-│   │       └── config.yml             # Self-hosted config
-│   │
-│   └── .ai-reviewer.example.yml      # Full config example
+├── config/deployment/                 # Deployment configs (placeholders)
+│   ├── quick-start/
+│   │   └── config.yml                 # To be replaced with README.md
+│   ├── small-team/
+│   │   └── config.yml                 # To be replaced with README.md
+│   └── enterprise/
+│       └── config.yml                 # To be replaced with README.md
 │
-├── scripts/                           # Utility scripts
-│   ├── setup-dev.sh                   # Development setup
-│   ├── run-tests.sh                   # Run test suite
-│   └── deploy.sh                      # Deployment helper
+├── scripts/                           # Utility scripts (empty)
 │
-├── .github/                           # GitHub specific
-│   └── workflows/
-│       ├── tests.yml                  # CI tests
-│       ├── docs.yml                   # Deploy docs
-│       └── release.yml                # Release automation
+├── .github/workflows/                 # GitHub Actions
+│   ├── tests.yml                      # CI tests
+│   ├── docs.yml                       # Documentation deployment
+│   └── release.yml                    # Release automation
 │
-├── .gitlab/                           # GitLab specific
-│   └── ci/
-│       └── .gitlab-ci.yml             # GitLab CI config
-│
-├── pyproject.toml                     # Project metadata & dependencies
+├── pyproject.toml                     # Project metadata (PEP 735)
+├── uv.lock                            # Locked dependencies
+├── Makefile                           # Development shortcuts
 ├── mkdocs.yml                         # MkDocs configuration
-├── .env.example                       # Environment variables template
+├── .env.example                       # Environment template
+├── .pre-commit-config.yaml            # Pre-commit hooks
 ├── .gitignore                         # Git ignore rules
 ├── README.md                          # Project README
-├── LICENSE                            # MIT License
-└── CHANGELOG.md                       # Version history
+├── LICENSE                            # Apache License 2.0
+├── NOTICE                             # Copyright notice
+└── PROJECT_STRUCTURE.md               # This file
 
 ```
+
+**Note:** This project is in early development. Most modules exist as empty `__init__.py` files to establish structure. Implementation is in progress - see `CURRENT_TASK/` for active work.
 
 ---
 
 ## Key Files Explained
+
+### License & Attribution
+
+1. **LICENSE**
+   - Apache License 2.0
+   - Full license text
+
+2. **NOTICE**
+   - Copyright information: `Copyright 2026 Exsol`
+   - Attribution: Developed by Kostyantin Zivenko
+   - Required by Apache 2.0 license
 
 ### Project Documentation (AI-Friendly)
 
@@ -212,74 +129,98 @@ These files help AI agents quickly understand the project context:
    - Current step
    - Blockers
 
+### Theory & Design
+
+**theory/** - Theoretical foundation and design decisions
+- Architecture Decision Records (ADRs)
+- Research notes
+- Design explorations
+- Proof-of-concept code
+
 ### Core Source Files
 
+**Status:** Structure only - implementation in progress
+
+All source modules currently exist as empty `__init__.py` files. The following structure is planned:
+
 #### Core Module (`src/ai_reviewer/core/`)
-- **models.py**: Pydantic models for all data structures
-  - `ParsedEvent`, `ReviewContext`, `Finding`, etc.
-- **orchestrator.py**: Main LangGraph workflow
-  - State machine for review process
-- **config.py**: Configuration management
-  - Load from .env, .yml, etc.
+- **Planned:** models.py, orchestrator.py, config.py
+- **Status:** To be implemented (see CURRENT_TASK)
 
 #### LLM Module (`src/ai_reviewer/llm/`)
-- **base.py**: Abstract interfaces
-  - `BaseLLMClient`, `LLMRequest`, `LLMResponse`
-- **router.py**: Intelligent routing logic
-  - Task complexity assessment
-  - Provider selection
-  - Fallback handling
-- **{provider}_client.py**: Provider implementations
-  - Anthropic, OpenAI, Google, DeepSeek
-- **cost_tracker.py**: Track API costs
+- **Planned:** base.py, router.py, provider clients, cost_tracker.py
+- **Status:** To be implemented (current focus)
 
 #### Agents Module (`src/ai_reviewer/agents/`)
-- **base.py**: `ReviewAgent` abstract class
-- **security.py**: Security vulnerability detection
-- **architecture.py**: Code architecture analysis
-- **qa.py**: Testing and quality checks
+- **Planned:** base.py, security.py, architecture.py, qa.py
+- **Status:** To be implemented (Phase 1)
 
 #### Integrations Module (`src/ai_reviewer/integrations/`)
-- **base.py**: Abstract Git platform interface
-- **gitlab.py**: GitLab API client
-- **github.py**: GitHub API client
+- **Planned:** base.py, gitlab.py, github.py
+- **Status:** To be implemented (Phase 1)
+
+#### Utils Module (`src/ai_reviewer/utils/`)
+- **Planned:** git.py, errors.py, logging.py
+- **Status:** To be implemented
+
+See `CURRENT_TASK/TASK_DESCRIPTION.md` for active implementation work.
 
 ### Configuration Files
 
 1. **pyproject.toml**
    - Python project metadata
-   - Dependencies (LangChain, LangGraph, LLM SDKs)
+   - Dependencies (using PEP 735 dependency groups)
+   - LangChain, LangGraph, LLM SDKs
    - Build configuration
    - Tool configuration (ruff, mypy, pytest)
 
-2. **.env.example**
+2. **uv.lock**
+   - Locked dependency versions
+   - Ensures reproducible builds
+
+3. **.env.example**
    - Template for environment variables
    - API keys for all providers
    - Configuration options
 
-3. **config/deployment/*/config.yml**
-   - Deployment-specific configurations
-   - Quick-start: Free tier (Gemini)
-   - Small-team: Hybrid ($10-30/month)
-   - Enterprise: Self-hosted + local LLM
+4. **config/deployment/\*/README.md**
+   - **Status:** Placeholders (coming soon)
+   - Quick-start: Free tier setup guidance
+   - Small-team: Team deployment guidance
+   - Enterprise: Self-hosted setup guidance
+   - Real configs will be added as features are implemented
+
+### Development Tools
+
+1. **Makefile**
+   - Development shortcuts
+   - `make help` - Show all commands
+   - `make install` - Install dependencies (PEP 735)
+   - `make test` - Run tests
+   - `make quick` - Quick quality check
+
+2. **.pre-commit-config.yaml**
+   - Pre-commit hooks (ruff, mypy)
+   - Runs automatically on `git commit`
 
 ### Documentation
 
 1. **mkdocs.yml**
    - MkDocs configuration
-   - Navigation structure
-   - Theme settings
+   - Navigation structure (minimal for now)
+   - Material theme settings
 
 2. **docs/**
-   - Complete user and developer documentation
-   - Tutorials, guides, API reference
-   - Organized by user journey
+   - **index.md** - Landing page
+   - **guides/github-actions.md** - GitHub Actions integration guide
+   - Additional documentation will be added as features are implemented
 
 ---
 
 ## Development Workflow
 
 ### 1. Start New Feature
+
 ```bash
 # Check current task
 cat CURRENT_TASK/TASK_DESCRIPTION.md
@@ -292,20 +233,21 @@ vim CURRENT_TASK/PROCESS_TASK.md
 ```
 
 ### 2. Implement
+
 ```bash
 # Code in src/ai_reviewer/
 # Add tests in tests/
 # Update docs in docs/
 
-# Run tests
-pytest
+# Quick quality check
+make quick
 
-# Check code quality
-ruff check .
-mypy .
+# Run tests
+make test
 ```
 
 ### 3. Document
+
 ```bash
 # Update relevant docs
 # Add docstrings (Google style)
@@ -313,15 +255,18 @@ mypy .
 ```
 
 ### 4. Commit & Push
+
 ```bash
 git add .
 git commit -m "feat(scope): description"
+# Pre-commit hooks run automatically
 git push origin feature/your-feature
 ```
 
-### 5. Create PR/MR
+### 5. Create PR
+
 ```bash
-# Follow template in CONTRIBUTING.md
+# Use GitHub PR template
 # Link to CURRENT_TASK
 # Wait for CI and review
 ```
@@ -346,21 +291,17 @@ git push origin feature/your-feature
 
 ---
 
-## Import Structure
+## Configuration Placeholders
 
-```python
-# Standard library
-import os
-from typing import Optional
+The `config/deployment/` directory currently contains **fictional config.yml files** that will be replaced with honest placeholders:
 
-# Third-party
-from langchain.chat_models import BaseChatModel
-from pydantic import BaseModel
+- **quick-start/config.yml** → Will become README.md explaining free tier setup
+- **small-team/config.yml** → Will become README.md explaining team setup
+- **enterprise/config.yml** → Will become README.md explaining enterprise setup
 
-# Local
-from ai_reviewer.core.models import ReviewContext
-from ai_reviewer.llm.router import LLMRouter
-```
+**Action needed:** Replace these fictional configs with README.md placeholders (see cleanup update).
+
+Real configurations will be added as features are implemented.
 
 ---
 
@@ -368,7 +309,7 @@ from ai_reviewer.llm.router import LLMRouter
 
 1. **Implement Multi-LLM Router** (Current Task)
 2. **Create Security Agent**
-3. **Integrate with GitLab**
+3. **Integrate with GitHub**
 4. **Write comprehensive tests**
 5. **Document all features**
 
@@ -381,3 +322,7 @@ See [PROCESS_PROJECT.md](GENERAL_PROJECT_DESCRIPTION/PROCESS_PROJECT.md) for det
 - Read [CONTRIBUTING.md](GENERAL_PROJECT_DESCRIPTION/CONTRIBUTING.md)
 - Check [CURRENT_TASK](CURRENT_TASK/)
 - Review [Documentation](docs/)
+
+---
+
+**Note:** This project uses Apache License 2.0. See LICENSE and NOTICE files for details.
