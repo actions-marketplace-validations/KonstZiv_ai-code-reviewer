@@ -1,208 +1,464 @@
-# Task Process: Multi-LLM Router Implementation
+# Sprint 1 Progress Canvas - MVP Code Reviewer
 
-**Task:** Multi-LLM Router  
-**Status:** Not Started → In Progress  
-**Progress:** 0%
-
----
-
-## ⏱️ Timeline
-
-- **Started:** 2026-01-19 (just now)
-- **Last Updated:** 2026-01-19
-- **Estimated Completion:** 2026-01-20
-- **Actual Completion:** TBD
+**Sprint Start:** [Date when you start]
+**Sprint Goal:** Build minimal working reviewer + verify entire toolchain
+**Status:** 🎯 Not Started
 
 ---
 
-## 📊 Progress Breakdown
+## 📊 Sprint Overview
 
-### Overall: 0/10 steps completed (0%)
-
-- [ ] Step 1: Base abstractions (0%)
-- [ ] Step 2: Anthropic client (0%)
-- [ ] Step 3: OpenAI client (0%)
-- [ ] Step 4: Google client (0%)
-- [ ] Step 5: DeepSeek client (0%)
-- [ ] Step 6: Router logic (0%)
-- [ ] Step 7: Cost tracker (0%)
-- [ ] Step 8: Configuration (0%)
-- [ ] Step 9: Tests (0%)
-- [ ] Step 10: Documentation (0%)
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| **Tasks Completed** | 8/8 | 0/8 | ⏳ |
+| **Test Coverage** | ≥80% | 0% | ⏳ |
+| **CI/CD Status** | ✅ All green | ⏳ Not configured | ⏳ |
+| **Documentation** | 6 languages | 0 languages | ⏳ |
+| **PyPI Published** | v0.1.0 | Not published | ⏳ |
 
 ---
 
-## ✅ Completed Steps
+## 🎯 Sprint Backlog
 
-None yet. Ready to start!
+### ✅ Task 1: Development Environment Setup
+**Status:** ⏳ Not Started
+**Assigned:** [Who's working on this]
+**Time:** 0h / 2h estimated
 
----
+**Checklist:**
+- [ ] `uv` installation verified
+- [ ] `make install` works
+- [ ] `make quick` passes (ruff + mypy)
+- [ ] Dummy test added
+- [ ] `make test` shows coverage
+- [ ] Pre-commit hooks tested
+- [ ] Tooling documented in README
 
-## 🔄 Current Step
+**Notes:**
+```
+[Add notes as you work]
+```
 
-**Next Action:** Create base abstractions
-
-**Plan:**
-1. Create `src/ai_reviewer/llm/` directory structure
-2. Implement `base.py` with:
-   - `LLMRequest` model
-   - `LLMResponse` model
-   - `BaseLLMClient` abstract class
-   - `LLMConfig` model
-3. Write unit tests for models
-
-**Expected Duration:** 30 minutes
-
----
-
-## ⏭️ Next Steps (After Current)
-
-1. **Anthropic Client** (1 hour)
-   - Install `anthropic` SDK
-   - Implement `AnthropicClient`
-   - Add configuration for 3 models (Opus, Sonnet, Haiku)
-   - Test with real API (optional)
-
-2. **Other Providers** (2 hours)
-   - Repeat for OpenAI, Google, DeepSeek
-   - Ensure consistent interface
-
-3. **Router Logic** (1 hour)
-   - Implement provider selection
-   - Implement model selection based on complexity
-   - Add fallback mechanism
-
-4. **Testing & Docs** (1 hour)
-   - Unit tests
-   - Integration tests (optional)
-   - Usage documentation
+**Blockers:**
+```
+[None yet]
+```
 
 ---
 
-## 🚧 Blockers
+### ⏳ Task 2: Core Data Models
+**Status:** ⏳ Waiting for Task 1
+**Assigned:** [Who's working on this]
+**Time:** 0h / 3h estimated
 
-**Current:** None
+**Checklist:**
+- [ ] `src/ai_reviewer/core/models.py` created
+- [ ] Models defined: MergeRequest, LinkedTask, ReviewContext, ReviewResult
+- [ ] All models have type hints
+- [ ] Validation logic added
+- [ ] Unit tests written
+- [ ] Coverage ≥90% for models.py
+- [ ] Mypy passes in strict mode
+- [ ] Docstrings added (Google style)
 
-**Potential:**
-- API keys might not be available for all providers → Mitigation: mock responses for testing
-- Rate limits during development → Mitigation: use test mode / mock
-- SDK version incompatibilities → Mitigation: pin versions in pyproject.toml
+**Notes:**
+```
+[Add notes as you work]
+```
 
----
-
-## 💡 Decisions Made
-
-### 2026-01-19: Use Provider SDKs (not raw HTTP)
-
-**Decision:** Use official SDKs for each provider instead of raw HTTP calls
-
-**Rationale:**
-- SDKs handle auth, retries, rate limits
-- Better error messages
-- Type safety
-
-**Alternatives:**
-- Raw HTTP (more control, but more code)
-- Single unified library (doesn't exist for all 4)
-
-**Impact:** More dependencies, but cleaner code
+**Code Location:**
+- File: `src/ai_reviewer/core/models.py`
+- Tests: `tests/unit/test_models.py`
 
 ---
 
-### 2026-01-19: Async by Default
+### ⏳ Task 3: Configuration Management
+**Status:** ⏳ Waiting for Task 2
+**Assigned:** [Who's working on this]
+**Time:** 0h / 2h estimated
 
-**Decision:** All LLM calls are async
+**Checklist:**
+- [ ] `src/ai_reviewer/core/config.py` created
+- [ ] Uses pydantic-settings
+- [ ] Loads GITHUB_TOKEN, GOOGLE_API_KEY
+- [ ] Validation implemented
+- [ ] Default values set
+- [ ] Error messages clear
+- [ ] Unit tests written
+- [ ] Type hints added
 
-**Rationale:**
-- Future-proof for parallel agent execution
-- Non-blocking I/O
-- Better resource utilization
-
-**Impact:** All code must use `async/await`
-
----
-
-## 📝 Session Notes
-
-### 2026-01-19 17:00 — Initial Planning
-
-**Done:**
-- Created task description
-- Analyzed provider APIs
-- Designed architecture
-
-**Learned:**
-- All 4 providers have Python SDKs
-- Pricing is very different between providers
-- Gemini has best free tier
-
-**Next Session:**
-- Start with base abstractions
-- Implement Anthropic client first (we have API key)
+**Notes:**
+```
+[Add notes as you work]
+```
 
 ---
 
-## 🐛 Issues Encountered
+### ⏳ Task 4: GitHub Integration
+**Status:** ⏳ Waiting for Task 3
+**Assigned:** [Who's working on this]
+**Time:** 0h / 4h estimated
 
-None yet.
+**Checklist:**
+- [ ] `src/ai_reviewer/integrations/github.py` created
+- [ ] PyGithub library integrated
+- [ ] `get_pull_request()` implemented
+- [ ] `get_linked_task()` implemented
+- [ ] `post_review_comment()` implemented
+- [ ] Error handling added
+- [ ] Retry logic implemented
+- [ ] Integration tests with mocks
+- [ ] Type hints added
 
----
+**Notes:**
+```
+[Add notes as you work]
+```
 
-## 📊 Metrics
-
-### Code Stats
-- **Files created:** 0
-- **Lines of code:** 0
-- **Test coverage:** 0%
-
-### API Stats (will track during testing)
-- **Total API calls:** 0
-- **Total cost:** $0.00
-- **Avg response time:** N/A
-
----
-
-## 💬 Notes for Next Session
-
-**Context for AI:**
-- We're starting from scratch
-- No code exists yet
-- Focus: get basic structure working with 1 provider (Anthropic)
-- Then replicate for others
-
-**Quick wins:**
-1. Create base models (Pydantic) — fast, no API needed
-2. Implement Anthropic client — we have API key
-3. Basic router — just selects Anthropic for now
-
-**Defer to later:**
-- Integration tests with all providers
-- Sophisticated fallback logic
-- Caching
+**API Endpoints Used:**
+```
+- GET /repos/{owner}/{repo}/pulls/{number}
+- GET /repos/{owner}/{repo}/issues/{number}
+- POST /repos/{owner}/{repo}/issues/{number}/comments
+```
 
 ---
 
-## 🔗 Related Files
+### ⏳ Task 5: Google Gemini Integration
+**Status:** ⏳ Waiting for Task 3
+**Assigned:** [Who's working on this]
+**Time:** 0h / 4h estimated
 
-- **Task Description:** [TASK_DESCRIPTION.md](TASK_DESCRIPTION.md)
-- **Project Process:** [../GENERAL_PROJECT_DESCRIPTION/PROCESS_PROJECT.md](../GENERAL_PROJECT_DESCRIPTION/PROCESS_PROJECT.md)
-- **Architecture:** [../docs/architecture.md](../docs/architecture.md)
+**Checklist:**
+- [ ] `src/ai_reviewer/integrations/gemini.py` created
+- [ ] google-generativeai library integrated
+- [ ] `analyze_code_changes()` implemented
+- [ ] Prompt for vulnerability detection crafted
+- [ ] Prompt for task alignment crafted
+- [ ] Response parsing implemented
+- [ ] Error handling added
+- [ ] Rate limit handling
+- [ ] Tests with mocked API
+- [ ] Type hints added
+
+**Notes:**
+```
+[Add notes as you work]
+```
+
+**Prompts to Design:**
+1. Vulnerability detection
+2. Task alignment check
 
 ---
 
-## ✅ Definition of Done
+### ⏳ Task 6: Review Logic Implementation
+**Status:** ⏳ Waiting for Tasks 4 & 5
+**Assigned:** [Who's working on this]
+**Time:** 0h / 3h estimated
 
-Task is complete when:
-- [ ] All 4 provider clients implemented
-- [ ] Router can select provider based on priority
-- [ ] Router can select model based on complexity
-- [ ] Cost tracking works
-- [ ] Unit tests pass (>80% coverage)
-- [ ] Documentation updated
-- [ ] Can successfully make a call to at least 2 providers
-- [ ] Configuration example provided
-- [ ] Code reviewed and merged
+**Checklist:**
+- [ ] `src/ai_reviewer/reviewer.py` created
+- [ ] `review_pull_request()` implemented
+- [ ] Workflow: Fetch → Build Context → Analyze → Post
+- [ ] Logging added at each step
+- [ ] Error handling comprehensive
+- [ ] E2E test written
+- [ ] Type hints added
+
+**Notes:**
+```
+[Add notes as you work]
+```
+
+**Workflow Steps:**
+1. Fetch PR data
+2. Get linked task (if exists)
+3. Build ReviewContext
+4. Send to Gemini
+5. Parse response
+6. Format comment
+7. Post to PR
 
 ---
 
-**Status:** Ready to begin implementation! 🚀
+### ⏳ Task 7: CLI & GitHub Action
+**Status:** ⏳ Waiting for Task 6
+**Assigned:** [Who's working on this]
+**Time:** 0h / 2h estimated
+
+**Checklist:**
+- [ ] `src/ai_reviewer/cli.py` created
+- [ ] Typer CLI implemented
+- [ ] Command: `ai-review github` works
+- [ ] Help text clear
+- [ ] `.github/workflows/ai-review.yml` created
+- [ ] Action runs after tests
+- [ ] Manual test on real PR successful
+- [ ] Error messages helpful
+
+**Notes:**
+```
+[Add notes as you work]
+```
+
+**CLI Usage:**
+```bash
+ai-review github --pr 1 --repo owner/repo
+```
+
+---
+
+### ⏳ Task 8: Multi-Language Documentation
+**Status:** ⏳ Waiting for Task 7
+**Assigned:** [Who's working on this]
+**Time:** 0h / 5h estimated
+
+**Checklist:**
+- [ ] i18n plugin configured in mkdocs.yml
+- [ ] Directory structure created (6 languages)
+- [ ] English docs written:
+  - [ ] index.md
+  - [ ] quick-start.md
+  - [ ] configuration.md
+  - [ ] github-actions.md
+- [ ] Ukrainian translation
+- [ ] German translation
+- [ ] Spanish translation
+- [ ] Montenegrin translation
+- [ ] Italian translation
+- [ ] Language switcher works
+- [ ] Docs build locally
+- [ ] Auto-deploy tested
+
+**Notes:**
+```
+[Add notes as you work]
+
+Translation help:
+- Can use Claude/ChatGPT for initial translation
+- Human review recommended for accuracy
+```
+
+**Languages Status:**
+- [ ] 🇬🇧 English (en) - Primary
+- [ ] 🇺🇦 Ukrainian (uk)
+- [ ] 🇩🇪 German (de)
+- [ ] 🇪🇸 Spanish (es)
+- [ ] 🇲🇪 Montenegrin (me)
+- [ ] 🇮🇹 Italian (it)
+
+---
+
+## 🧪 Testing Progress
+
+### Test Coverage by Module
+
+| Module | Target | Current | Status |
+|--------|--------|---------|--------|
+| core/models.py | ≥90% | 0% | ⏳ |
+| core/config.py | ≥90% | 0% | ⏳ |
+| integrations/github.py | ≥80% | 0% | ⏳ |
+| integrations/gemini.py | ≥80% | 0% | ⏳ |
+| reviewer.py | ≥80% | 0% | ⏳ |
+| cli.py | ≥70% | 0% | ⏳ |
+| **Overall** | **≥80%** | **0%** | ⏳ |
+
+### Test Types Status
+
+- [ ] Unit tests (tests/unit/)
+- [ ] Integration tests (tests/integration/)
+- [ ] E2E test (tests/e2e/)
+- [ ] Manual PR test
+
+---
+
+## 🚀 CI/CD Progress
+
+### Workflows Status
+
+| Workflow | File | Status | Notes |
+|----------|------|--------|-------|
+| Tests | `.github/workflows/tests.yml` | ⏳ | Exists, needs AI review job |
+| Docs | `.github/workflows/docs.yml` | ⏳ | Needs i18n support |
+| Release | `.github/workflows/release.yml` | ⏳ | Needs PyPI config |
+| AI Review | `.github/workflows/ai-review.yml` | ⏳ | To be created |
+
+### PyPI Publishing Checklist
+
+- [ ] PyPI account created
+- [ ] Trusted publishing configured
+- [ ] Environment "pypi" created in GitHub
+- [ ] Test release to TestPyPI
+- [ ] Production release v0.1.0
+
+---
+
+## 📚 Documentation Progress
+
+### English (Primary)
+- [ ] index.md - Overview
+- [ ] quick-start.md - 5-minute setup
+- [ ] configuration.md - Config reference
+- [ ] github-actions.md - CI/CD setup
+
+### Translations
+- [ ] Ukrainian (uk)
+- [ ] German (de)
+- [ ] Spanish (es)
+- [ ] Montenegrin (me)
+- [ ] Italian (it)
+
+### Deployment
+- [ ] GitHub Pages configured
+- [ ] Auto-deploy on push to main
+- [ ] All languages accessible
+
+---
+
+## 🎯 Daily Standup
+
+### Today's Focus
+```
+[What are you working on today?]
+```
+
+### Progress Since Last Update
+```
+[What did you complete?]
+```
+
+### Blockers
+```
+[Anything blocking progress?]
+```
+
+### Questions
+```
+[Anything unclear?]
+```
+
+---
+
+## 📝 Decision Log
+
+### Decision 1: [Date]
+**Question:** [What was decided?]
+**Decision:** [What did we choose?]
+**Rationale:** [Why?]
+**Impact:** [What does this affect?]
+
+---
+
+## 🐛 Issues & Solutions
+
+### Issue 1: [Date]
+**Problem:** [What went wrong?]
+**Solution:** [How did we fix it?]
+**Prevention:** [How to avoid in future?]
+
+---
+
+## 💡 Learnings & Insights
+
+### Technical Learnings
+```
+[What did we learn technically?]
+```
+
+### Process Learnings
+```
+[What did we learn about our workflow?]
+```
+
+### Tool Insights
+```
+[What did we discover about our tools?]
+```
+
+---
+
+## ✅ Sprint Completion Checklist
+
+### Code Quality
+- [ ] All tests passing
+- [ ] Coverage ≥80%
+- [ ] Ruff check passes
+- [ ] Mypy passes
+- [ ] Pre-commit hooks work
+
+### Functionality
+- [ ] Manual test on real PR successful
+- [ ] Review comment posted correctly
+- [ ] Error handling works
+- [ ] Logging informative
+
+### Documentation
+- [ ] All 6 languages complete
+- [ ] Language switcher functional
+- [ ] Docs deployed to GitHub Pages
+- [ ] Links working
+
+### CI/CD
+- [ ] All workflows green
+- [ ] Tag v0.1.0 created
+- [ ] Published to PyPI
+- [ ] GitHub release created
+- [ ] Documentation deployed
+
+### Cleanup
+- [ ] No TODOs in code
+- [ ] No commented-out code
+- [ ] All debug prints removed
+- [ ] Secrets not in code
+
+---
+
+## 🎊 Sprint Retrospective
+
+**What Went Well:**
+```
+[To be filled at sprint end]
+```
+
+**What Could Be Better:**
+```
+[To be filled at sprint end]
+```
+
+**Action Items for Next Sprint:**
+```
+[To be filled at sprint end]
+```
+
+---
+
+## 📊 Final Sprint Metrics
+
+**To be filled at completion:**
+
+- Start Date: [Date]
+- End Date: [Date]
+- Duration: [Days]
+- Tasks Completed: [X/8]
+- Test Coverage: [X%]
+- Lines of Code: [X]
+- Commits: [X]
+- PRs: [X]
+
+---
+
+## 🚀 Next Sprint Preview
+
+After completing Sprint 1, we'll plan:
+
+**Sprint 2: Enhanced Analysis**
+- Multiple specialized agents
+- LLM routing for cost optimization
+- Repository context awareness
+- Better prompt engineering
+- Architecture and QA checks
+
+---
+
+**Remember:** This is a collaborative canvas. Update as you work! 📝
