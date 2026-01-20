@@ -32,21 +32,21 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history for context
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      
+
       - name: Install AI Code Reviewer
         run: |
           pip install ai-code-reviewer
-      
+
       - name: Run Review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -73,7 +73,7 @@ Create `.ai-reviewer.yml` in your repo:
 llm:
   providers:
     - anthropic
-  
+
   anthropic:
     models:
       simple: claude-3-5-haiku-20241022
@@ -86,7 +86,7 @@ review:
     - security
     - architecture
     - qa
-  
+
   can_auto_approve: false
 ```
 
@@ -110,7 +110,7 @@ review:
 
 ### Scenario 1: Free Tier (Gemini)
 
-**Cost:** $0  
+**Cost:** $0
 **Reviews/month:** ~100
 
 ```yaml
@@ -125,14 +125,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      
+
       - name: Install
         run: pip install ai-code-reviewer
-      
+
       - name: Review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,7 +153,7 @@ jobs:
 
 ### Scenario 2: Small Team (Hybrid)
 
-**Cost:** ~$10-30/month  
+**Cost:** ~$10-30/month
 **Reviews/month:** ~500
 
 ```yaml
@@ -170,14 +170,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      
+
       - name: Install
         run: pip install ai-code-reviewer
-      
+
       - name: Review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -205,7 +205,7 @@ jobs:
 
 ### Scenario 3: Enterprise (Self-Hosted Runner)
 
-**Cost:** Infrastructure + modest API  
+**Cost:** Infrastructure + modest API
 **Reviews/month:** 2000+
 
 #### Setup Self-Hosted Runner
@@ -215,7 +215,7 @@ jobs:
    # Ubuntu 22.04 with GPU (optional)
    # Install Ollama
    curl -fsSL https://ollama.com/install.sh | sh
-   
+
    # Pull models
    ollama pull llama3.1:8b
    ollama pull codellama:13b
@@ -237,12 +237,12 @@ on:
 jobs:
   review:
     runs-on: [self-hosted, linux]
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

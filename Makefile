@@ -97,7 +97,7 @@ watch-test: ## Watch tests (requires pytest-watch)
 
 # Quick quality check before commit
 quick: ## Quick check (format + lint)
-	uv run ruff format .
 	uv run ruff check --fix .
+	uv run ruff format .
 	uv run mypy src/
 	@echo "✓ Quick check complete!"

@@ -124,7 +124,7 @@ Choose your path:
       providers:
         - local      # Ollama
         - anthropic  # Cloud fallback
-    
+
     webhook:
       enabled: true
     ```

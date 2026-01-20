@@ -146,8 +146,6 @@ select = [
 ]
 
 ignore = [
-    "ANN101",  # Missing type annotation for self
-    "ANN102",  # Missing type annotation for cls
     "D",       # pydocstyle (we use Google style, not numpy)
     "COM812",  # Trailing comma (conflicts with formatter)
     "ISC001",  # Implicit string concatenation (conflicts with formatter)
