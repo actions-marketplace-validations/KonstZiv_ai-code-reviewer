@@ -44,6 +44,16 @@
   (required for mkdocs-material custom YAML tags)
 - All pre-commit hooks pass: ruff, ruff-format, mypy, trailing-whitespace,
   end-of-file-fixer, check-yaml, check-toml, debug-statements
+
+CI/CD Fixes (2026-01-20):
+- Fixed all 3 workflows to use PEP 735 style:
+  - tests.yml: uv sync --all-groups + uv run commands
+  - docs.yml: uv sync --group dev + uv run mkdocs
+  - release.yml: uv sync + uv build
+- Removed manual venv activation (uv run handles it)
+- Added Python 3.14 to test matrix (stable since Oct 2025)
+- Fixed artifact naming conflict: coverage-report-py{version}
+- Codecov uploads only from Python 3.13 (avoid duplicates)
 ```
 
 **Blockers:**
@@ -54,8 +64,8 @@ None - task completed successfully
 ---
 
 ### ⏳ Task 2: Core Data Models
-**Status:** 🎯 Ready to Start (Task 1 completed)
-**Assigned:** [Who's working on this]
+**Status:** 🎯 **NEXT** — Ready to Start
+**Assigned:** Claude Code (AI)
 **Time:** 0h / 3h estimated
 
 **Checklist:**
@@ -325,24 +335,31 @@ Translation help:
 
 ## 🎯 Daily Standup
 
-### Today's Focus
+### Today's Focus (2026-01-20)
 ```
-[What are you working on today?]
+Task 2: Core Data Models
+- Create Pydantic models: MergeRequest, LinkedTask, ReviewContext, ReviewResult
+- Add validation, type hints, docstrings
+- Write unit tests (target ≥90% coverage)
 ```
 
 ### Progress Since Last Update
 ```
-[What did you complete?]
+✅ Task 1 completed and verified (2026-01-20):
+- make quick passes (ruff + mypy)
+- make test passes (2 tests, 100% coverage)
+- All CI/CD workflows fixed for PEP 735
+- Pre-commit hooks working
 ```
 
 ### Blockers
 ```
-[Anything blocking progress?]
+None
 ```
 
 ### Questions
 ```
-[Anything unclear?]
+None - ready to proceed with Task 2
 ```
 
 ---
@@ -442,16 +459,16 @@ Translation help:
 
 ## 📊 Final Sprint Metrics
 
-**To be filled at completion:**
+**In Progress:**
 
-- Start Date: [Date]
-- End Date: [Date]
-- Duration: [Days]
-- Tasks Completed: [X/8]
-- Test Coverage: [X%]
-- Lines of Code: [X]
-- Commits: [X]
-- PRs: [X]
+- Start Date: 2026-01-20
+- End Date: [TBD]
+- Duration: [TBD]
+- Tasks Completed: 1/8
+- Test Coverage: 100% (minimal code)
+- Lines of Code: ~50
+- Commits: 5+ (CI/CD fixes)
+- PRs: 0
 
 ---
 
