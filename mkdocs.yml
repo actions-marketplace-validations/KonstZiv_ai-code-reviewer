@@ -27,7 +27,7 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-  
+
   features:
     - navigation.instant
     - navigation.tracking
@@ -39,7 +39,7 @@ theme:
     - search.highlight
     - content.code.copy
     - content.code.annotate
-  
+
   icon:
     repo: fontawesome/brands/github
 
@@ -49,7 +49,7 @@ extra:
       link: https://github.com/your-org/ai-code-reviewer
     - icon: fontawesome/brands/discord
       link: https://discord.gg/your-server
-  
+
   version:
     provider: mike
 
@@ -66,23 +66,23 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
-  
+
   # Admonitions
   - admonition
   - pymdownx.details
-  
+
   # Tables
   - tables
-  
+
   # Task lists
   - pymdownx.tasklist:
       custom_checkbox: true
-  
+
   # Emoji
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  
+
   # Other
   - attr_list
   - def_list
@@ -106,39 +106,39 @@ plugins:
 
 nav:
   - Home: index.md
-  
+
   - Getting Started:
     - Quick Start (1 min): getting-started/quick-start.md
     - Installation: getting-started/installation.md
     - First Review: getting-started/first-review.md
     - Configuration: getting-started/configuration.md
-  
+
   - Deployment Scenarios:
     - Overview: deployment/index.md
     - Solo Developer (FREE): deployment/solo-dev.md
     - Small Team ($10-30/mo): deployment/small-team.md
     - Enterprise (Self-Hosted): deployment/enterprise.md
-  
+
   - Integration Guides:
     - GitLab CI: guides/gitlab-ci.md
     - GitHub Actions: guides/github-actions.md
     - Webhook Mode: guides/webhook-mode.md
     - Local Development: guides/local-dev.md
-  
+
   - Understanding the System:
     - Architecture: guides/architecture.md
     - How It Works: guides/how-it-works.md
     - Agents Explained: guides/agents.md
     - LLM Routing: guides/llm-routing.md
     - Cost Optimization: guides/cost-optimization.md
-  
+
   - Configuration:
     - Overview: configuration/index.md
     - LLM Providers: configuration/llm-providers.md
     - Review Settings: configuration/review-settings.md
     - Repository Context: configuration/repository-context.md
     - Environment Variables: configuration/environment.md
-  
+
   - Development:
     - Contributing: development/contributing.md
     - Architecture Deep Dive: development/architecture.md
@@ -146,18 +146,18 @@ nav:
     - Adding LLM Providers: development/adding-providers.md
     - Testing: development/testing.md
     - Project Structure: development/project-structure.md
-  
+
   - API Reference:
     - Core Models: api/core-models.md
     - LLM Router: api/llm-router.md
     - Agents: api/agents.md
     - Integrations: api/integrations.md
-  
+
   - Troubleshooting:
     - Common Issues: troubleshooting/common-issues.md
     - FAQ: troubleshooting/faq.md
     - Debugging: troubleshooting/debugging.md
-  
+
   - About:
     - Changelog: about/changelog.md
     - Roadmap: about/roadmap.md

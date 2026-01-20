@@ -1,8 +1,8 @@
 # Sprint 1 Progress Canvas - MVP Code Reviewer
 
-**Sprint Start:** [Date when you start]
+**Sprint Start:** 2026-01-20
 **Sprint Goal:** Build minimal working reviewer + verify entire toolchain
-**Status:** 🎯 Not Started
+**Status:** 🚧 In Progress
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| **Tasks Completed** | 8/8 | 0/8 | ⏳ |
-| **Test Coverage** | ≥80% | 0% | ⏳ |
+| **Tasks Completed** | 8/8 | 1/8 | 🚧 |
+| **Test Coverage** | ≥80% | 100% (minimal) | ✅ |
 | **CI/CD Status** | ✅ All green | ⏳ Not configured | ⏳ |
 | **Documentation** | 6 languages | 0 languages | ⏳ |
 | **PyPI Published** | v0.1.0 | Not published | ⏳ |
@@ -21,33 +21,40 @@
 ## 🎯 Sprint Backlog
 
 ### ✅ Task 1: Development Environment Setup
-**Status:** ⏳ Not Started
-**Assigned:** [Who's working on this]
-**Time:** 0h / 2h estimated
+**Status:** ✅ Completed
+**Assigned:** Claude Code (AI)
+**Time:** ~1h / 2h estimated
+**Completed:** 2026-01-20
 
 **Checklist:**
-- [ ] `uv` installation verified
-- [ ] `make install` works
-- [ ] `make quick` passes (ruff + mypy)
-- [ ] Dummy test added
-- [ ] `make test` shows coverage
-- [ ] Pre-commit hooks tested
-- [ ] Tooling documented in README
+- [x] `uv` installation verified (v0.9.25)
+- [x] `make install` works - installs all deps via PEP 735
+- [x] `make quick` passes (ruff + mypy)
+- [x] Dummy test added (`tests/unit/test_package.py`)
+- [x] `make test` shows coverage (100% on current code)
+- [x] Pre-commit hooks tested and working
+- [x] Tooling documented in README
 
 **Notes:**
 ```
-[Add notes as you work]
+- uv v0.9.25 installed, uv.lock exists with 149 packages
+- Added __version__ = "0.1.0" to src/ai_reviewer/__init__.py
+- Created smoke tests in tests/unit/test_package.py
+- Fixed .pre-commit-config.yaml: added --unsafe to check-yaml
+  (required for mkdocs-material custom YAML tags)
+- All pre-commit hooks pass: ruff, ruff-format, mypy, trailing-whitespace,
+  end-of-file-fixer, check-yaml, check-toml, debug-statements
 ```
 
 **Blockers:**
 ```
-[None yet]
+None - task completed successfully
 ```
 
 ---
 
 ### ⏳ Task 2: Core Data Models
-**Status:** ⏳ Waiting for Task 1
+**Status:** 🎯 Ready to Start (Task 1 completed)
 **Assigned:** [Who's working on this]
 **Time:** 0h / 3h estimated
 
