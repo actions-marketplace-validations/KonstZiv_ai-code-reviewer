@@ -31,17 +31,17 @@ jobs:
       - name: Run ruff check
         run: |
           source .venv/bin/activate
-          ruff check .
+          uv run ruff check .
 
       - name: Run ruff format (check only)
         run: |
           source .venv/bin/activate
-          ruff format --check .
+          uv run ruff format --check .
 
       - name: Run mypy
         run: |
           source .venv/bin/activate
-          mypy src/
+          uv run mypy src/
 
   test:
     name: Tests (Python ${{ matrix.python-version }})
