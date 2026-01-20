@@ -10,8 +10,8 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| **Tasks Completed** | 8/8 | 1/8 | 🚧 |
-| **Test Coverage** | ≥80% | 100% (minimal) | ✅ |
+| **Tasks Completed** | 8/8 | 2/8 | 🚧 |
+| **Test Coverage** | ≥80% | 100% | ✅ |
 | **CI/CD Status** | ✅ All green | ⏳ Not configured | ⏳ |
 | **Documentation** | 6 languages | 0 languages | ⏳ |
 | **PyPI Published** | v0.1.0 | Not published | ⏳ |
@@ -63,35 +63,47 @@ None - task completed successfully
 
 ---
 
-### ⏳ Task 2: Core Data Models
-**Status:** 🎯 **NEXT** — Ready to Start
+### ✅ Task 2: Core Data Models
+**Status:** ✅ Completed
 **Assigned:** Claude Code (AI)
-**Time:** 0h / 3h estimated
+**Time:** ~1h / 3h estimated
+**Completed:** 2026-01-20
 
 **Checklist:**
-- [ ] `src/ai_reviewer/core/models.py` created
-- [ ] Models defined: MergeRequest, LinkedTask, ReviewContext, ReviewResult
-- [ ] All models have type hints
-- [ ] Validation logic added
-- [ ] Unit tests written
-- [ ] Coverage ≥90% for models.py
-- [ ] Mypy passes in strict mode
-- [ ] Docstrings added (Google style)
+- [x] `src/ai_reviewer/core/models.py` created
+- [x] Models defined: MergeRequest, LinkedTask, ReviewContext, ReviewResult
+- [x] All models have type hints
+- [x] Validation logic added
+- [x] Unit tests written (49 tests)
+- [x] Coverage ≥90% for models.py (100% achieved)
+- [x] Mypy passes in strict mode
+- [x] Docstrings added (Google style)
 
 **Notes:**
 ```
-[Add notes as you work]
+Models created (120 lines):
+- Comment, CommentAuthorType
+- FileChange, FileChangeType
+- MergeRequest (with total_additions, total_deletions, files_changed properties)
+- LinkedTask
+- ReviewContext (with repository format validation)
+- Vulnerability, VulnerabilitySeverity
+- ReviewResult, TaskAlignmentStatus (with has_critical_vulnerabilities, matches_task properties)
+
+All models are frozen (immutable) using ConfigDict(frozen=True)
+Used tuple instead of list for immutable collections
+Added comprehensive validation with Pydantic Field constraints
 ```
 
 **Code Location:**
-- File: `src/ai_reviewer/core/models.py`
-- Tests: `tests/unit/test_models.py`
+- File: `src/ai_reviewer/core/models.py` (120 statements)
+- Tests: `tests/unit/test_models.py` (49 tests, 100% coverage)
 
 ---
 
 ### ⏳ Task 3: Configuration Management
-**Status:** ⏳ Waiting for Task 2
-**Assigned:** [Who's working on this]
+**Status:** 🎯 **NEXT** — Ready to Start
+**Assigned:** Claude Code (AI)
 **Time:** 0h / 2h estimated
 
 **Checklist:**
@@ -273,7 +285,7 @@ Translation help:
 
 | Module | Target | Current | Status |
 |--------|--------|---------|--------|
-| core/models.py | ≥90% | 0% | ⏳ |
+| core/models.py | ≥90% | 100% | ✅ |
 | core/config.py | ≥90% | 0% | ⏳ |
 | integrations/github.py | ≥80% | 0% | ⏳ |
 | integrations/gemini.py | ≥80% | 0% | ⏳ |
@@ -337,19 +349,21 @@ Translation help:
 
 ### Today's Focus (2026-01-20)
 ```
-Task 2: Core Data Models
-- Create Pydantic models: MergeRequest, LinkedTask, ReviewContext, ReviewResult
-- Add validation, type hints, docstrings
-- Write unit tests (target ≥90% coverage)
+Task 3: Configuration Management
+- Create config.py with pydantic-settings
+- Load GITHUB_TOKEN, GOOGLE_API_KEY from env
+- Add validation and clear error messages
 ```
 
 ### Progress Since Last Update
 ```
-✅ Task 1 completed and verified (2026-01-20):
-- make quick passes (ruff + mypy)
-- make test passes (2 tests, 100% coverage)
-- All CI/CD workflows fixed for PEP 735
-- Pre-commit hooks working
+✅ Task 2 completed (2026-01-20):
+- Created src/ai_reviewer/core/models.py (120 statements)
+- 8 Pydantic models: Comment, FileChange, MergeRequest, LinkedTask,
+  ReviewContext, Vulnerability, ReviewResult + 4 enums
+- All models frozen (immutable), with validation
+- 49 unit tests, 100% coverage
+- make quick + make test pass
 ```
 
 ### Blockers
@@ -359,7 +373,7 @@ None
 
 ### Questions
 ```
-None - ready to proceed with Task 2
+None - ready to proceed with Task 3
 ```
 
 ---
@@ -464,9 +478,9 @@ None - ready to proceed with Task 2
 - Start Date: 2026-01-20
 - End Date: [TBD]
 - Duration: [TBD]
-- Tasks Completed: 1/8
-- Test Coverage: 100% (minimal code)
-- Lines of Code: ~50
+- Tasks Completed: 2/8
+- Test Coverage: 100%
+- Lines of Code: ~170 (models.py: 120)
 - Commits: 5+ (CI/CD fixes)
 - PRs: 0
 
