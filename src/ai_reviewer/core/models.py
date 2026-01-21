@@ -251,7 +251,7 @@ class Vulnerability(BaseModel):
     description: str = Field(..., min_length=1, description="Detailed description")
     severity: VulnerabilitySeverity = Field(..., description="Severity level")
     file: str | None = Field(default=None, description="File where found")
-    line: int | None = Field(default=None, gt=0, description="Line number")
+    line: int | None = Field(default=None, ge=1, description="Line number")
     recommendation: str = Field(default="", description="Suggested fix")
 
 
