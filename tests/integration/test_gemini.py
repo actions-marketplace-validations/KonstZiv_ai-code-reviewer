@@ -5,13 +5,16 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from pydantic import SecretStr, ValidationError
 
+from ai_reviewer.core.config import Settings
 from ai_reviewer.core.models import (
+    MergeRequest,
+    ReviewContext,
     ReviewResult,
     TaskAlignmentStatus,
     Vulnerability,
     VulnerabilitySeverity,
 )
-from ai_reviewer.integrations.gemini import GeminiClient
+from ai_reviewer.integrations.gemini import GeminiClient, analyze_code_changes
 
 
 class TestGeminiClient:
@@ -90,10 +93,73 @@ class TestGeminiClient:
     def test_generate_review_validation_error(self, client: GeminiClient) -> None:
         """Test handling of validation errors when converting to model."""
         # This simulates a case where parsed returns a dict that doesn't match the model
-        # (though with response_schema this shouldn't happen often)
         mock_response = Mock()
-        mock_response.parsed = {"invalid": "data"}  # Not a ReviewResult
+        # Pass an invalid enum value to trigger ValidationError
+        mock_response.parsed = {"task_alignment": "INVALID_STATUS"}
         client.client.models.generate_content.return_value = mock_response
 
         with pytest.raises(ValidationError):
             client.generate_review("Test prompt")
+
+
+class TestAnalyzeCodeChanges:
+    """Tests for analyze_code_changes orchestration function."""
+
+    @pytest.fixture
+    def mock_settings(self) -> Settings:
+        """Create mock settings."""
+        settings = Mock(spec=Settings)
+        settings.google_api_key = SecretStr("test-key")
+        settings.gemini_model = "gemini-pro"
+        settings.review_max_files = 5
+        settings.review_max_diff_lines = 10
+        return settings
+
+    @pytest.fixture
+    def mock_context(self) -> ReviewContext:
+        """Create mock review context."""
+        mr = Mock(spec=MergeRequest)
+        mr.number = 123
+        mr.title = "Test PR"
+        mr.description = "Desc"
+        mr.changes = []
+
+        context = Mock(spec=ReviewContext)
+        context.mr = mr
+        context.task = None
+        return context
+
+    @patch("ai_reviewer.integrations.gemini.GeminiClient")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_analyze_flow(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_client_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test the full analysis flow."""
+        # Setup mocks
+        mock_build_prompt.return_value = "Constructed Prompt"
+
+        mock_client_instance = mock_client_cls.return_value
+        expected_result = ReviewResult(summary="LGTM")
+        mock_client_instance.generate_review.return_value = expected_result
+
+        # Execute
+        result = analyze_code_changes(mock_context, mock_settings)
+
+        # Verify
+        assert result == expected_result
+
+        # Verify prompt building
+        mock_build_prompt.assert_called_once_with(mock_context, mock_settings)
+
+        # Verify client initialization
+        mock_client_cls.assert_called_once_with(
+            api_key=mock_settings.google_api_key,
+            model_name=mock_settings.gemini_model,
+        )
+
+        # Verify generation call
+        mock_client_instance.generate_review.assert_called_once_with("Constructed Prompt")

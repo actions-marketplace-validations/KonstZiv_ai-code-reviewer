@@ -14,10 +14,13 @@ from google.genai import types
 from pydantic import ValidationError
 
 from ai_reviewer.core.models import ReviewResult
-from ai_reviewer.integrations.prompts import SYSTEM_PROMPT
+from ai_reviewer.integrations.prompts import SYSTEM_PROMPT, build_review_prompt
 
 if TYPE_CHECKING:
     from pydantic import SecretStr
+
+    from ai_reviewer.core.config import Settings
+    from ai_reviewer.core.models import ReviewContext
 
 logger = logging.getLogger(__name__)
 
@@ -100,3 +103,37 @@ class GeminiClient:
         except Exception:
             logger.exception("Gemini API call failed")
             raise
+
+
+def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewResult:
+    """Analyze code changes using Gemini.
+
+    This function orchestrates the review process:
+    1. Builds the prompt from the context.
+    2. Initializes the Gemini client.
+    3. Generates the review.
+
+    Args:
+        context: The review context (MR, task, etc.).
+        settings: Application settings.
+
+    Returns:
+        The review result.
+    """
+    logger.info("Starting code analysis for PR #%s", context.mr.number)
+
+    # 1. Build prompt
+    prompt = build_review_prompt(context, settings)
+    logger.debug("Generated prompt of length %d chars", len(prompt))
+
+    # 2. Initialize client
+    client = GeminiClient(
+        api_key=settings.google_api_key,
+        model_name=settings.gemini_model,
+    )
+
+    # 3. Generate review
+    result = client.generate_review(prompt)
+    logger.info("Analysis complete. Found %d vulnerabilities.", result.vulnerability_count)
+
+    return result
