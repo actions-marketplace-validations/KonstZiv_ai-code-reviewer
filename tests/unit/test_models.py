@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from ai_reviewer.core.models import (
     Comment,
     CommentAuthorType,
+    CommentType,
     FileChange,
     FileChangeType,
     LinkedTask,
@@ -25,10 +26,11 @@ class TestComment:
 
     def test_create_minimal_comment(self) -> None:
         """Test creating a comment with minimal required fields."""
-        comment = Comment(author="user1", body="LGTM")
+        comment = Comment(author="user1", body="LGTM", type=CommentType.ISSUE)
         assert comment.author == "user1"
         assert comment.body == "LGTM"
         assert comment.author_type == CommentAuthorType.USER
+        assert comment.type == CommentType.ISSUE
         assert comment.created_at is None
 
     def test_create_full_comment(self) -> None:
@@ -38,28 +40,36 @@ class TestComment:
             author="bot",
             author_type=CommentAuthorType.BOT,
             body="Automated review",
+            type=CommentType.REVIEW,
             created_at=now,
         )
         assert comment.author == "bot"
         assert comment.author_type == CommentAuthorType.BOT
         assert comment.body == "Automated review"
+        assert comment.type == CommentType.REVIEW
         assert comment.created_at == now
 
     def test_comment_author_required(self) -> None:
         """Test that author field is required."""
         with pytest.raises(ValidationError) as exc_info:
-            Comment(body="test")  # type: ignore[call-arg]
+            Comment(body="test", type=CommentType.ISSUE)  # type: ignore[call-arg]
         assert "author" in str(exc_info.value)
+
+    def test_comment_type_required(self) -> None:
+        """Test that type field is required."""
+        with pytest.raises(ValidationError) as exc_info:
+            Comment(author="user", body="test")  # type: ignore[call-arg]
+        assert "type" in str(exc_info.value)
 
     def test_comment_author_not_empty(self) -> None:
         """Test that author cannot be empty."""
         with pytest.raises(ValidationError) as exc_info:
-            Comment(author="", body="test")
+            Comment(author="", body="test", type=CommentType.ISSUE)
         assert "author" in str(exc_info.value)
 
     def test_comment_is_frozen(self) -> None:
         """Test that comment model is immutable."""
-        comment = Comment(author="user", body="test")
+        comment = Comment(author="user", body="test", type=CommentType.ISSUE)
         with pytest.raises(ValidationError):
             comment.body = "modified"  # type: ignore[misc]
 
@@ -67,7 +77,7 @@ class TestComment:
         """Test that created_at rejects naive datetime."""
         naive_dt = datetime(2026, 1, 20, 12, 0, 0)  # noqa: DTZ001 - intentionally naive
         with pytest.raises(ValidationError) as exc_info:
-            Comment(author="user", body="test", created_at=naive_dt)
+            Comment(author="user", body="test", type=CommentType.ISSUE, created_at=naive_dt)
         assert "timezone-aware" in str(exc_info.value)
 
 
@@ -160,8 +170,8 @@ class TestMergeRequest:
             source_branch="fix/login",
             target_branch="main",
             comments=(
-                Comment(author="reviewer", body="Needs tests"),
-                Comment(author="developer", body="Added tests"),
+                Comment(author="reviewer", body="Needs tests", type=CommentType.REVIEW),
+                Comment(author="developer", body="Added tests", type=CommentType.ISSUE),
             ),
             changes=(
                 FileChange(
@@ -195,6 +205,8 @@ class TestMergeRequest:
         assert full_mr.number == 42
         assert len(full_mr.comments) == 2
         assert len(full_mr.changes) == 2
+        assert full_mr.comments[0].type == CommentType.REVIEW
+        assert full_mr.comments[1].type == CommentType.ISSUE
 
     def test_total_additions(self, full_mr: MergeRequest) -> None:
         """Test total_additions property."""
@@ -539,6 +551,11 @@ class TestEnums:
         """Test CommentAuthorType enum values."""
         assert CommentAuthorType.USER.value == "user"
         assert CommentAuthorType.BOT.value == "bot"
+
+    def test_comment_type_values(self) -> None:
+        """Test CommentType enum values."""
+        assert CommentType.ISSUE.value == "issue"
+        assert CommentType.REVIEW.value == "review"
 
     def test_file_change_type_values(self) -> None:
         """Test FileChangeType enum values."""

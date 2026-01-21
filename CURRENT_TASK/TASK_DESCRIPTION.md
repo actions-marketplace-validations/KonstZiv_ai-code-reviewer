@@ -34,7 +34,7 @@ Build the simplest possible working code reviewer that:
 
 ### Functional Requirements
 1. ✅ Reviewer runs on GitHub Actions after quality checks
-2. ✅ Retrieves: MR title, description, comments, linked task, code changes
+2. ✅ Retrieves: MR title, description, comments (issue & review), linked task, code changes
 3. ✅ Analyzes using Google Gemini (free tier)
 4. ✅ Posts comment with:
    - Critical vulnerabilities (if any)
@@ -94,6 +94,15 @@ src/ai_reviewer/
 
 ```python
 # Simplified models
+class CommentType(str, Enum):
+    ISSUE = "issue"
+    REVIEW = "review"
+
+class Comment:
+    author: str
+    body: str
+    type: CommentType  # NEW: Distinguish between general and review comments
+
 class MergeRequest:
     title: str
     description: str
@@ -202,15 +211,16 @@ class ReviewResult:
    - `get_pull_request(repo, pr_number) -> MergeRequest`
    - `get_linked_task(pr) -> LinkedTask | None`
    - `post_review_comment(pr, comment)`
-4. Handle errors gracefully
-5. Write integration tests (mock GitHub API)
-6. Add retry logic
+4. **Handle Rate Limits:** Catch `RateLimitExceededException` (403/429), log warning, and post "Rate limit exceeded" comment to PR if possible.
+5. **Handle Binary/Large Files:** Explicitly check if `patch` is None or file is too large, and skip/mark as ignored in `FileChange`.
+6. Write integration tests (mock GitHub API)
 
 **Acceptance Criteria:**
-- ✅ Fetches PR data correctly
+- ✅ Fetches PR data correctly (including both issue & review comments)
 - ✅ Extracts linked task from PR body
 - ✅ Posts comments to PR
-- ✅ Handles API errors
+- ✅ Handles API errors & Rate Limits gracefully
+- ✅ Handles binary/large files correctly
 - ✅ Integration tests with mocks
 - ✅ Type hints
 

@@ -41,6 +41,13 @@ class CommentAuthorType(str, Enum):
     BOT = "bot"
 
 
+class CommentType(str, Enum):
+    """Type of comment (general issue comment or code review comment)."""
+
+    ISSUE = "issue"
+    REVIEW = "review"
+
+
 class FileChangeType(str, Enum):
     """Type of file change in a merge request."""
 
@@ -57,6 +64,7 @@ class Comment(BaseModel):
         author: The username of the comment author.
         author_type: Whether the author is a user or bot.
         body: The content of the comment.
+        type: The type of comment (issue or review).
         created_at: When the comment was created (must be timezone-aware).
     """
 
@@ -67,6 +75,7 @@ class Comment(BaseModel):
         default=CommentAuthorType.USER, description="Type of author (user or bot)"
     )
     body: str = Field(..., description="Content of the comment")
+    type: CommentType = Field(..., description="Type of comment (issue or review)")
     created_at: datetime | None = Field(default=None, description="When the comment was created")
 
     @field_validator("created_at")
@@ -327,6 +336,7 @@ class ReviewResult(BaseModel):
 __all__ = [
     "Comment",
     "CommentAuthorType",
+    "CommentType",
     "FileChange",
     "FileChangeType",
     "LinkedTask",
