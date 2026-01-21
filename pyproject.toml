@@ -30,7 +30,7 @@ dependencies = [
     "langchain-ollama>=1.0.1",            # Ollama (local)
     "anthropic>=0.76.0",                  # Direct Anthropic SDK
     "openai>=2.15.0",                     # Direct OpenAI SDK
-    "google-generativeai>=0.8.6",         # Direct Google SDK
+    "google-genai>=1.59.0",                # New Google GenAI SDK
 
     # Core
     "pydantic>=2.12.5",
@@ -189,6 +189,7 @@ module = [
     "anthropic.*",
     "langchain.*",
     "langgraph.*",
+    "google.genai.*",
 ]
 ignore_missing_imports = true
 

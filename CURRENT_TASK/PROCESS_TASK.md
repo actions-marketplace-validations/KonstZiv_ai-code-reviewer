@@ -10,8 +10,8 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| **Tasks Completed** | 8/8 | 2/8 | 🚧 |
-| **Test Coverage** | ≥80% | 100% | ✅ |
+| **Tasks Completed** | 8/8 | 3/8 | 🚧 |
+| **Test Coverage** | ≥80% | 94% | ✅ |
 | **CI/CD Status** | ✅ All green | ⏳ Not configured | ⏳ |
 | **Documentation** | 6 languages | 0 languages | ⏳ |
 | **PyPI Published** | v0.1.0 | Not published | ⏳ |
@@ -101,31 +101,56 @@ Added comprehensive validation with Pydantic Field constraints
 
 ---
 
-### ⏳ Task 3: Configuration Management
-**Status:** 🎯 **NEXT** — Ready to Start
+### ✅ Task 3: Configuration Management
+**Status:** ✅ Completed
 **Assigned:** Claude Code (AI)
-**Time:** 0h / 2h estimated
+**Time:** ~30min / 2h estimated
+**Completed:** 2026-01-21
 
 **Checklist:**
-- [ ] `src/ai_reviewer/core/config.py` created
-- [ ] Uses pydantic-settings
-- [ ] Loads GITHUB_TOKEN, GOOGLE_API_KEY
-- [ ] Validation implemented
-- [ ] Default values set
-- [ ] Error messages clear
-- [ ] Unit tests written
-- [ ] Type hints added
+- [x] `src/ai_reviewer/core/config.py` created
+- [x] Uses pydantic-settings
+- [x] Loads GITHUB_TOKEN, GOOGLE_API_KEY
+- [x] Validation implemented
+- [x] Default values set
+- [x] Error messages clear
+- [x] Unit tests written (16 tests)
+- [x] Type hints added
 
 **Notes:**
 ```
-[Add notes as you work]
+Settings class (33 statements):
+- Required: GITHUB_TOKEN, GOOGLE_API_KEY (SecretStr)
+- Optional: GEMINI_MODEL, LOG_LEVEL, REVIEW_MAX_FILES, REVIEW_MAX_DIFF_LINES
+- Loads from .env file or environment variables
+- Validates token length, log level values, numeric ranges
+- Secrets never exposed in logs (SecretStr)
+- get_settings() factory function
+
+Architecture (refactored 2026-01-21):
+- Uses Annotated + AfterValidator pattern (not @field_validator)
+- Reusable _create_secret_validator() factory
+- Type aliases: GitHubToken, GoogleApiKey, LogLevel
+- Local validation only (format/length), no runtime API checks
+
+Gemini utilities (src/ai_reviewer/utils/gemini.py):
+- GeminiModelInfo: Dataclass for model info
+- GeminiValidationResult: Structured validation result
+- ValidationStatus: Enum for validation outcomes
+- validate_gemini_setup(): Runtime API validation
+- list_models(): Lists available Gemini models
+- format_models_table(): Formats models as table
+- format_validation_result(): Formats validation for CLI
+
+Tests: 16 tests (config) + 29 tests (gemini) = 45 total
+Coverage: 100% config, 85% gemini, 94% overall
 ```
 
 ---
 
 ### ⏳ Task 4: GitHub Integration
-**Status:** ⏳ Waiting for Task 3
-**Assigned:** [Who's working on this]
+**Status:** 🎯 **NEXT** — Ready to Start
+**Assigned:** Claude Code (AI)
 **Time:** 0h / 4h estimated
 
 **Checklist:**
@@ -286,12 +311,13 @@ Translation help:
 | Module | Target | Current | Status |
 |--------|--------|---------|--------|
 | core/models.py | ≥90% | 100% | ✅ |
-| core/config.py | ≥90% | 0% | ⏳ |
+| core/config.py | ≥90% | 100% | ✅ |
+| utils/gemini.py | ≥80% | 85% | ✅ |
 | integrations/github.py | ≥80% | 0% | ⏳ |
 | integrations/gemini.py | ≥80% | 0% | ⏳ |
 | reviewer.py | ≥80% | 0% | ⏳ |
 | cli.py | ≥70% | 0% | ⏳ |
-| **Overall** | **≥80%** | **0%** | ⏳ |
+| **Overall** | **≥80%** | **94%** | ✅ |
 
 ### Test Types Status
 
@@ -347,23 +373,35 @@ Translation help:
 
 ## 🎯 Daily Standup
 
-### Today's Focus (2026-01-20)
+### Today's Focus (2026-01-21)
 ```
-Task 3: Configuration Management
-- Create config.py with pydantic-settings
-- Load GITHUB_TOKEN, GOOGLE_API_KEY from env
-- Add validation and clear error messages
+Task 4: GitHub Integration
+- Create github.py with PyGithub
+- Implement get_pull_request(), get_linked_task(), post_review_comment()
+- Error handling and retry logic
 ```
 
 ### Progress Since Last Update
 ```
-✅ Task 2 completed (2026-01-20):
-- Created src/ai_reviewer/core/models.py (120 statements)
-- 8 Pydantic models: Comment, FileChange, MergeRequest, LinkedTask,
-  ReviewContext, Vulnerability, ReviewResult + 4 enums
-- All models frozen (immutable), with validation
-- 49 unit tests, 100% coverage
-- make quick + make test pass
+✅ Task 3 completed + refactored (2026-01-21):
+
+Config refactoring:
+- Annotated + AfterValidator pattern (not @field_validator)
+- Reusable _create_secret_validator() factory
+- Type aliases: GitHubToken, GoogleApiKey, LogLevel
+- Local validation only (format/length)
+
+Gemini utilities added (src/ai_reviewer/utils/gemini.py):
+- GeminiModelInfo: Model info dataclass
+- GeminiValidationResult: Structured validation result
+- ValidationStatus: Enum for validation outcomes
+- validate_gemini_setup(): Runtime API validation
+- list_models(), format_models_table()
+- format_validation_result(): CLI formatting
+
+Tests: 99 total (54 models, 16 config, 29 gemini)
+Coverage: 94% overall
+make quick + make test pass
 ```
 
 ### Blockers
@@ -373,7 +411,7 @@ None
 
 ### Questions
 ```
-None - ready to proceed with Task 3
+None - ready to proceed with Task 4
 ```
 
 ---
@@ -478,9 +516,10 @@ None - ready to proceed with Task 3
 - Start Date: 2026-01-20
 - End Date: [TBD]
 - Duration: [TBD]
-- Tasks Completed: 2/8
-- Test Coverage: 100%
-- Lines of Code: ~170 (models.py: 120)
+- Tasks Completed: 3/8
+- Test Coverage: 94%
+- Lines of Code: ~280 (models: 138, config: 33, gemini: 108)
+- Unit Tests: 99 (models: 54, config: 16, gemini: 29)
 - Commits: 5+ (CI/CD fixes)
 - PRs: 0
 
