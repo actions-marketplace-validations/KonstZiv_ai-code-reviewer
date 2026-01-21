@@ -10,7 +10,7 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| **Tasks Completed** | 8/8 | 3/8 | 🚧 |
+| **Tasks Completed** | 8/8 | 4/8 | 🚧 |
 | **Test Coverage** | ≥80% | 94% | ✅ |
 | **CI/CD Status** | ✅ All green | ⏳ Not configured | ⏳ |
 | **Documentation** | 6 languages | 0 languages | ⏳ |
@@ -148,25 +148,33 @@ Coverage: 100% config, 85% gemini, 94% overall
 
 ---
 
-### ⏳ Task 4: GitHub Integration
-**Status:** 🎯 **NEXT** — Ready to Start
+### ✅ Task 4: GitHub Integration
+**Status:** ✅ Completed
 **Assigned:** Claude Code (AI)
-**Time:** 0h / 4h estimated
+**Time:** ~1h / 4h estimated
+**Completed:** 2026-01-21
 
 **Checklist:**
-- [ ] `src/ai_reviewer/integrations/github.py` created
-- [ ] PyGithub library integrated
-- [ ] `get_pull_request()` implemented
-- [ ] `get_linked_task()` implemented
-- [ ] `post_review_comment()` implemented
-- [ ] Error handling added
-- [ ] Retry logic implemented
-- [ ] Integration tests with mocks
-- [ ] Type hints added
+- [x] `src/ai_reviewer/integrations/github.py` created
+- [x] PyGithub library integrated
+- [x] `get_pull_request()` implemented
+- [x] `get_linked_task()` implemented
+- [x] `post_review_comment()` implemented
+- [x] Error handling added
+- [x] Retry logic implemented
+- [x] Integration tests with mocks
+- [x] Type hints added
 
 **Notes:**
 ```
-[Add notes as you work]
+Implemented GitHubClient with:
+- Rate limit handling decorator (logs error, returns None)
+- Support for both Issue and Review comments
+- Binary/large file handling (skips patch content)
+- Linked task extraction via regex (Fixes #123)
+- Comprehensive integration tests with mocks
+
+Refactored models to include CommentType (ISSUE/REVIEW).
 ```
 
 **API Endpoints Used:**
@@ -178,9 +186,9 @@ Coverage: 100% config, 85% gemini, 94% overall
 
 ---
 
-### ⏳ Task 5: Google Gemini Integration
-**Status:** ⏳ Waiting for Task 3
-**Assigned:** [Who's working on this]
+### 🎯 Task 5: Google Gemini Integration
+**Status:** 🎯 **NEXT** — Ready to Start
+**Assigned:** Claude Code (AI)
 **Time:** 0h / 4h estimated
 
 **Checklist:**
@@ -313,7 +321,7 @@ Translation help:
 | core/models.py | ≥90% | 100% | ✅ |
 | core/config.py | ≥90% | 100% | ✅ |
 | utils/gemini.py | ≥80% | 85% | ✅ |
-| integrations/github.py | ≥80% | 0% | ⏳ |
+| integrations/github.py | ≥80% | 100% | ✅ |
 | integrations/gemini.py | ≥80% | 0% | ⏳ |
 | reviewer.py | ≥80% | 0% | ⏳ |
 | cli.py | ≥70% | 0% | ⏳ |
@@ -375,33 +383,26 @@ Translation help:
 
 ### Today's Focus (2026-01-21)
 ```
-Task 4: GitHub Integration
-- Create github.py with PyGithub
-- Implement get_pull_request(), get_linked_task(), post_review_comment()
-- Error handling and retry logic
+Task 5: Google Gemini Integration
+- Create gemini.py with google-genai SDK
+- Implement analyze_code_changes()
+- Design prompts for vulnerability & task alignment
 ```
 
 ### Progress Since Last Update
 ```
+✅ Task 4 completed (2026-01-21):
+- GitHubClient implemented with PyGithub
+- Rate limit handling via decorator
+- Binary file handling
+- Integration tests passing (100% coverage for github.py)
+
 ✅ Task 3 completed + refactored (2026-01-21):
+- Config refactoring: Annotated + AfterValidator
+- Gemini utilities added (src/ai_reviewer/utils/gemini.py)
 
-Config refactoring:
-- Annotated + AfterValidator pattern (not @field_validator)
-- Reusable _create_secret_validator() factory
-- Type aliases: GitHubToken, GoogleApiKey, LogLevel
-- Local validation only (format/length)
-
-Gemini utilities added (src/ai_reviewer/utils/gemini.py):
-- GeminiModelInfo: Model info dataclass
-- GeminiValidationResult: Structured validation result
-- ValidationStatus: Enum for validation outcomes
-- validate_gemini_setup(): Runtime API validation
-- list_models(), format_models_table()
-- format_validation_result(): CLI formatting
-
-Tests: 99 total (54 models, 16 config, 29 gemini)
+Tests: 108 total (54 models, 16 config, 29 gemini utils, 9 github integration)
 Coverage: 94% overall
-make quick + make test pass
 ```
 
 ### Blockers
@@ -411,7 +412,7 @@ None
 
 ### Questions
 ```
-None - ready to proceed with Task 4
+None - ready to proceed with Task 5
 ```
 
 ---
@@ -516,11 +517,11 @@ None - ready to proceed with Task 4
 - Start Date: 2026-01-20
 - End Date: [TBD]
 - Duration: [TBD]
-- Tasks Completed: 3/8
+- Tasks Completed: 4/8
 - Test Coverage: 94%
-- Lines of Code: ~280 (models: 138, config: 33, gemini: 108)
-- Unit Tests: 99 (models: 54, config: 16, gemini: 29)
-- Commits: 5+ (CI/CD fixes)
+- Lines of Code: ~400
+- Unit Tests: 108
+- Commits: 10+
 - PRs: 0
 
 ---
