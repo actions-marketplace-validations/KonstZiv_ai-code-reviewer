@@ -169,7 +169,7 @@ def get_settings() -> Settings:
         gemini-2.5-flash
     """
     # pydantic-settings loads required fields from environment variables
-    return Settings()  # type: ignore[call-arg]
+    return Settings()
 
 
 __all__ = [
