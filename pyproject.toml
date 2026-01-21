@@ -30,7 +30,7 @@ dependencies = [
     "langchain-ollama>=1.0.1",            # Ollama (local)
     "anthropic>=0.76.0",                  # Direct Anthropic SDK
     "openai>=2.15.0",                     # Direct OpenAI SDK
-    "google-generativeai>=0.8.6",         # Direct Google SDK
+    "google-genai>=1.59.0",                # New Google GenAI SDK
 
     # Core
     "pydantic>=2.12.5",
@@ -167,6 +167,7 @@ strict = true
 # === MyPy Configuration ===
 [tool.mypy]
 python_version = "3.13"
+plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -189,8 +190,14 @@ module = [
     "anthropic.*",
     "langchain.*",
     "langgraph.*",
+    "google.genai.*",
 ]
 ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 # === Pytest Configuration ===
 [tool.pytest.ini_options]
