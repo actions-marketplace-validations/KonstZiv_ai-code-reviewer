@@ -20,6 +20,60 @@
 
 ---
 
+## 🚀 Usage
+
+### Local Run
+You can run the reviewer locally to test it on a specific PR.
+
+```bash
+# 1. Install
+pip install ai-code-reviewer
+
+# 2. Set environment variables
+export GITHUB_TOKEN=your_github_token
+export GOOGLE_API_KEY=your_gemini_key
+
+# 3. Run review
+ai-review github --repo owner/repo --pr 123
+```
+
+### GitHub Actions
+Add this workflow to your repository to run AI reviews on every Pull Request.
+
+```yaml
+# .github/workflows/ai-review.yml
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install AI Reviewer
+        run: pip install ai-code-reviewer
+
+      - name: Run Review
+        run: ai-review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+```
+
+---
+
 ## 🎯 Quick Start (1 Minute)
 
 ```bash
@@ -30,7 +84,7 @@ pip install ai-code-reviewer
 export GOOGLE_API_KEY=your_key_here
 
 # 3. Review!
-ai-review github --pr-number $PR_NUMBER --repo owner/repo
+ai-review github --pr 123 --repo owner/repo
 ```
 
 That's it! 🎉
@@ -88,7 +142,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install ai-code-reviewer
-      - run: ai-review github --pr-number ${{ github.event.pull_request.number }}
+      - run: ai-review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
