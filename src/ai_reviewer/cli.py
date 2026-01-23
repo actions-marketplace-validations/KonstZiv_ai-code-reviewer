@@ -116,7 +116,7 @@ def _exit_app(code: int = 0) -> NoReturn:
 
 
 @app.command()
-def main(
+def main(  # noqa: PLR0912
     provider: Annotated[
         Provider | None,
         typer.Option(
@@ -206,6 +206,9 @@ def main(
             console.print("[yellow]GitLab support is coming soon![/yellow]")
             _exit_app(code=0)
 
+    except typer.Exit:
+        # Re-raise typer.Exit to not catch it in the general exception handler
+        raise
     except Exception:
         logger.exception("Unexpected error")
         _exit_app(code=1)
