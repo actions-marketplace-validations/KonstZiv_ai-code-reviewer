@@ -19,10 +19,25 @@ Example:
 
 from __future__ import annotations
 
+from enum import Enum
+from functools import lru_cache
 from typing import Annotated
 
 from pydantic import AfterValidator, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class LanguageMode(str, Enum):
+    """Language detection mode for review responses.
+
+    Attributes:
+        ADAPTIVE: Automatically detect language from PR context (description, comments).
+        FIXED: Always use the language specified in LANGUAGE setting.
+    """
+
+    ADAPTIVE = "adaptive"
+    FIXED = "fixed"
+
 
 # Minimum length for API tokens/keys validation
 MIN_SECRET_LENGTH = 10
@@ -100,6 +115,12 @@ class Settings(BaseSettings):
             Limits context size to avoid token limits.
         review_max_diff_lines: Maximum diff lines per file to include.
             Limits context size for large changes.
+        api_timeout: API request timeout in seconds.
+            Limits how long to wait for API responses.
+        language: Default language for review responses.
+            Uses ISO 639-1 codes (en, uk, de, es, etc.).
+        language_mode: Language detection mode.
+            ADAPTIVE auto-detects from context, FIXED uses the language setting.
 
     Environment Variables:
         GITHUB_TOKEN: GitHub personal access token (required)
@@ -108,6 +129,9 @@ class Settings(BaseSettings):
         LOG_LEVEL: Logging level (default: INFO)
         REVIEW_MAX_FILES: Max files in context (default: 20)
         REVIEW_MAX_DIFF_LINES: Max diff lines per file (default: 500)
+        API_TIMEOUT: Request timeout in seconds (default: 60)
+        LANGUAGE: Default response language (default: en)
+        LANGUAGE_MODE: Detection mode - adaptive or fixed (default: adaptive)
     """
 
     model_config = SettingsConfigDict(
@@ -149,12 +173,32 @@ class Settings(BaseSettings):
         description="Maximum diff lines per file to include",
     )
 
+    # API timeout configuration
+    api_timeout: int = Field(
+        default=60,
+        gt=0,
+        le=300,
+        description="API request timeout in seconds",
+    )
 
+    # Language configuration
+    language: str = Field(
+        default="en",
+        description="Default language for review responses (ISO 639-1 code: en, uk, de, etc.)",
+    )
+    language_mode: LanguageMode = Field(
+        default=LanguageMode.ADAPTIVE,
+        description="Language detection mode: adaptive (auto-detect) or fixed (use LANGUAGE)",
+    )
+
+
+@lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Get application settings from environment.
 
-    This function creates a new Settings instance each time it's called.
-    For caching, use functools.lru_cache or store the result.
+    This function is cached using lru_cache, so it returns the same
+    Settings instance on subsequent calls. Use clear_settings_cache()
+    if you need to reload settings (e.g., in tests).
 
     Returns:
         Settings instance loaded from environment variables.
@@ -172,9 +216,24 @@ def get_settings() -> Settings:
     return Settings()
 
 
+def clear_settings_cache() -> None:
+    """Clear the settings cache.
+
+    Call this function when you need to reload settings from environment,
+    typically in tests after modifying environment variables.
+
+    Example:
+        >>> clear_settings_cache()
+        >>> # Now get_settings() will create a new instance
+    """
+    get_settings.cache_clear()
+
+
 __all__ = [
     "MIN_SECRET_LENGTH",
     "VALID_LOG_LEVELS",
+    "LanguageMode",
     "Settings",
+    "clear_settings_cache",
     "get_settings",
 ]

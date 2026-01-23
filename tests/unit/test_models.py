@@ -75,7 +75,7 @@ class TestComment:
 
     def test_comment_created_at_must_be_timezone_aware(self) -> None:
         """Test that created_at rejects naive datetime."""
-        naive_dt = datetime(2026, 1, 20, 12, 0, 0)  # noqa: DTZ001 - intentionally naive
+        naive_dt = datetime(2026, 1, 20, 12, 0, 0)
         with pytest.raises(ValidationError) as exc_info:
             Comment(author="user", body="test", type=CommentType.ISSUE, created_at=naive_dt)
         assert "timezone-aware" in str(exc_info.value)
@@ -259,7 +259,7 @@ class TestMergeRequest:
 
     def test_mr_datetime_must_be_timezone_aware(self) -> None:
         """Test that created_at and updated_at reject naive datetime."""
-        naive_dt = datetime(2026, 1, 20, 12, 0, 0)  # noqa: DTZ001 - intentionally naive
+        naive_dt = datetime(2026, 1, 20, 12, 0, 0)
 
         with pytest.raises(ValidationError) as exc_info:
             MergeRequest(
@@ -538,7 +538,7 @@ class TestReviewResult:
 
     def test_result_reviewed_at_must_be_timezone_aware(self) -> None:
         """Test that reviewed_at rejects naive datetime."""
-        naive_dt = datetime(2026, 1, 20, 12, 0, 0)  # noqa: DTZ001 - intentionally naive
+        naive_dt = datetime(2026, 1, 20, 12, 0, 0)
         with pytest.raises(ValidationError) as exc_info:
             ReviewResult(reviewed_at=naive_dt)
         assert "timezone-aware" in str(exc_info.value)
