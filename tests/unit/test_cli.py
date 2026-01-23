@@ -234,13 +234,21 @@ class TestCliApp:
             assert "coming soon" in result.stdout.lower()
 
     @patch("ai_reviewer.cli.review_pull_request")
+    @patch("ai_reviewer.cli.GitHubClient")
     @patch("ai_reviewer.cli.get_settings")
     def test_cli_successful_github_review(
-        self, mock_get_settings: MagicMock, mock_review: MagicMock
+        self,
+        mock_get_settings: MagicMock,
+        mock_github_client: MagicMock,
+        mock_review: MagicMock,
     ) -> None:
         """Test successful GitHub review execution."""
         mock_settings = MagicMock()
+        mock_settings.github_token.get_secret_value.return_value = "test-token"
         mock_get_settings.return_value = mock_settings
+
+        mock_provider = MagicMock()
+        mock_github_client.return_value = mock_provider
 
         event_data = {"pull_request": {"number": 42}}
 
@@ -259,18 +267,27 @@ class TestCliApp:
             with patch.dict(os.environ, env, clear=True):
                 result = runner.invoke(app, [])
                 assert result.exit_code == 0
-                mock_review.assert_called_once_with("owner/repo", 42, mock_settings)
+                mock_github_client.assert_called_once_with(token="test-token")
+                mock_review.assert_called_once_with(mock_provider, "owner/repo", 42, mock_settings)
         finally:
             Path(event_path).unlink()
 
     @patch("ai_reviewer.cli.review_pull_request")
+    @patch("ai_reviewer.cli.GitHubClient")
     @patch("ai_reviewer.cli.get_settings")
     def test_cli_with_explicit_args(
-        self, mock_get_settings: MagicMock, mock_review: MagicMock
+        self,
+        mock_get_settings: MagicMock,
+        mock_github_client: MagicMock,
+        mock_review: MagicMock,
     ) -> None:
         """Test CLI with explicit --repo and --pr arguments."""
         mock_settings = MagicMock()
+        mock_settings.github_token.get_secret_value.return_value = "test-token"
         mock_get_settings.return_value = mock_settings
+
+        mock_provider = MagicMock()
+        mock_github_client.return_value = mock_provider
 
         env = {
             "GITHUB_ACTIONS": "true",
@@ -280,7 +297,7 @@ class TestCliApp:
         with patch.dict(os.environ, env, clear=True):
             result = runner.invoke(app, ["--repo", "custom/repo", "--pr", "123"])
             assert result.exit_code == 0
-            mock_review.assert_called_once_with("custom/repo", 123, mock_settings)
+            mock_review.assert_called_once_with(mock_provider, "custom/repo", 123, mock_settings)
 
     def test_cli_config_error_exits_with_code_1(self) -> None:
         """Test that configuration error exits with code 1."""

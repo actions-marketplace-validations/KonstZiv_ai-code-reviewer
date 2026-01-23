@@ -1,9 +1,11 @@
 """Main reviewer logic for AI Code Reviewer.
 
 This module orchestrates the entire review process:
-1. Fetching data from GitHub
-2. Analyzing code with Gemini
+1. Fetching data from Git provider
+2. Analyzing code with AI (Gemini)
 3. Formatting and posting results
+
+The reviewer is provider-agnostic and works with any GitProvider implementation.
 """
 
 from __future__ import annotations
@@ -14,53 +16,60 @@ from typing import TYPE_CHECKING
 from ai_reviewer.core.formatter import format_review_comment
 from ai_reviewer.core.models import CommentAuthorType, ReviewContext
 from ai_reviewer.integrations.gemini import analyze_code_changes
-from ai_reviewer.integrations.github import GitHubClient
 
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
+    from ai_reviewer.integrations.base import GitProvider
 
 logger = logging.getLogger(__name__)
 
 
-def review_pull_request(repo_name: str, pr_number: int, settings: Settings) -> None:
-    """Perform a full AI code review on a pull request.
+def review_pull_request(
+    provider: GitProvider,
+    repo_name: str,
+    mr_id: int,
+    settings: Settings,
+) -> None:
+    """Perform a full AI code review on a pull/merge request.
+
+    This function orchestrates the entire review process using the provided
+    Git provider. It is provider-agnostic and works with any GitProvider
+    implementation (GitHub, GitLab, etc.).
 
     Args:
-        repo_name: Repository name in 'owner/repo' format.
-        pr_number: Pull request number.
+        provider: Git provider instance for API interactions.
+        repo_name: Repository identifier (e.g., 'owner/repo' for GitHub).
+        mr_id: Merge/Pull request number.
         settings: Application settings.
     """
     try:
-        logger.info("Starting review for PR #%s in %s", pr_number, repo_name)
+        logger.info("Starting review for MR #%s in %s", mr_id, repo_name)
 
-        # 1. Initialize GitHub client
-        github_client = GitHubClient(token=settings.github_token.get_secret_value())
-
-        # 2. Fetch PR data
-        mr = github_client.get_pull_request(repo_name, pr_number)
+        # 1. Fetch MR data
+        mr = provider.get_merge_request(repo_name, mr_id)
         if not mr:
-            logger.error("Could not fetch PR data (likely rate limit exceeded). Aborting.")
+            logger.error("Could not fetch MR data (likely rate limit exceeded). Aborting.")
             return
 
-        logger.info("Fetched PR: %s", mr.title)
+        logger.info("Fetched MR: %s", mr.title)
 
-        # 3. Get linked task
-        task = github_client.get_linked_task(repo_name, mr)
+        # 2. Get linked task
+        task = provider.get_linked_task(repo_name, mr)
         if task:
             logger.info("Found linked task: %s", task.identifier)
         else:
             logger.info("No linked task found")
 
-        # 4. Build context
+        # 3. Build context
         context = ReviewContext(mr=mr, task=task, repository=repo_name)
 
-        # 5. Analyze with Gemini
+        # 4. Analyze with AI
         result = analyze_code_changes(context, settings)
 
-        # 6. Format comment
+        # 5. Format comment
         comment_body = format_review_comment(result)
 
-        # 7. Check for duplicates
+        # 6. Check for duplicates
         # We check the last comment by a bot. If it matches our new comment, we skip.
         # Note: This assumes we are the only bot or we want to avoid repeating
         # any bot's identical comment.
@@ -78,24 +87,38 @@ def review_pull_request(repo_name: str, pr_number: int, settings: Settings) -> N
             logger.info("Duplicate comment detected. Skipping publication.")
             return
 
-        # 8. Post comment
-        github_client.post_review_comment(repo_name, pr_number, comment_body)
+        # 7. Post comment
+        provider.post_comment(repo_name, mr_id, comment_body)
         logger.info("Review completed successfully")
 
     except Exception as e:
         logger.exception("AI Review failed")
         # Fail Open strategy: Try to post a failure comment, but don't crash the CI hard
         # unless it's a critical configuration error.
-        try:
-            # Re-initialize client just in case (though reuse is fine)
-            # We use a simple client here to avoid circular deps or complex logic
-            gh = GitHubClient(token=settings.github_token.get_secret_value())
-            error_msg = (
-                "## ❌ AI Review Failed\n\n"
-                "The AI reviewer encountered an error while processing this PR.\n"
-                f"**Error:** `{e!s}`\n\n"
-                "_Please check the CI logs for more details._"
-            )
-            gh.post_review_comment(repo_name, pr_number, error_msg)
-        except Exception:
-            logger.exception("Failed to post error comment to GitHub")
+        _post_error_comment(provider, repo_name, mr_id, e)
+
+
+def _post_error_comment(
+    provider: GitProvider,
+    repo_name: str,
+    mr_id: int,
+    error: Exception,
+) -> None:
+    """Attempt to post an error comment to the MR.
+
+    Args:
+        provider: Git provider instance.
+        repo_name: Repository identifier.
+        mr_id: Merge/Pull request number.
+        error: The exception that caused the failure.
+    """
+    try:
+        error_msg = (
+            "## ❌ AI Review Failed\n\n"
+            "The AI reviewer encountered an error while processing this PR.\n"
+            f"**Error:** `{error!s}`\n\n"
+            "_Please check the CI logs for more details._"
+        )
+        provider.post_comment(repo_name, mr_id, error_msg)
+    except Exception:
+        logger.exception("Failed to post error comment")

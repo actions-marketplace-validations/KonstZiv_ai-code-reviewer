@@ -19,6 +19,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 
 from ai_reviewer.core.config import get_settings
+from ai_reviewer.integrations.github import GitHubClient
 from ai_reviewer.reviewer import review_pull_request
 
 # Configure rich logging
@@ -197,7 +198,9 @@ def main(  # noqa: PLR0912
 
             # Run Review
             if repo and pr:
-                review_pull_request(repo, pr, settings)
+                # Create provider instance and run review
+                github_provider = GitHubClient(token=settings.github_token.get_secret_value())
+                review_pull_request(github_provider, repo, pr, settings)
             else:
                 # Should be unreachable due to checks above
                 _exit_app(code=1)
