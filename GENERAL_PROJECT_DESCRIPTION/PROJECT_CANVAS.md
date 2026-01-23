@@ -1,7 +1,7 @@
 # AI Code Reviewer — Project Canvas
 
-**Last Updated:** 2026-01-19  
-**Version:** 0.1.0  
+**Last Updated:** 2026-01-19
+**Version:** 0.1.0
 **Status:** Initial Development
 
 ---
@@ -140,8 +140,8 @@ Build a production-ready code review system that:
 
 ## 🎯 Current Focus
 
-**Phase:** 1 (MVP)  
-**Sprint:** Initial Setup  
+**Phase:** 1 (MVP)
+**Sprint:** Initial Setup
 **Goal:** Create foundational structure with multi-LLM support
 
 **Next Milestones:**

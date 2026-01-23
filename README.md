@@ -3,7 +3,7 @@
 **Autonomous AI agent for intelligent code review in CI/CD pipelines**
 
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 ---
@@ -20,6 +20,60 @@
 
 ---
 
+## 🚀 Usage
+
+### Local Run
+You can run the reviewer locally to test it on a specific PR.
+
+```bash
+# 1. Install
+pip install ai-code-reviewer
+
+# 2. Set environment variables
+export GITHUB_TOKEN=your_github_token
+export GOOGLE_API_KEY=your_gemini_key
+
+# 3. Run review
+ai-review github --repo owner/repo --pr 123
+```
+
+### GitHub Actions
+Add this workflow to your repository to run AI reviews on every Pull Request.
+
+```yaml
+# .github/workflows/ai-review.yml
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install AI Reviewer
+        run: pip install ai-code-reviewer
+
+      - name: Run Review
+        run: ai-review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+```
+
+---
+
 ## 🎯 Quick Start (1 Minute)
 
 ```bash
@@ -30,7 +84,7 @@ pip install ai-code-reviewer
 export GOOGLE_API_KEY=your_key_here
 
 # 3. Review!
-ai-review github --pr-number $PR_NUMBER --repo owner/repo
+ai-review github --pr 123 --repo owner/repo
 ```
 
 That's it! 🎉
@@ -88,7 +142,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install ai-code-reviewer
-      - run: ai-review github --pr-number ${{ github.event.pull_request.number }}
+      - run: ai-review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
@@ -362,7 +416,7 @@ We welcome contributions! This project is designed for **human-AI pair programmi
 
 ## 📜 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache License 2.0 – see LICENSE file for details.
 
 ---
 
