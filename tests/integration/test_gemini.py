@@ -16,6 +16,7 @@ from ai_reviewer.core.models import (
     TaskAlignmentStatus,
 )
 from ai_reviewer.integrations.gemini import (
+    DEFAULT_MODEL,
     DEFAULT_PRICING,
     GEMINI_PRICING,
     GeminiClient,
@@ -77,12 +78,12 @@ class TestGeminiClient:
         assert result.task_alignment == TaskAlignmentStatus.ALIGNED
         # Verify metrics are present (even with zero tokens)
         assert result.metrics is not None
-        assert result.metrics.model_name == "gemini-2.5-flash"
+        assert result.metrics.model_name == DEFAULT_MODEL
 
         # Verify API call arguments
         client.client.models.generate_content.assert_called_once()
         call_kwargs = client.client.models.generate_content.call_args.kwargs
-        assert call_kwargs["model"] == "gemini-2.5-flash"
+        assert call_kwargs["model"] == DEFAULT_MODEL
         assert call_kwargs["contents"] == ["Test prompt"]
         assert call_kwargs["config"].response_mime_type == "application/json"
         assert call_kwargs["config"].response_schema == ReviewResult
@@ -269,7 +270,7 @@ class TestGeminiClientWithMetrics:
 
         # Verify metrics are included
         assert result.metrics is not None
-        assert result.metrics.model_name == "gemini-2.5-flash"
+        assert result.metrics.model_name == DEFAULT_MODEL
         assert result.metrics.prompt_tokens == 1000
         assert result.metrics.completion_tokens == 500
         assert result.metrics.total_tokens == 1500

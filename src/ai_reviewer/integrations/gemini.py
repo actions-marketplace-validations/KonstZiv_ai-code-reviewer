@@ -47,6 +47,9 @@ GEMINI_PRICING: dict[str, dict[str, float]] = {
 # Default pricing for unknown models (conservative estimate)
 DEFAULT_PRICING = {"input": 1.00, "output": 3.00}
 
+# Default model to use when not specified
+DEFAULT_MODEL = "gemini-2.5-flash"
+
 
 def calculate_cost(
     model_name: str,
@@ -89,12 +92,12 @@ class GeminiClient:
         model_name: The name of the model to use.
     """
 
-    def __init__(self, api_key: SecretStr, model_name: str = "gemini-2.5-flash") -> None:
+    def __init__(self, api_key: SecretStr, model_name: str = DEFAULT_MODEL) -> None:
         """Initialize Gemini client.
 
         Args:
             api_key: Google API key.
-            model_name: Model name to use.
+            model_name: Model name to use (default: gemini-2.5-flash).
         """
         self.client = genai.Client(api_key=api_key.get_secret_value())
         self.model_name = model_name
@@ -164,16 +167,15 @@ class GeminiClient:
             )
 
             # The SDK automatically parses the JSON into the Pydantic model
-            # if response_schema is provided with a Pydantic class.
+            # when response_schema is provided with a Pydantic class.
             parsed = response.parsed
 
-            # Convert to ReviewResult and attach metrics
-            if isinstance(parsed, ReviewResult) or hasattr(parsed, "model_dump"):
-                result_data = parsed.model_dump()
-            else:
-                result_data = dict(parsed)  # type: ignore[arg-type]
+            # Attach metrics to result using model_copy for efficiency
+            if isinstance(parsed, ReviewResult):
+                return parsed.model_copy(update={"metrics": metrics})
 
-            # Attach metrics to result
+            # Fallback for dict-like responses from SDK
+            result_data = parsed if isinstance(parsed, dict) else dict(parsed)  # type: ignore[arg-type]
             result_data["metrics"] = metrics
             return ReviewResult.model_validate(result_data)
 
