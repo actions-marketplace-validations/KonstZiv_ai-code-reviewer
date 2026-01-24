@@ -10,12 +10,13 @@
 
 | Метрика | Ціль | Поточне | Статус |
 |---------|------|---------|--------|
-| **Завдань виконано** | 10/10 | 4/10 | 🏗️ |
+| **Завдань виконано** | 10/10 | 6/10 | 🏗️ |
 | **Покриття тестами** | ≥80% | 93% | ✅ |
 | **GitHub інтеграція** | ✅ Працює | ✅ GitProvider ABC | ✅ |
 | **GitLab інтеграція** | ✅ Працює | ✅ GitLabClient готовий | ✅ |
-| **Inline Comments** | ✅ Apply button | ✅ submit_review() готовий | 🔄 |
+| **Inline Comments** | ✅ Apply button | ✅ WOW-форматування готове | ✅ |
 | **Мовна адаптивність** | ✅ Працює | ✅ ISO 639 + Proximity Rule | ✅ |
+| **Метрики** | ✅ В footer | ✅ Tokens, latency, cost | ✅ |
 | **Docker image** | ✅ Опубліковано | ⏳ Не почато | ⏳ |
 | **PyPI package** | ✅ v0.1.0 | ⏳ Не опубліковано | ⏳ |
 
@@ -148,7 +149,7 @@ ISO 639 валідація:
 
 Алгоритм "Proximity Rule":
 - Збирає тексти з коментарів (найновіші першими), MR description, task
-- Фільтрує короткі тексти (<20 слів)
+- Фільтрує короткі тексти (<8 слів)
 - Включає контекст в prompt для LLM визначення мови
 
 Спеціальне повідомлення для ru:
@@ -161,78 +162,86 @@ ISO 639 валідація:
 ---
 
 ### 🎨 Завдання 4b: Розширена структура ревʼю та WOW-форматування
-**Статус:** 🎯 **НАСТУПНЕ**
+**Статус:** ✅ **ЗАВЕРШЕНО** (2026-01-24)
 **Призначено:** Claude Code (AI)
 **Оцінка часу:** 4 години
 
 **Чеклист:**
-- [ ] Оновлено `models.py` з CodeIssue, GoodPractice
-- [ ] Оновлено system prompt для менторського ревʼю
-- [ ] Переписано `formatter.py` з WOW-форматуванням
-- [ ] GitHub suggestion syntax працює
-- [ ] Collapsible sections працюють
-- [ ] Good practices відображаються
-- [ ] Before/After diff preview працює
-
-**Приклад очікуваного output:**
-```markdown
-# 🤖 AI Code Review
-
-## 📊 Summary
-| 🔴 Critical | 🟡 Warnings | 💡 Suggestions | ✨ Good |
-|-------------|-------------|----------------|---------|
-| 1           | 2           | 3              | 2       |
-
-## 🔒 Security Issues
-### 🔴 SQL Injection Vulnerability
-**File:** `db/queries.py:42`
-
-```suggestion
-cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-```⁣
-
-<details>
-<summary>💡 Why is this important?</summary>
-SQL injection allows attackers...
-📚 [OWASP Guide](https://owasp.org/...)
-</details>
-
-## ✨ Good Practices Noticed
-- ✨ Excellent use of type hints in `models.py`
-- ✨ Comprehensive error handling in `api.py`
-
----
-⏱️ 2.3s | 🪙 1540 tokens | 💰 ~$0.003
-```
+- [x] Оновлено `models.py` з CodeIssue, GoodPractice
+- [x] Оновлено system prompt для менторського ревʼю
+- [x] Переписано `formatter.py` з WOW-форматуванням
+- [x] GitHub suggestion syntax працює
+- [x] Collapsible sections працюють
+- [x] Good practices відображаються
+- [x] Before/After diff preview працює
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+Нові моделі:
+- CodeIssue: unified модель з category, severity, why_matters, learn_more_url
+- GoodPractice: позитивний фідбек
+- IssueSeverity: CRITICAL, WARNING, INFO
+- IssueCategory: SECURITY, CODE_QUALITY, ARCHITECTURE, PERFORMANCE, TESTING
+
+Оновлений ReviewResult:
+- issues: tuple[CodeIssue, ...] замість vulnerabilities
+- good_practices: tuple[GoodPractice, ...]
+- Нові properties: critical_count, warning_count, info_count, good_practice_count
+
+Форматування:
+- Summary card з підрахунком issues
+- Секції по категоріям (🔒 Security, 📝 Code Quality, etc.)
+- Collapsible learning sections (<details>)
+- Before/After diff preview
+- ```suggestion syntax для Apply button
+- format_inline_comment() - компактний формат для line comments
+
+272 тести, 93% coverage
 ```
 
 ---
 
 ### 📈 Завдання 4c: Метрики виконання
-**Статус:** ⏳ Очікує Завдання 4b
+**Статус:** ✅ **ЗАВЕРШЕНО** (2026-01-24)
 **Призначено:** Claude Code (AI)
 **Оцінка часу:** 2 години
 
 **Чеклист:**
-- [ ] Створено `ReviewMetrics` модель
-- [ ] `GeminiClient` збирає метрики
-- [ ] Обчислюється estimated cost
-- [ ] Footer з метриками в output
-- [ ] Тести написано
+- [x] Створено `ReviewMetrics` модель
+- [x] `GeminiClient` збирає метрики
+- [x] Обчислюється estimated cost
+- [x] Footer з метриками в output
+- [x] Тести написано
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+ReviewMetrics модель:
+- model_name, prompt_tokens, completion_tokens, total_tokens
+- api_latency_ms, estimated_cost_usd
+- cost_formatted (4 десяткові при <$0.01, інакше 2)
+- latency_formatted (ms при <1000, інакше секунди)
+
+Gemini pricing (per 1M tokens):
+- gemini-2.5-flash: $0.075 input, $0.30 output
+- gemini-1.5-pro: $1.25 input, $5.00 output
+- Fallback для невідомих моделей: $1.00/$3.00
+
+GeminiClient оновлено:
+- time.perf_counter() для вимірювання latency
+- response.usage_metadata для token counts
+- calculate_cost() для обчислення вартості
+- ReviewResult тепер включає metrics
+
+Footer з метриками:
+_Model: gemini-2.5-flash | Tokens: 1,500 | Latency: 1.2s | Est. cost: $0.0002_
+
+300 тестів, 93% coverage
 ```
 
 ---
 
 ### 🐳 Завдання 5: Контейнеризація та дистрибуція
-**Статус:** ⏳ Очікує Завдання 3
+**Статус:** 🎯 **НАСТУПНЕ**
 **Призначено:** Claude Code (AI)
 **Оцінка часу:** 3 години
 
@@ -397,17 +406,18 @@ SQL injection allows attackers...
 |--------|------|---------|--------|
 | core/models.py | ≥90% | 100% | ✅ |
 | core/config.py | ≥90% | 100% | ✅ |
-| core/formatter.py | ≥80% | 98% | ✅ |
-| integrations/base.py | ≥80% | 100% | ✅ NEW |
+| core/formatter.py | ≥80% | 96% | ✅ |
+| integrations/base.py | ≥80% | 100% | ✅ |
 | integrations/github.py | ≥80% | 88% | ✅ |
 | integrations/gitlab.py | ≥80% | 88% | ✅ |
-| integrations/gemini.py | ≥80% | 96% | ✅ |
-| utils/time.py | ≥80% | 91% | ✅ NEW |
+| integrations/gemini.py | ≥80% | 100% | ✅ |
+| integrations/prompts.py | ≥80% | 100% | ✅ |
+| utils/time.py | ≥80% | 91% | ✅ |
+| utils/language.py | ≥80% | 100% | ✅ |
 | utils/retry.py | ≥90% | 0% | ⏳ Новий файл |
-| utils/language.py | ≥80% | 0% | ⏳ Новий файл |
 | cli.py | ≥80% | 88% | ✅ |
 | reviewer.py | ≥80% | 94% | ✅ |
-| **Загалом** | **≥80%** | **92%** | ✅ |
+| **Загалом** | **≥80%** | **93%** | ✅ |
 
 ---
 
@@ -420,15 +430,15 @@ SQL injection allows attackers...
     ↓
 Завдання 3 (GitLab)         ██████████  ✅ Завершено
     ↓
-Завдання 4a (Language)      ████░░░░░░  🎯 Наступне
+Завдання 4a (Language)      ██████████  ✅ Завершено
     ↓
-Завдання 4b (WOW)           ░░░░░░░░░░
+Завдання 4b (WOW)           ██████████  ✅ Завершено
     ↓
-Завдання 4c (Metrics)       ░░░░░░░░░░
+Завдання 4c (Metrics)       ██████████  ✅ Завершено
     ↓
-Завдання 5 (Docker)         ░░░░░░░░░░
+Завдання 5 (Docker)         ░░░░░░░░░░  🎯 Наступне
     ↓
-Завдання 6 (Testing)        ░░░░░░░░░░  [Паралельно з 3-5]
+Завдання 6 (Testing)        ░░░░░░░░░░  [Паралельно з 5]
     ↓
 Завдання 7 (Docs)           ░░░░░░░░░░
     ↓
@@ -445,37 +455,20 @@ SQL injection allows attackers...
 
 ### Фокус на сьогодні
 ```
-Завдання 4a: Мовна адаптивність
-- Створити utils/language.py
-- Реалізувати detect_context_language()
-- Оновити system prompt для адаптивності
+Завдання 5: Контейнеризація та дистрибуція
+- Створити multi-stage Dockerfile
+- Створити action.yml для GitHub Action
+- Приклади workflow для GitHub та GitLab CI
 ```
 
 ### Прогрес з останнього оновлення
 ```
-✅ Завдання 1 (Foundation) - ЗАВЕРШЕНО
-  - Entry point виправлено (main → app)
-  - ensure_timezone() створено
-  - LanguageMode, api_timeout додано
-  - lru_cache для get_settings()
-  - tenacity в залежностях
-
-✅ Завдання 2 (Adapter) - ЗАВЕРШЕНО
-  - GitProvider ABC створено
-  - LineComment, ReviewSubmission dataclasses
-  - GitHubClient наслідує GitProvider
-  - submit_review() з GitHub Review API
-  - reviewer.py абстраговано (DI)
-  - 196 тестів, 93% coverage
-
-✅ Завдання 3 (GitLab) - ЗАВЕРШЕНО (2026-01-24)
-  - GitLabClient(GitProvider) створено
-  - get_merge_request() з notes та diffs
-  - get_linked_task() з pattern matching
-  - submit_review() через Discussions API
-  - handle_gitlab_errors decorator (HTTP 429)
-  - CLI: extract_gitlab_context()
-  - 222 тести, 92% coverage
+✅ Завдання 4c (Metrics) - ЗАВЕРШЕНО (2026-01-24)
+  - ReviewMetrics модель (tokens, latency, cost)
+  - GeminiClient збирає usage_metadata з response
+  - calculate_cost() з GEMINI_PRICING dictionary
+  - Footer: "Model: gemini-2.5-flash | Tokens: 1,500 | Latency: 1.2s | Est. cost: $0.0002"
+  - 300 тестів, 93% coverage
 ```
 
 ### Блокери
@@ -485,7 +478,7 @@ SQL injection allows attackers...
 
 ### Питання
 ```
-Немає - готовий до виконання Завдання 4a
+Немає - готовий до виконання Завдання 5 (Docker)
 ```
 
 ---
@@ -527,6 +520,18 @@ SQL injection allows attackers...
 **Рішення:** Provider передається як параметр (DI), CLI створює конкретний client
 **Обґрунтування:** Чиста архітектура, легко тестувати, легко додати GitLab
 **Вплив:** review_pull_request(provider, repo_name, mr_id, settings)
+
+### Рішення 7: 2026-01-24 — Міграція з Vulnerability на CodeIssue
+**Питання:** Чи залишати старий Vulnerability model для backward compatibility?
+**Рішення:** Повна міграція на CodeIssue, видалення Vulnerability
+**Обґрунтування:** Internal API, немає зовнішніх споживачів, спрощує код
+**Вплив:** ReviewResult.vulnerabilities → ReviewResult.issues
+
+### Рішення 8: 2026-01-24 — Compact формат для inline comments
+**Питання:** Чи потрібен окремий формат для inline comments?
+**Рішення:** Так, format_inline_comment() — максимально стиснутий формат
+**Обґрунтування:** Inline comments мають обмежений простір, не потрібен Before/After та collapsible
+**Вплив:** Додано окрему функцію format_inline_comment()
 
 ---
 
@@ -629,11 +634,11 @@ SQL injection allows attackers...
 - Дата початку: 2026-01-20
 - Дата завершення: [Дата]
 - Тривалість: [Днів]
-- Завдань виконано: 6/10 → 8/10 → 3/10
-- Покриття тестами: 94% → 93% → 92%
-- Рядків коду: ~600 → ~680 → ~800
-- Нових файлів: 3 (base.py, time.py, gitlab.py)
-- Тестів: 222
+- Завдань виконано: 6/10
+- Покриття тестами: 93%
+- Рядків коду: ~1100
+- Нових файлів: 4 (base.py, time.py, gitlab.py, language.py)
+- Тестів: 300
 - Коммітів: [X]
 
 ---
