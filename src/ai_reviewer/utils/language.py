@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from ai_reviewer.core.models import ReviewContext
 
 # Minimum word count for a text to be considered for language detection
-MIN_WORDS_FOR_DETECTION = 20
+MIN_WORDS_FOR_DETECTION = 8
 
 # Default language when detection fails or is not possible
 DEFAULT_LANGUAGE = "en"

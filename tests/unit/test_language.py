@@ -172,7 +172,7 @@ class TestCollectTextSamples:
         )
         task = LinkedTask(identifier="1", title="Task", description=long_task_desc)
 
-        # Add a long comment (needs 20+ words)
+        # Add a long comment (needs 8+ words)
         comment = Comment(
             author="reviewer",
             body=(
@@ -289,7 +289,7 @@ class TestMinWordsConstant:
 
     def test_min_words_value(self) -> None:
         """Test that MIN_WORDS_FOR_DETECTION is set to expected value."""
-        assert MIN_WORDS_FOR_DETECTION == 20
+        assert MIN_WORDS_FOR_DETECTION == 8
 
     def test_text_below_min_not_collected(self, simple_mr: MergeRequest) -> None:
         """Test that text with fewer than MIN_WORDS is not collected."""
