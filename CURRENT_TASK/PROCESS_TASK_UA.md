@@ -10,11 +10,11 @@
 
 | Метрика | Ціль | Поточне | Статус |
 |---------|------|---------|--------|
-| **Завдань виконано** | 10/10 | 6/10 | 🏗️ |
-| **Покриття тестами** | ≥80% | 94% | ✅ |
-| **GitHub інтеграція** | ✅ Працює | ✅ Базова | 🔄 |
+| **Завдань виконано** | 10/10 | 8/10 | 🏗️ |
+| **Покриття тестами** | ≥80% | 93% | ✅ |
+| **GitHub інтеграція** | ✅ Працює | ✅ GitProvider ABC | ✅ |
 | **GitLab інтеграція** | ✅ Працює | ⏳ Не почато | ⏳ |
-| **Inline Comments** | ✅ Apply button | ⏳ Не почато | ⏳ |
+| **Inline Comments** | ✅ Apply button | ✅ submit_review() готовий | 🔄 |
 | **Мовна адаптивність** | ✅ Працює | ⏳ Не почато | ⏳ |
 | **Docker image** | ✅ Опубліковано | ⏳ Не почато | ⏳ |
 | **PyPI package** | ✅ v0.1.0 | ⏳ Не опубліковано | ⏳ |
@@ -41,49 +41,60 @@
 ---
 
 ### 🔧 Завдання 1: Фундамент та виправлення
-**Статус:** 🎯 **НАСТУПНЕ**
+**Статус:** ✅ **ЗАВЕРШЕНО** (2026-01-23)
 **Призначено:** Claude Code (AI)
 **Оцінка часу:** 2 години
 
 **Чеклист:**
-- [ ] Виправлено entry point в `pyproject.toml`
-- [ ] Створено `ensure_timezone()` в `utils/time.py`
-- [ ] Додано `LanguageMode` enum в Settings
-- [ ] Додано `api_timeout` в Settings
-- [ ] Додано `@lru_cache` для `get_settings()`
-- [ ] Додано `tenacity` в залежності
-- [ ] `ai-review --help` працює
+- [x] Виправлено entry point в `pyproject.toml`
+- [x] Створено `ensure_timezone()` в `utils/time.py`
+- [x] Додано `LanguageMode` enum в Settings
+- [x] Додано `api_timeout` в Settings
+- [x] Додано `@lru_cache` для `get_settings()`
+- [x] Додано `tenacity` в залежності
+- [x] `ai-review --help` працює
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+- Entry point: змінено main → app (Typer вимагає app object)
+- Додано clear_settings_cache() для тестів
+- api_timeout: 5-300 сек, default 30
+- LanguageMode: ADAPTIVE (default), FIXED
+- 173 тестів пройшли після Task 1
 ```
 
 ---
 
 ### 🔌 Завдання 2: Архітектура провайдерів (Adapter)
-**Статус:** ⏳ Очікує Завдання 1
+**Статус:** ✅ **ЗАВЕРШЕНО** (2026-01-23)
 **Призначено:** Claude Code (AI)
 **Оцінка часу:** 3 години
 
 **Чеклист:**
-- [ ] Створено `GitProvider` ABC в `base.py`
-- [ ] Створено `LineComment` dataclass
-- [ ] `GitHubClient` наслідує `GitProvider`
-- [ ] Реалізовано `submit_review()` з batch posting
-- [ ] `reviewer.py` використовує інтерфейс
-- [ ] Inline comments через GitHub Review API
-- [ ] Тести оновлено
+- [x] Створено `GitProvider` ABC в `base.py`
+- [x] Створено `LineComment` dataclass
+- [x] `GitHubClient` наслідує `GitProvider`
+- [x] Реалізовано `submit_review()` з batch posting
+- [x] `reviewer.py` використовує інтерфейс
+- [x] Inline comments через GitHub Review API
+- [x] Тести оновлено
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+- Створено base.py: GitProvider ABC, LineComment, ReviewSubmission
+- GitHubClient тепер наслідує GitProvider
+- reviewer.py абстраговано від провайдера (dependency injection)
+- CLI створює GitHubClient і передає в review_pull_request()
+- Два методи для коментарів: post_comment() і submit_review()
+- submit_review() використовує GitHub PR Review API для inline comments
+- LineComment підтримує suggestions (→ кнопка "Apply suggestion")
+- 196 тестів, 93% coverage
 ```
 
 ---
 
 ### 🦊 Завдання 3: Інтеграція GitLab
-**Статус:** ⏳ Очікує Завдання 2
+**Статус:** 🎯 **НАСТУПНЕ**
 **Призначено:** Claude Code (AI)
 **Оцінка часу:** 4 години
 
@@ -361,28 +372,30 @@ SQL injection allows attackers...
 |--------|------|---------|--------|
 | core/models.py | ≥90% | 100% | ✅ |
 | core/config.py | ≥90% | 100% | ✅ |
-| core/formatter.py | ≥80% | ~60% | 🔄 Потребує оновлення |
-| integrations/github.py | ≥80% | 100% | 🔄 Потребує оновлення |
+| core/formatter.py | ≥80% | 98% | ✅ |
+| integrations/base.py | ≥80% | 100% | ✅ NEW |
+| integrations/github.py | ≥80% | 88% | ✅ |
 | integrations/gitlab.py | ≥80% | 0% | ⏳ Новий файл |
 | integrations/gemini.py | ≥80% | 96% | ✅ |
+| utils/time.py | ≥80% | 91% | ✅ NEW |
 | utils/retry.py | ≥90% | 0% | ⏳ Новий файл |
 | utils/language.py | ≥80% | 0% | ⏳ Новий файл |
-| cli.py | ≥80% | 0% | ⏳ Критично! |
-| reviewer.py | ≥80% | 75% | 🔄 Потребує оновлення |
-| **Загалом** | **≥80%** | **94%** | ✅ (знизиться після нових файлів) |
+| cli.py | ≥80% | 88% | ✅ |
+| reviewer.py | ≥80% | 94% | ✅ |
+| **Загалом** | **≥80%** | **93%** | ✅ |
 
 ---
 
 ## 📅 Графік виконання
 
 ```
-Завдання 1 (Foundation)     ████░░░░░░  [Наступне]
+Завдання 1 (Foundation)     ██████████  ✅ Завершено
     ↓
-Завдання 2 (Adapter)        ░░░░░░░░░░
+Завдання 2 (Adapter)        ██████████  ✅ Завершено
     ↓
-Завдання 3 (GitLab)         ░░░░░░░░░░
+Завдання 3 (GitLab)         ████░░░░░░  🎯 Наступне
     ↓
-Завдання 4a (Language)      ░░░░░░░░░░  [Паралельно з 2]
+Завдання 4a (Language)      ░░░░░░░░░░  [Паралельно з 3]
     ↓
 Завдання 4b (WOW)           ░░░░░░░░░░
     ↓
@@ -390,7 +403,7 @@ SQL injection allows attackers...
     ↓
 Завдання 5 (Docker)         ░░░░░░░░░░
     ↓
-Завдання 6 (Testing)        ░░░░░░░░░░  [Паралельно з 2-5]
+Завдання 6 (Testing)        ░░░░░░░░░░  [Паралельно з 3-5]
     ↓
 Завдання 7 (Docs)           ░░░░░░░░░░
     ↓
@@ -407,18 +420,28 @@ SQL injection allows attackers...
 
 ### Фокус на сьогодні
 ```
-Завдання 1: Foundation
-- Виправити entry point
-- Додати LanguageMode
-- Додати timezone utility
+Завдання 3: Інтеграція GitLab
+- Створити GitLabClient(GitProvider)
+- Реалізувати get_merge_request()
+- Реалізувати submit_review() через Discussions
 ```
 
 ### Прогрес з останнього оновлення
 ```
-Ревʼю коду завершено
-Розширений план спрінту створено
-TASK_DESCRIPTION_UA.md оновлено
-PROCESS_TASK_UA.md оновлено
+✅ Завдання 1 (Foundation) - ЗАВЕРШЕНО
+  - Entry point виправлено (main → app)
+  - ensure_timezone() створено
+  - LanguageMode, api_timeout додано
+  - lru_cache для get_settings()
+  - tenacity в залежностях
+
+✅ Завдання 2 (Adapter) - ЗАВЕРШЕНО
+  - GitProvider ABC створено
+  - LineComment, ReviewSubmission dataclasses
+  - GitHubClient наслідує GitProvider
+  - submit_review() з GitHub Review API
+  - reviewer.py абстраговано (DI)
+  - 196 тестів, 93% coverage
 ```
 
 ### Блокери
@@ -428,7 +451,7 @@ PROCESS_TASK_UA.md оновлено
 
 ### Питання
 ```
-Немає - готовий до виконання Завдання 1
+Немає - готовий до виконання Завдання 3
 ```
 
 ---
@@ -459,19 +482,31 @@ PROCESS_TASK_UA.md оновлено
 **Обґрунтування:** Семантично точніше, "strict" може сприйматися як суворий режим
 **Вплив:** Зміна в config.py
 
+### Рішення 5: 2026-01-23 — Два методи для коментарів
+**Питання:** Чи замінити Issue Comments на PR Review API?
+**Рішення:** Зберегти обидва як окремі інструменти
+**Обґрунтування:** Різні use cases — post_comment() для summary/errors, submit_review() для inline з suggestions
+**Вплив:** GitProvider має два методи: post_comment() і submit_review()
+
+### Рішення 6: 2026-01-23 — Dependency Injection в reviewer.py
+**Питання:** Як абстрагувати reviewer від конкретного провайдера?
+**Рішення:** Provider передається як параметр (DI), CLI створює конкретний client
+**Обґрунтування:** Чиста архітектура, легко тестувати, легко додати GitLab
+**Вплив:** review_pull_request(provider, repo_name, mr_id, settings)
+
 ---
 
 ## 🐛 Проблеми та рішення
 
 ### Проблема 1: Entry Point — 2026-01-23
 **Проблема:** `ai-review = "ai_reviewer.cli:main"` не працює з Typer
-**Рішення:** Змінити на `ai-review = "ai_reviewer.cli:app"` або wrapper
-**Статус:** ⏳ Виправити в Завданні 1
+**Рішення:** Змінено на `ai-review = "ai_reviewer.cli:app"`
+**Статус:** ✅ Виправлено в Завданні 1
 
 ### Проблема 2: CLI тести — 0% coverage
 **Проблема:** CLI модуль не має тестів
-**Рішення:** Додати unit tests в Завданні 6
-**Статус:** ⏳ Запланований
+**Рішення:** Додано unit tests для CLI
+**Статус:** ✅ Виправлено (88% coverage)
 
 ---
 
@@ -560,10 +595,11 @@ PROCESS_TASK_UA.md оновлено
 - Дата початку: 2026-01-20
 - Дата завершення: [Дата]
 - Тривалість: [Днів]
-- Завдань виконано: 6/10 → [X]/10
-- Покриття тестами: 94% → [X]%
-- Рядків коду: ~600 → [X]
-- Нових файлів: [X]
+- Завдань виконано: 6/10 → 8/10 → [X]/10
+- Покриття тестами: 94% → 93% → [X]%
+- Рядків коду: ~600 → ~680 → [X]
+- Нових файлів: 2 (base.py, time.py)
+- Тестів: 196
 - Коммітів: [X]
 
 ---
