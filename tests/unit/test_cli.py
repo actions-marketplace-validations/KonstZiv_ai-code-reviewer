@@ -221,17 +221,67 @@ class TestCliApp:
             result = runner.invoke(app, [])
             assert result.exit_code != 0
 
+    @patch("ai_reviewer.cli.review_pull_request")
+    @patch("ai_reviewer.cli.GitLabClient")
     @patch("ai_reviewer.cli.get_settings")
-    def test_cli_gitlab_shows_coming_soon(self, mock_get_settings: MagicMock) -> None:
-        """Test that GitLab provider shows 'coming soon' message."""
+    def test_cli_successful_gitlab_review(
+        self,
+        mock_get_settings: MagicMock,
+        mock_gitlab_client: MagicMock,
+        mock_review: MagicMock,
+    ) -> None:
+        """Test successful GitLab review execution."""
         mock_settings = MagicMock()
+        mock_settings.gitlab_token.get_secret_value.return_value = "glpat-test-token"
+        mock_settings.gitlab_url = "https://gitlab.com"
         mock_get_settings.return_value = mock_settings
 
-        env = {"GITLAB_CI": "true"}
+        mock_provider = MagicMock()
+        mock_gitlab_client.return_value = mock_provider
+
+        env = {
+            "GITLAB_CI": "true",
+            "CI_PROJECT_PATH": "owner/repo",
+            "CI_MERGE_REQUEST_IID": "42",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            result = runner.invoke(app, [])
+            assert result.exit_code == 0
+
+        mock_gitlab_client.assert_called_once_with(
+            token="glpat-test-token",
+            url="https://gitlab.com",
+        )
+        mock_review.assert_called_once()
+
+    @patch("ai_reviewer.cli.get_settings")
+    def test_cli_gitlab_no_token_fails(self, mock_get_settings: MagicMock) -> None:
+        """Test that GitLab provider without token fails."""
+        mock_settings = MagicMock()
+        mock_settings.gitlab_token = None
+        mock_get_settings.return_value = mock_settings
+
+        env = {
+            "GITLAB_CI": "true",
+            "CI_PROJECT_PATH": "owner/repo",
+            "CI_MERGE_REQUEST_IID": "42",
+        }
         with patch.dict(os.environ, env, clear=True):
             result = runner.invoke(app, ["--provider", "gitlab"])
-            assert result.exit_code == 0
-            assert "coming soon" in result.stdout.lower()
+            assert result.exit_code == 1
+            assert "GITLAB_TOKEN" in result.stdout
+
+    @patch("ai_reviewer.cli.get_settings")
+    def test_cli_gitlab_no_context_fails(self, mock_get_settings: MagicMock) -> None:
+        """Test that GitLab provider without MR context fails."""
+        mock_settings = MagicMock()
+        mock_settings.gitlab_token.get_secret_value.return_value = "glpat-test-token"
+        mock_get_settings.return_value = mock_settings
+
+        env = {"GITLAB_CI": "true"}  # No CI_PROJECT_PATH or CI_MERGE_REQUEST_IID
+        with patch.dict(os.environ, env, clear=True):
+            result = runner.invoke(app, ["--provider", "gitlab"])
+            assert result.exit_code == 1
 
     @patch("ai_reviewer.cli.review_pull_request")
     @patch("ai_reviewer.cli.GitHubClient")

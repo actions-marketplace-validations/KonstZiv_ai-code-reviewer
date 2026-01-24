@@ -1,7 +1,7 @@
 """Command-line interface for AI Code Reviewer.
 
 This module provides the entry point for the application.
-It handles automatic detection of CI environments (GitHub Actions)
+It handles automatic detection of CI environments (GitHub Actions, GitLab CI)
 and execution of the review process.
 """
 
@@ -20,6 +20,7 @@ from rich.logging import RichHandler
 
 from ai_reviewer.core.config import get_settings
 from ai_reviewer.integrations.github import GitHubClient
+from ai_reviewer.integrations.gitlab import GitLabClient
 from ai_reviewer.reviewer import review_pull_request
 
 # Configure rich logging
@@ -39,6 +40,14 @@ _ERR_REPO_NOT_FOUND = "GITHUB_REPOSITORY environment variable not found."
 _ERR_CONTEXT_NOT_FOUND = (
     "Could not determine PR number from GitHub Actions context. "
     "Ensure this workflow runs on 'pull_request' events."
+)
+_ERR_GITLAB_PROJECT_NOT_FOUND = "CI_PROJECT_PATH environment variable not found."
+_ERR_GITLAB_MR_NOT_FOUND = (
+    "Could not determine MR number from GitLab CI context. "
+    "Ensure this job runs on merge request pipelines."
+)
+_ERR_GITLAB_TOKEN_MISSING = (
+    "GITLAB_TOKEN environment variable not found. Please provide a GitLab personal access token."
 )
 _MIN_REF_PARTS = 3
 
@@ -108,6 +117,32 @@ def extract_github_context() -> tuple[str, int]:
     raise ValueError(_ERR_CONTEXT_NOT_FOUND)
 
 
+def extract_gitlab_context() -> tuple[str, int]:
+    """Extract project path and MR number from GitLab CI environment.
+
+    Returns:
+        Tuple of (project_path, mr_iid).
+
+    Raises:
+        ValueError: If context cannot be extracted.
+    """
+    # 1. Get Project Path
+    project = os.getenv("CI_PROJECT_PATH")
+    if not project:
+        raise ValueError(_ERR_GITLAB_PROJECT_NOT_FOUND)
+
+    # 2. Get MR IID (project-level ID)
+    # CI_MERGE_REQUEST_IID is available in merge request pipelines
+    mr_iid = os.getenv("CI_MERGE_REQUEST_IID")
+    if mr_iid:
+        try:
+            return project, int(mr_iid)
+        except ValueError:
+            pass
+
+    raise ValueError(_ERR_GITLAB_MR_NOT_FOUND)
+
+
 def _exit_app(code: int = 0) -> NoReturn:
     """Exit the application with the given status code.
 
@@ -117,7 +152,7 @@ def _exit_app(code: int = 0) -> NoReturn:
 
 
 @app.command()
-def main(  # noqa: PLR0912
+def main(  # noqa: PLR0912, PLR0915
     provider: Annotated[
         Provider | None,
         typer.Option(
@@ -206,8 +241,35 @@ def main(  # noqa: PLR0912
                 _exit_app(code=1)
 
         elif provider == Provider.GITLAB:
-            console.print("[yellow]GitLab support is coming soon![/yellow]")
-            _exit_app(code=0)
+            # Check for GitLab token
+            if not settings.gitlab_token:
+                console.print(
+                    f"[bold red]Configuration Error:[/bold red] {_ERR_GITLAB_TOKEN_MISSING}"
+                )
+                _exit_app(code=1)
+
+            # Auto-detect context if missing
+            if not repo or not pr:
+                try:
+                    detected_repo, detected_mr = extract_gitlab_context()
+                    repo = repo or detected_repo
+                    pr = pr or detected_mr
+                    logger.info("Context extracted: %s MR !%s", repo, pr)
+                except ValueError as e:
+                    console.print(f"[bold red]Context Error:[/bold red] {e}")
+                    _exit_app(code=1)
+
+            # Run Review
+            if repo and pr:
+                # Create provider instance and run review
+                gitlab_provider = GitLabClient(
+                    token=settings.gitlab_token.get_secret_value(),
+                    url=settings.gitlab_url,
+                )
+                review_pull_request(gitlab_provider, repo, pr, settings)
+            else:
+                # Should be unreachable due to checks above
+                _exit_app(code=1)
 
     except typer.Exit:
         # Re-raise typer.Exit to not catch it in the general exception handler

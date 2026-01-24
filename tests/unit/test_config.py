@@ -346,3 +346,40 @@ class TestNewSettings:
         env = {**minimal_env, "LANGUAGE_MODE": "invalid"}
         with patch.dict(os.environ, env, clear=True), pytest.raises(ValidationError):
             Settings()
+
+    def test_gitlab_token_default_none(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_token is None by default."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_token is None
+
+    def test_gitlab_token_from_env(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_token can be set from environment."""
+        env = {**minimal_env, "GITLAB_TOKEN": "glpat-test_token_12345"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_token is not None
+            assert settings.gitlab_token.get_secret_value() == "glpat-test_token_12345"
+
+    def test_gitlab_token_is_secret(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_token is a SecretStr when set."""
+        env = {**minimal_env, "GITLAB_TOKEN": "glpat-test_token_12345"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert isinstance(settings.gitlab_token, SecretStr)
+            # Secret should not appear in string representation
+            settings_str = str(settings)
+            assert "glpat-test_token_12345" not in settings_str
+
+    def test_gitlab_url_default(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_url has default value of 'https://gitlab.com'."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_url == "https://gitlab.com"
+
+    def test_gitlab_url_from_env(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_url can be set from environment."""
+        env = {**minimal_env, "GITLAB_URL": "https://gitlab.example.com"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_url == "https://gitlab.example.com"

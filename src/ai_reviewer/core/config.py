@@ -105,6 +105,10 @@ class Settings(BaseSettings):
     Attributes:
         github_token: GitHub personal access token for API access.
             Required for fetching PR data and posting review comments.
+        gitlab_token: GitLab personal access token for API access.
+            Required when using GitLab as the provider.
+        gitlab_url: GitLab server URL (for self-hosted instances).
+            Defaults to https://gitlab.com for GitLab.com.
         google_api_key: Google API key for Gemini access.
             Required for AI-powered code analysis.
         gemini_model: Gemini model to use for analysis.
@@ -123,7 +127,9 @@ class Settings(BaseSettings):
             ADAPTIVE auto-detects from context, FIXED uses the language setting.
 
     Environment Variables:
-        GITHUB_TOKEN: GitHub personal access token (required)
+        GITHUB_TOKEN: GitHub personal access token (required for GitHub)
+        GITLAB_TOKEN: GitLab personal access token (required for GitLab)
+        GITLAB_URL: GitLab server URL (default: https://gitlab.com)
         GOOGLE_API_KEY: Google Gemini API key (required)
         GEMINI_MODEL: Model name (default: gemini-2.5-flash)
         LOG_LEVEL: Logging level (default: INFO)
@@ -149,6 +155,18 @@ class Settings(BaseSettings):
     google_api_key: GoogleApiKey = Field(
         ...,
         description="Google API key for Gemini access",
+    )
+
+    # GitLab credentials (optional - only required when using GitLab provider)
+    # Note: We use SecretStr without validator since it's optional.
+    # Validation is done at CLI level when GitLab provider is selected.
+    gitlab_token: SecretStr | None = Field(
+        default=None,
+        description="GitLab personal access token for API access",
+    )
+    gitlab_url: str = Field(
+        default="https://gitlab.com",
+        description="GitLab server URL (for self-hosted instances)",
     )
 
     # Optional configuration with defaults
