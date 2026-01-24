@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from ai_reviewer.core.config import Settings
+from ai_reviewer.core.config import LanguageMode, Settings
 from ai_reviewer.core.models import (
     FileChange,
     FileChangeType,
@@ -24,6 +24,8 @@ class TestBuildReviewPrompt:
         settings = Mock(spec=Settings)
         settings.review_max_files = 5
         settings.review_max_diff_lines = 10
+        settings.language = "en"
+        settings.language_mode = LanguageMode.FIXED
         return settings
 
     @pytest.fixture
@@ -55,6 +57,9 @@ class TestBuildReviewPrompt:
         """Test prompt generation with full context."""
         prompt = build_review_prompt(sample_context, mock_settings)
 
+        # Language instruction should be first
+        assert "## Language" in prompt
+        assert "Respond in en language" in prompt
         assert "## Linked Task" in prompt
         assert "Title: Task Title" in prompt
         assert "Task Description" in prompt

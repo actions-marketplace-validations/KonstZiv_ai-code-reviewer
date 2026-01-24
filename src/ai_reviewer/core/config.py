@@ -23,6 +23,7 @@ from enum import Enum
 from functools import lru_cache
 from typing import Annotated
 
+import iso639
 from pydantic import AfterValidator, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -82,10 +83,45 @@ def _validate_log_level(v: str) -> str:
     return normalized
 
 
+def _validate_language_code(v: str) -> str:
+    """Validate and normalize ISO 639 language code.
+
+    Accepts any valid ISO 639 code (639-1, 639-2, 639-3) or language name.
+    Normalizes to ISO 639-1 (2-letter) if available, otherwise keeps the original.
+
+    Args:
+        v: Language code or name (e.g., "en", "ukr", "Ukrainian", "fra").
+
+    Returns:
+        Normalized language code (preferably ISO 639-1).
+
+    Raises:
+        ValueError: If the language code is not valid.
+
+    Examples:
+        >>> _validate_language_code("en")
+        'en'
+        >>> _validate_language_code("ukr")
+        'uk'
+        >>> _validate_language_code("Ukrainian")
+        'uk'
+    """
+    try:
+        lang = iso639.Language.match(v)
+    except iso639.LanguageNotFoundError as e:
+        msg = f"Invalid language code '{v}'. Must be a valid ISO 639 code or language name."
+        raise ValueError(msg) from e
+    else:
+        # Prefer ISO 639-1 (2-letter) if available, otherwise use part3 (3-letter)
+        result: str = lang.part1 if lang.part1 else lang.part3
+        return result
+
+
 # Type aliases with validation
 GitHubToken = Annotated[SecretStr, _create_secret_validator("GITHUB_TOKEN")]
 GoogleApiKey = Annotated[SecretStr, _create_secret_validator("GOOGLE_API_KEY")]
 LogLevel = Annotated[str, AfterValidator(_validate_log_level)]
+LanguageCode = Annotated[str, AfterValidator(_validate_language_code)]
 
 
 class Settings(BaseSettings):
@@ -200,9 +236,9 @@ class Settings(BaseSettings):
     )
 
     # Language configuration
-    language: str = Field(
+    language: LanguageCode = Field(
         default="en",
-        description="Default language for review responses (ISO 639-1 code: en, uk, de, etc.)",
+        description="Default language for review responses (ISO 639 code or language name)",
     )
     language_mode: LanguageMode = Field(
         default=LanguageMode.ADAPTIVE,

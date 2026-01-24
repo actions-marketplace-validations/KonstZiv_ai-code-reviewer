@@ -290,10 +290,10 @@ GITLAB_TOKEN              # Access token
 ---
 
 ### Завдання 4a: Мовна адаптивність 🌍
-**Мета:** Автоматичне визначення мови відповіді
+**Мета:** Автоматичне визначення мови відповіді з валідацією ISO 639
 
-**Статус:** ⏳ Очікує
-**Оцінка часу:** 2 години
+**Статус:** ✅ Завершено
+**Оцінка часу:** 3 години
 
 **Алгоритм "Proximity Rule":**
 1. Зібрати тексти: `[Task.desc, MR.desc, Comments...]`
@@ -301,27 +301,69 @@ GITLAB_TOKEN              # Access token
 3. Взяти останній достатньо довгий текст
 4. Включити в prompt інструкцію для LLM визначити мову
 
+**Валідація мовного коду (ISO 639):**
+Використовуємо бібліотеку `python-iso639` для валідації параметра `LANGUAGE`:
+- Приймаються всі валідні ISO 639 коди (639-1, 639-2, 639-3)
+- Приймаються назви мов (English, Ukrainian, Deutsch...)
+- Автоматична нормалізація до ISO 639-1 (дволітерний код)
+- Для мов без ISO 639-1 зберігається ISO 639-3
+
+```python
+# Приклади нормалізації:
+"en" → "en"           # ISO 639-1 залишається
+"ukr" → "uk"          # ISO 639-3 → ISO 639-1
+"Ukrainian" → "uk"    # Назва → ISO 639-1
+"yue" → "yue"         # Cantonese (немає 639-1, залишається 639-3)
+"invalid" → ValidationError  # Невалідний код
+```
+
 **Кроки:**
-1. Створити `src/ai_reviewer/utils/language.py`
-2. Реалізувати `detect_context_language(context: ReviewContext) -> str | None`
-3. Оновити system prompt для адаптивності
-4. Додати `detected_language` в `ReviewResult`
+1. ✅ Додати залежність `python-iso639` в `pyproject.toml`
+2. ✅ Створити валідатор `_validate_language_code()` в `config.py`
+3. ✅ Застосувати валідатор до поля `language` в Settings
+4. ✅ Написати тести для валідації мови
+5. ✅ Створити `src/ai_reviewer/utils/language.py`
+6. ✅ Реалізувати `collect_text_samples()`, `build_language_instruction()`
+7. ✅ Оновити system prompt для адаптивності
+8. ✅ Додати `detected_language` в `ReviewResult`
+9. ✅ Інтегрувати в `reviewer.py`
+10. ✅ Написати тести (15 нових тестів)
 
 **Конфігурація:**
 ```bash
-LANGUAGE=uk              # Мова за замовчуванням
+LANGUAGE=uk              # Мова за замовчуванням (ISO 639 код або назва)
 LANGUAGE_MODE=adaptive   # adaptive | fixed
 ```
 
 **Критерії прийняття:**
+- ✅ Валідація мовного коду за ISO 639 (всі частини стандарту)
+- ✅ Нормалізація до ISO 639-1 де можливо
+- ✅ Чіткі повідомлення про помилки для невалідних кодів
 - ✅ Бот відповідає українською, якщо PR description українською
 - ✅ `LANGUAGE_MODE=fixed` примусово використовує `LANGUAGE`
 - ✅ Fallback на англійську якщо не вдалося визначити
 
+**🇺🇦 Спеціальне повідомлення для російської мови:**
+
+При виборі російської мови (`ru`, `rus`, `Russian`) до кожного issue review додається footer:
+
+```markdown
+<sub>каждый россиянин, имеющий честь, должен делать все для возвращения
+украденного/уничтоженного его страной в других странах и учить этому своих детей.
+Слава Украине!</sub>
+```
+
+Це реалізується в `formatter.py` при форматуванні inline comments та summary.
+
 **Файли:**
-- `src/ai_reviewer/utils/language.py` (новий)
-- `src/ai_reviewer/integrations/prompts.py` (оновлення)
-- `src/ai_reviewer/core/models.py` (оновлення)
+- `pyproject.toml` (залежність python-iso639) ✅
+- `src/ai_reviewer/core/config.py` (валідатор ISO 639) ✅
+- `src/ai_reviewer/utils/language.py` (новий) ✅
+- `src/ai_reviewer/integrations/prompts.py` (оновлення) ✅
+- `src/ai_reviewer/core/models.py` (detected_language) ✅
+- `src/ai_reviewer/core/formatter.py` (footer для російської) ✅
+- `src/ai_reviewer/reviewer.py` (інтеграція) ✅
+- `tests/unit/test_language.py` (новий, 15 тестів) ✅
 
 ---
 

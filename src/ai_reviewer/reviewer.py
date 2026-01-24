@@ -66,8 +66,8 @@ def review_pull_request(
         # 4. Analyze with AI
         result = analyze_code_changes(context, settings)
 
-        # 5. Format comment
-        comment_body = format_review_comment(result)
+        # 5. Format comment (pass detected language for Russian disclaimer)
+        comment_body = format_review_comment(result, language=result.detected_language)
 
         # 6. Check for duplicates
         # We check the last comment by a bot. If it matches our new comment, we skip.

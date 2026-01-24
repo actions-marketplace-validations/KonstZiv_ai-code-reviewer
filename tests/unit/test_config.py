@@ -383,3 +383,91 @@ class TestNewSettings:
         with patch.dict(os.environ, env, clear=True):
             settings = Settings()
             assert settings.gitlab_url == "https://gitlab.example.com"
+
+
+class TestLanguageValidation:
+    """Tests for ISO 639 language code validation."""
+
+    @pytest.fixture
+    def minimal_env(self) -> dict[str, str]:
+        """Return minimal required environment variables."""
+        return {
+            "GITHUB_TOKEN": "ghp_test_token_12345",
+            "GOOGLE_API_KEY": "AIza_test_key_12345",
+        }
+
+    def test_language_default_en(self, minimal_env: dict[str, str]) -> None:
+        """Test language has default value of 'en'."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.language == "en"
+
+    def test_language_iso639_1_code(self, minimal_env: dict[str, str]) -> None:
+        """Test ISO 639-1 (2-letter) codes are accepted."""
+        for code in ["en", "uk", "de", "fr", "es", "ja", "zh"]:
+            env = {**minimal_env, "LANGUAGE": code}
+            with patch.dict(os.environ, env, clear=True):
+                settings = Settings()
+                assert settings.language == code
+
+    def test_language_iso639_3_code_normalized(self, minimal_env: dict[str, str]) -> None:
+        """Test ISO 639-3 (3-letter) codes are normalized to ISO 639-1."""
+        # ukr -> uk, deu -> de, fra -> fr
+        test_cases = [
+            ("ukr", "uk"),
+            ("deu", "de"),
+            ("fra", "fr"),
+            ("eng", "en"),
+            ("spa", "es"),
+        ]
+        for input_code, expected in test_cases:
+            env = {**minimal_env, "LANGUAGE": input_code}
+            with patch.dict(os.environ, env, clear=True):
+                settings = Settings()
+                assert settings.language == expected
+
+    def test_language_name_normalized(self, minimal_env: dict[str, str]) -> None:
+        """Test language names are normalized to ISO 639-1 codes."""
+        test_cases = [
+            ("Ukrainian", "uk"),
+            ("English", "en"),
+            ("German", "de"),
+            ("French", "fr"),
+            ("Spanish", "es"),
+        ]
+        for input_name, expected in test_cases:
+            env = {**minimal_env, "LANGUAGE": input_name}
+            with patch.dict(os.environ, env, clear=True):
+                settings = Settings()
+                assert settings.language == expected
+
+    def test_language_invalid_code_raises_error(self, minimal_env: dict[str, str]) -> None:
+        """Test that invalid language code raises ValidationError."""
+        env = {**minimal_env, "LANGUAGE": "invalid"}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError) as exc_info:
+                Settings()
+            assert "language" in str(exc_info.value).lower()
+
+    def test_language_empty_string_raises_error(self, minimal_env: dict[str, str]) -> None:
+        """Test that empty language code raises ValidationError."""
+        env = {**minimal_env, "LANGUAGE": ""}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_language_gibberish_raises_error(self, minimal_env: dict[str, str]) -> None:
+        """Test that gibberish language code raises ValidationError."""
+        env = {**minimal_env, "LANGUAGE": "xyz123"}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_language_iso639_3_no_part1_kept(self, minimal_env: dict[str, str]) -> None:
+        """Test ISO 639-3 codes without ISO 639-1 equivalent are kept as-is."""
+        # 'yue' is Cantonese - has ISO 639-3 but no ISO 639-1
+        env = {**minimal_env, "LANGUAGE": "yue"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            # Cantonese doesn't have ISO 639-1, so keep ISO 639-3
+            assert settings.language == "yue"

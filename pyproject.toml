@@ -52,6 +52,9 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "pyyaml>=6.0.3",
 
+    # Language validation
+    "python-iso639>=0.0.10",
+
     # CLI & Output
     "rich>=14.2.0",
     "typer>=0.21.1",
@@ -163,6 +166,9 @@ ignore = [
     "PLC0415", # Import inside function OK in tests
     "SIM117",  # Nested with statements OK in tests
 ]
+"src/ai_reviewer/core/formatter.py" = [
+    "RUF001",  # Cyrillic characters OK in Russian disclaimer message
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ai_reviewer"]
@@ -197,6 +203,7 @@ module = [
     "langchain.*",
     "langgraph.*",
     "google.genai.*",
+    "iso639.*",
 ]
 ignore_missing_imports = true
 
