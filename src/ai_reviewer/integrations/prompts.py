@@ -4,12 +4,15 @@ This module handles the construction of prompts for the LLM, including:
 - Formatting merge request data
 - Formatting linked task data
 - Formatting and truncating file diffs
+- Language-adaptive response generation
 - Constructing the final system and user prompts
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
+from ai_reviewer.utils.language import build_language_instruction
 
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
@@ -32,7 +35,11 @@ You must analyze the code changes for:
      - MISALIGNED: Code contradicts requirements or misses key parts.
      - INSUFFICIENT_DATA: Task description is too vague or missing.
 
+3. **Language**: Your response language will be specified in the user prompt.
+   Follow the language instruction exactly.
+
 Output must be valid JSON matching the ReviewResult schema.
+Include 'detected_language' field with the ISO 639-1 code of the language you used.
 """
 
 
@@ -72,13 +79,17 @@ def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
     """
     parts = []
 
+    # 0. Language Instruction (first, so it's prominent)
+    language_instruction = build_language_instruction(context, settings)
+    parts.append(f"## Language\n{language_instruction}")
+
     # 1. Linked Task Context
     if context.task:
-        parts.append("## Linked Task")
+        parts.append("\n## Linked Task")
         parts.append(f"Title: {context.task.title}")
         parts.append(f"Description:\n{context.task.description}")
     else:
-        parts.append("## Linked Task")
+        parts.append("\n## Linked Task")
         parts.append("No linked task provided.")
 
     # 2. Merge Request Context

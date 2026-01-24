@@ -271,6 +271,7 @@ class ReviewResult(BaseModel):
         task_alignment: Whether code changes align with the linked task.
         task_alignment_reasoning: Explanation of task alignment assessment.
         summary: Brief summary of the review.
+        detected_language: ISO 639 language code detected/used for the review.
         reviewed_at: When the review was performed (must be timezone-aware).
     """
 
@@ -287,6 +288,9 @@ class ReviewResult(BaseModel):
         default="", description="Explanation of task alignment assessment"
     )
     summary: str = Field(default="", description="Brief summary of the review")
+    detected_language: str = Field(
+        default="en", description="ISO 639 language code used for the review"
+    )
     reviewed_at: datetime | None = Field(default=None, description="When the review was performed")
 
     @field_validator("reviewed_at")

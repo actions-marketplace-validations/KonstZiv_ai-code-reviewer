@@ -10,12 +10,12 @@
 
 | Метрика | Ціль | Поточне | Статус |
 |---------|------|---------|--------|
-| **Завдань виконано** | 10/10 | 8/10 | 🏗️ |
+| **Завдань виконано** | 10/10 | 4/10 | 🏗️ |
 | **Покриття тестами** | ≥80% | 93% | ✅ |
 | **GitHub інтеграція** | ✅ Працює | ✅ GitProvider ABC | ✅ |
-| **GitLab інтеграція** | ✅ Працює | ⏳ Не почато | ⏳ |
+| **GitLab інтеграція** | ✅ Працює | ✅ GitLabClient готовий | ✅ |
 | **Inline Comments** | ✅ Apply button | ✅ submit_review() готовий | 🔄 |
-| **Мовна адаптивність** | ✅ Працює | ⏳ Не почато | ⏳ |
+| **Мовна адаптивність** | ✅ Працює | ✅ ISO 639 + Proximity Rule | ✅ |
 | **Docker image** | ✅ Опубліковано | ⏳ Не почато | ⏳ |
 | **PyPI package** | ✅ v0.1.0 | ⏳ Не опубліковано | ⏳ |
 
@@ -94,49 +94,74 @@
 ---
 
 ### 🦊 Завдання 3: Інтеграція GitLab
-**Статус:** 🎯 **НАСТУПНЕ**
+**Статус:** ✅ **ЗАВЕРШЕНО** (2026-01-24)
 **Призначено:** Claude Code (AI)
 **Оцінка часу:** 4 години
 
 **Чеклист:**
-- [ ] Створено `GitLabClient(GitProvider)` в `gitlab.py`
-- [ ] Реалізовано `get_merge_request()`
-- [ ] Реалізовано `get_linked_task()`
-- [ ] Реалізовано `submit_review()` через Discussions
-- [ ] Додано `GITLAB_TOKEN`, `GITLAB_URL` в Settings
-- [ ] Оновлено CLI для GitLab context
-- [ ] Написано інтеграційні тести
+- [x] Створено `GitLabClient(GitProvider)` в `gitlab.py`
+- [x] Реалізовано `get_merge_request()`
+- [x] Реалізовано `get_linked_task()`
+- [x] Реалізовано `submit_review()` через Discussions
+- [x] Додано `GITLAB_TOKEN`, `GITLAB_URL` в Settings
+- [x] Оновлено CLI для GitLab context
+- [x] Написано інтеграційні тести
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+- GitLabClient: повна імплементація GitProvider інтерфейсу
+- get_merge_request(): отримання MR з notes та diffs
+- get_linked_task(): пошук linked issues (Closes #123, Fixes #456)
+- post_comment(): публікація notes до MR
+- submit_review(): inline коментарі через Discussions API
+- handle_gitlab_errors decorator для rate limiting (HTTP 429)
+- CLI: extract_gitlab_context() для CI_PROJECT_PATH, CI_MERGE_REQUEST_IID
+- Тести: 19 тестів для GitLabClient, 6 для config, 3 для CLI
+- 222 тести, 92% coverage
 ```
 
 ---
 
 ### 🌍 Завдання 4a: Мовна адаптивність
-**Статус:** ⏳ Очікує Завдання 1
+**Статус:** ✅ **ЗАВЕРШЕНО** (2026-01-24)
 **Призначено:** Claude Code (AI)
-**Оцінка часу:** 2 години
+**Оцінка часу:** 3 години
 
 **Чеклист:**
-- [ ] Створено `utils/language.py`
-- [ ] Реалізовано `detect_context_language()`
-- [ ] Оновлено system prompt для адаптивності
-- [ ] Додано `detected_language` в `ReviewResult`
-- [ ] `LANGUAGE_MODE=fixed` працює
-- [ ] Fallback на англійську працює
-- [ ] Тести написано
+- [x] Додано залежність `python-iso639` для валідації ISO 639
+- [x] Створено валідатор `_validate_language_code()` в config.py
+- [x] Створено `utils/language.py` з алгоритмом "Proximity Rule"
+- [x] Реалізовано `collect_text_samples()`, `build_language_instruction()`
+- [x] Оновлено system prompt для адаптивності
+- [x] Додано `detected_language` в `ReviewResult`
+- [x] `LANGUAGE_MODE=fixed` працює
+- [x] `LANGUAGE_MODE=adaptive` з fallback на англійську працює
+- [x] Footer для російської мови ("Слава Украине!") в formatter.py
+- [x] Тести написано (15 тестів для language.py + 8 для валідації + 10 для formatter)
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+ISO 639 валідація:
+- python-iso639 бібліотека для валідації всіх частин стандарту
+- Нормалізація до ISO 639-1 (en, uk, de) де можливо
+- Підтримка назв мов (Ukrainian → uk)
+
+Алгоритм "Proximity Rule":
+- Збирає тексти з коментарів (найновіші першими), MR description, task
+- Фільтрує короткі тексти (<20 слів)
+- Включає контекст в prompt для LLM визначення мови
+
+Спеціальне повідомлення для ru:
+- При LANGUAGE=ru до кожного review додається footer
+- "каждый россиянин... Слава Украине!"
+
+255 тестів, 93% coverage
 ```
 
 ---
 
 ### 🎨 Завдання 4b: Розширена структура ревʼю та WOW-форматування
-**Статус:** ⏳ Очікує Завдання 4a
+**Статус:** 🎯 **НАСТУПНЕ**
 **Призначено:** Claude Code (AI)
 **Оцінка часу:** 4 години
 
@@ -375,14 +400,14 @@ SQL injection allows attackers...
 | core/formatter.py | ≥80% | 98% | ✅ |
 | integrations/base.py | ≥80% | 100% | ✅ NEW |
 | integrations/github.py | ≥80% | 88% | ✅ |
-| integrations/gitlab.py | ≥80% | 0% | ⏳ Новий файл |
+| integrations/gitlab.py | ≥80% | 88% | ✅ |
 | integrations/gemini.py | ≥80% | 96% | ✅ |
 | utils/time.py | ≥80% | 91% | ✅ NEW |
 | utils/retry.py | ≥90% | 0% | ⏳ Новий файл |
 | utils/language.py | ≥80% | 0% | ⏳ Новий файл |
 | cli.py | ≥80% | 88% | ✅ |
 | reviewer.py | ≥80% | 94% | ✅ |
-| **Загалом** | **≥80%** | **93%** | ✅ |
+| **Загалом** | **≥80%** | **92%** | ✅ |
 
 ---
 
@@ -393,9 +418,9 @@ SQL injection allows attackers...
     ↓
 Завдання 2 (Adapter)        ██████████  ✅ Завершено
     ↓
-Завдання 3 (GitLab)         ████░░░░░░  🎯 Наступне
+Завдання 3 (GitLab)         ██████████  ✅ Завершено
     ↓
-Завдання 4a (Language)      ░░░░░░░░░░  [Паралельно з 3]
+Завдання 4a (Language)      ████░░░░░░  🎯 Наступне
     ↓
 Завдання 4b (WOW)           ░░░░░░░░░░
     ↓
@@ -420,10 +445,10 @@ SQL injection allows attackers...
 
 ### Фокус на сьогодні
 ```
-Завдання 3: Інтеграція GitLab
-- Створити GitLabClient(GitProvider)
-- Реалізувати get_merge_request()
-- Реалізувати submit_review() через Discussions
+Завдання 4a: Мовна адаптивність
+- Створити utils/language.py
+- Реалізувати detect_context_language()
+- Оновити system prompt для адаптивності
 ```
 
 ### Прогрес з останнього оновлення
@@ -442,6 +467,15 @@ SQL injection allows attackers...
   - submit_review() з GitHub Review API
   - reviewer.py абстраговано (DI)
   - 196 тестів, 93% coverage
+
+✅ Завдання 3 (GitLab) - ЗАВЕРШЕНО (2026-01-24)
+  - GitLabClient(GitProvider) створено
+  - get_merge_request() з notes та diffs
+  - get_linked_task() з pattern matching
+  - submit_review() через Discussions API
+  - handle_gitlab_errors decorator (HTTP 429)
+  - CLI: extract_gitlab_context()
+  - 222 тести, 92% coverage
 ```
 
 ### Блокери
@@ -451,7 +485,7 @@ SQL injection allows attackers...
 
 ### Питання
 ```
-Немає - готовий до виконання Завдання 3
+Немає - готовий до виконання Завдання 4a
 ```
 
 ---
@@ -595,11 +629,11 @@ SQL injection allows attackers...
 - Дата початку: 2026-01-20
 - Дата завершення: [Дата]
 - Тривалість: [Днів]
-- Завдань виконано: 6/10 → 8/10 → [X]/10
-- Покриття тестами: 94% → 93% → [X]%
-- Рядків коду: ~600 → ~680 → [X]
-- Нових файлів: 2 (base.py, time.py)
-- Тестів: 196
+- Завдань виконано: 6/10 → 8/10 → 3/10
+- Покриття тестами: 94% → 93% → 92%
+- Рядків коду: ~600 → ~680 → ~800
+- Нових файлів: 3 (base.py, time.py, gitlab.py)
+- Тестів: 222
 - Коммітів: [X]
 
 ---
