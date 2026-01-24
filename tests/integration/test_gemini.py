@@ -7,14 +7,21 @@ from pydantic import SecretStr, ValidationError
 
 from ai_reviewer.core.config import Settings
 from ai_reviewer.core.models import (
+    CodeIssue,
+    IssueCategory,
+    IssueSeverity,
     MergeRequest,
     ReviewContext,
     ReviewResult,
     TaskAlignmentStatus,
-    Vulnerability,
-    VulnerabilitySeverity,
 )
-from ai_reviewer.integrations.gemini import GeminiClient, analyze_code_changes
+from ai_reviewer.integrations.gemini import (
+    DEFAULT_PRICING,
+    GEMINI_PRICING,
+    GeminiClient,
+    analyze_code_changes,
+    calculate_cost,
+)
 
 
 class TestGeminiClient:
@@ -43,11 +50,12 @@ class TestGeminiClient:
 
         # Create a valid ReviewResult object that the SDK would return
         expected_result = ReviewResult(
-            vulnerabilities=(
-                Vulnerability(
+            issues=(
+                CodeIssue(
+                    category=IssueCategory.SECURITY,
+                    severity=IssueSeverity.CRITICAL,
                     title="SQL Injection",
                     description="Unsafe query",
-                    severity=VulnerabilitySeverity.CRITICAL,
                 ),
             ),
             task_alignment=TaskAlignmentStatus.ALIGNED,
@@ -55,6 +63,8 @@ class TestGeminiClient:
         )
 
         mock_response.parsed = expected_result
+        # Explicitly set usage_metadata to None to avoid Mock auto-creation
+        mock_response.usage_metadata = None
         client.client.models.generate_content.return_value = mock_response
 
         # Execute
@@ -62,9 +72,12 @@ class TestGeminiClient:
 
         # Verify
         assert isinstance(result, ReviewResult)
-        assert len(result.vulnerabilities) == 1
-        assert result.vulnerabilities[0].title == "SQL Injection"
+        assert len(result.issues) == 1
+        assert result.issues[0].title == "SQL Injection"
         assert result.task_alignment == TaskAlignmentStatus.ALIGNED
+        # Verify metrics are present (even with zero tokens)
+        assert result.metrics is not None
+        assert result.metrics.model_name == "gemini-2.5-flash"
 
         # Verify API call arguments
         client.client.models.generate_content.assert_called_once()
@@ -96,6 +109,7 @@ class TestGeminiClient:
         mock_response = Mock()
         # Pass an invalid enum value to trigger ValidationError
         mock_response.parsed = {"task_alignment": "INVALID_STATUS"}
+        mock_response.usage_metadata = None
         client.client.models.generate_content.return_value = mock_response
 
         with pytest.raises(ValidationError):
@@ -163,3 +177,138 @@ class TestAnalyzeCodeChanges:
 
         # Verify generation call
         mock_client_instance.generate_review.assert_called_once_with("Constructed Prompt")
+
+
+class TestCalculateCost:
+    """Tests for calculate_cost function."""
+
+    def test_calculate_cost_known_model(self) -> None:
+        """Test cost calculation for a known model."""
+        # gemini-2.5-flash: $0.075/1M input, $0.30/1M output
+        cost = calculate_cost("gemini-2.5-flash", 1_000_000, 500_000)
+        expected = 0.075 + (0.30 * 0.5)  # $0.075 + $0.15 = $0.225
+        assert cost == pytest.approx(expected)
+
+    def test_calculate_cost_pro_model(self) -> None:
+        """Test cost calculation for pro model."""
+        # gemini-1.5-pro: $1.25/1M input, $5.00/1M output
+        cost = calculate_cost("gemini-1.5-pro", 1_000_000, 100_000)
+        expected = 1.25 + (5.00 * 0.1)  # $1.25 + $0.50 = $1.75
+        assert cost == pytest.approx(expected)
+
+    def test_calculate_cost_unknown_model(self) -> None:
+        """Test cost calculation for unknown model uses default pricing."""
+        cost = calculate_cost("unknown-model", 1_000_000, 500_000)
+        expected = DEFAULT_PRICING["input"] + (DEFAULT_PRICING["output"] * 0.5)
+        assert cost == pytest.approx(expected)
+
+    def test_calculate_cost_zero_tokens(self) -> None:
+        """Test cost calculation with zero tokens."""
+        cost = calculate_cost("gemini-2.5-flash", 0, 0)
+        assert cost == 0.0
+
+    def test_calculate_cost_small_request(self) -> None:
+        """Test cost calculation for typical small request."""
+        # Typical code review: ~2000 prompt tokens, ~500 completion tokens
+        cost = calculate_cost("gemini-2.5-flash", 2000, 500)
+        # $0.075/1M * 2000 + $0.30/1M * 500
+        expected = (2000 / 1_000_000) * 0.075 + (500 / 1_000_000) * 0.30
+        assert cost == pytest.approx(expected)
+        # Should be very cheap (less than a cent)
+        assert cost < 0.01
+
+    def test_gemini_pricing_has_expected_models(self) -> None:
+        """Test that GEMINI_PRICING contains expected models."""
+        expected_models = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-pro",
+        ]
+        for model in expected_models:
+            assert model in GEMINI_PRICING
+            assert "input" in GEMINI_PRICING[model]
+            assert "output" in GEMINI_PRICING[model]
+
+
+class TestGeminiClientWithMetrics:
+    """Tests for GeminiClient metrics collection."""
+
+    @pytest.fixture
+    def mock_genai_client(self) -> MagicMock:
+        """Mock google.genai.Client."""
+        with patch("ai_reviewer.integrations.gemini.genai.Client") as mock:
+            yield mock
+
+    @pytest.fixture
+    def client(self, mock_genai_client: MagicMock) -> GeminiClient:
+        """Create GeminiClient instance with mocked backend."""
+        return GeminiClient(SecretStr("test-key"))
+
+    def test_generate_review_returns_metrics(self, client: GeminiClient) -> None:
+        """Test that generate_review includes metrics in result."""
+        mock_response = Mock()
+
+        # Create a valid ReviewResult
+        expected_result = ReviewResult(
+            summary="LGTM",
+            task_alignment=TaskAlignmentStatus.ALIGNED,
+        )
+        mock_response.parsed = expected_result
+
+        # Mock usage_metadata with explicit values
+        mock_response.usage_metadata = Mock()
+        mock_response.usage_metadata.prompt_token_count = 1000
+        mock_response.usage_metadata.candidates_token_count = 500
+        mock_response.usage_metadata.total_token_count = 1500
+
+        client.client.models.generate_content.return_value = mock_response
+
+        result = client.generate_review("Test prompt")
+
+        # Verify metrics are included
+        assert result.metrics is not None
+        assert result.metrics.model_name == "gemini-2.5-flash"
+        assert result.metrics.prompt_tokens == 1000
+        assert result.metrics.completion_tokens == 500
+        assert result.metrics.total_tokens == 1500
+        assert result.metrics.api_latency_ms >= 0  # Can be 0 for very fast mock calls
+        assert result.metrics.estimated_cost_usd > 0
+
+    def test_generate_review_handles_missing_usage_metadata(self, client: GeminiClient) -> None:
+        """Test that generate_review handles missing usage_metadata gracefully."""
+        mock_response = Mock()
+        mock_response.parsed = ReviewResult(summary="LGTM")
+        mock_response.usage_metadata = None
+
+        client.client.models.generate_content.return_value = mock_response
+
+        result = client.generate_review("Test prompt")
+
+        # Metrics should still be present but with zero tokens
+        assert result.metrics is not None
+        assert result.metrics.prompt_tokens == 0
+        assert result.metrics.completion_tokens == 0
+        assert result.metrics.total_tokens == 0
+        assert result.metrics.estimated_cost_usd == 0.0
+
+    def test_generate_review_handles_partial_usage_metadata(self, client: GeminiClient) -> None:
+        """Test that generate_review handles partial usage_metadata."""
+        mock_response = Mock()
+        mock_response.parsed = ReviewResult(summary="LGTM")
+
+        # Only some fields present
+        mock_response.usage_metadata = Mock()
+        mock_response.usage_metadata.prompt_token_count = 1000
+        mock_response.usage_metadata.candidates_token_count = None
+        mock_response.usage_metadata.total_token_count = 1000
+
+        client.client.models.generate_content.return_value = mock_response
+
+        result = client.generate_review("Test prompt")
+
+        assert result.metrics is not None
+        assert result.metrics.prompt_tokens == 1000
+        assert result.metrics.completion_tokens == 0  # None → 0
+        assert result.metrics.total_tokens == 1000

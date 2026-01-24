@@ -83,7 +83,7 @@ class TestReviewFlow:
 
         # Check comment content
         args, _ = mock_provider.post_comment.call_args
-        assert "AI Code Review Report" in args[2]
+        assert "AI Code Review" in args[2]
         assert "LGTM" in args[2]
         assert "✅ Aligned" in args[2]
 
