@@ -1,0 +1,60 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+.eggs
+*.egg-info
+*.egg
+dist
+build
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+coverage.xml
+.tox
+.nox
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Documentation
+docs
+site
+*.md
+!README.md
+
+# Development
+tests
+.pre-commit-config.yaml
+.ruff_cache
+.mypy_cache
+Makefile
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Task tracking
+CURRENT_TASK
+
+# Misc
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

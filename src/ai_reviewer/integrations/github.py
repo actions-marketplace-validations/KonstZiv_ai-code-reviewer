@@ -7,10 +7,9 @@ and posting review comments.
 
 from __future__ import annotations
 
-import functools
 import logging
 import re
-from typing import TYPE_CHECKING, ParamSpec, TypeVar
+from typing import TYPE_CHECKING
 
 from github import Github, GithubException, RateLimitExceededException
 from github.Auth import Token
@@ -25,48 +24,57 @@ from ai_reviewer.core.models import (
     MergeRequest,
 )
 from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.utils.retry import (
+    AuthenticationError,
+    ForbiddenError,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
+    with_retry,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from ai_reviewer.integrations.base import ReviewSubmission
 
 
 logger = logging.getLogger(__name__)
 
-P = ParamSpec("P")
-R = TypeVar("R")
-
+# HTTP status codes
+HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
+HTTP_NOT_FOUND = 404
+HTTP_INTERNAL_SERVER_ERROR = 500
 
 
-def handle_rate_limit(func: Callable[P, R]) -> Callable[P, R | None]:  # noqa: UP047
-    """Decorator to handle GitHub API rate limits.
+def _convert_github_exception(e: GithubException) -> Exception:
+    """Convert PyGithub exception to our exception hierarchy.
 
     Args:
-        func: The function to decorate.
+        e: PyGithub exception.
 
     Returns:
-        The decorated function which returns None on rate limit error.
+        Converted exception (RetryableError or APIClientError).
     """
+    status = e.status
+    message = str(e.data) if e.data else str(e)
 
-    @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
-        try:
-            return func(*args, **kwargs)
-        except RateLimitExceededException:
-            logger.exception("GitHub API rate limit exceeded.")
-            # We cannot post a comment if the rate limit is exceeded.
-            # Ideally, we would notify the user, but we are blocked.
-            return None
-        except GithubException as e:
-            # Re-raise other GitHub exceptions
-            if e.status == HTTP_FORBIDDEN and "rate limit" in str(e).lower():
-                logger.exception("GitHub API rate limit exceeded (403).")
-                return None
-            raise
+    if status == HTTP_UNAUTHORIZED:
+        return AuthenticationError(f"GitHub: {message}")
 
-    return wrapper
+    if status == HTTP_FORBIDDEN:
+        # Check if this is rate limit (GitHub returns 403 for secondary rate limit)
+        if "rate limit" in message.lower():
+            return RateLimitError(f"GitHub: {message}")
+        return ForbiddenError(f"GitHub: {message}")
+
+    if status == HTTP_NOT_FOUND:
+        return NotFoundError(f"GitHub: {message}")
+
+    if status >= HTTP_INTERNAL_SERVER_ERROR:
+        return ServerError(f"GitHub: {message}", status_code=status)
+
+    # For other errors, return as-is (will not be retried)
+    return e
 
 
 class GitHubClient(GitProvider):
@@ -88,8 +96,8 @@ class GitHubClient(GitProvider):
         self.github = Github(auth=auth)
         logger.debug("GitHub client initialized")
 
-    @handle_rate_limit
-    def get_merge_request(self, repo_name: str, mr_id: int) -> MergeRequest | None:
+    @with_retry
+    def get_merge_request(self, repo_name: str, mr_id: int) -> MergeRequest:
         """Fetch a pull request from GitHub and convert to MergeRequest model.
 
         Args:
@@ -97,17 +105,24 @@ class GitHubClient(GitProvider):
             mr_id: Pull request number.
 
         Returns:
-            MergeRequest model populated with PR data, or None on rate limit.
+            MergeRequest model populated with PR data.
 
         Raises:
-            GithubException: If API call fails.
+            AuthenticationError: If token is invalid.
+            NotFoundError: If PR or repo doesn't exist.
+            RateLimitError: If rate limit exceeded (will retry).
+            ServerError: If GitHub server error (will retry).
         """
         try:
             repo = self.github.get_repo(repo_name)
             pr = repo.get_pull(mr_id)
-        except GithubException:
-            logger.exception("Failed to fetch PR %s from %s", mr_id, repo_name)
-            raise
+        except RateLimitExceededException as e:
+            logger.warning("GitHub rate limit exceeded for PR %s in %s", mr_id, repo_name)
+            msg = f"GitHub rate limit exceeded: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            logger.warning("GitHub API error for PR %s in %s: %s", mr_id, repo_name, e)
+            raise _convert_github_exception(e) from e
 
         # Fetch comments (both issue comments and review comments)
         comments: list[Comment] = []
@@ -193,12 +208,14 @@ class GitHubClient(GitProvider):
             updated_at=pr.updated_at,
         )
 
-    @handle_rate_limit
     def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
         """Attempt to find a linked task/issue for the PR.
 
         Looks for patterns like "Fixes #123" or "Closes #123" in the PR description.
         If found, fetches the issue details from GitHub.
+
+        Note: This method does NOT use retry as linked task is optional.
+        Failure to fetch linked task should not block the review.
 
         Args:
             repo_name: Repository name in 'owner/repo' format.
@@ -230,11 +247,11 @@ class GitHubClient(GitProvider):
                 description=issue.body or "",
                 url=issue.html_url,
             )
-        except GithubException as e:
+        except (GithubException, RateLimitExceededException) as e:
             logger.warning("Found issue link #%s but failed to fetch it: %s", issue_number, e)
             return None
 
-    @handle_rate_limit
+    @with_retry
     def post_comment(self, repo_name: str, mr_id: int, body: str) -> None:
         """Post a general comment to the pull request.
 
@@ -247,18 +264,25 @@ class GitHubClient(GitProvider):
             body: The comment text to post.
 
         Raises:
-            GithubException: If API call fails.
+            AuthenticationError: If token is invalid.
+            ForbiddenError: If insufficient permissions.
+            RateLimitError: If rate limit exceeded (will retry).
+            ServerError: If GitHub server error (will retry).
         """
         try:
             repo = self.github.get_repo(repo_name)
             pr = repo.get_pull(mr_id)
             pr.create_issue_comment(body)
             logger.info("Posted comment to PR #%s in %s", mr_id, repo_name)
-        except GithubException:
-            logger.exception("Failed to post comment to PR #%s in %s", mr_id, repo_name)
-            raise
+        except RateLimitExceededException as e:
+            logger.warning("GitHub rate limit exceeded posting comment to PR #%s", mr_id)
+            msg = f"GitHub rate limit exceeded: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            logger.warning("Failed to post comment to PR #%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_github_exception(e) from e
 
-    @handle_rate_limit
+    @with_retry
     def submit_review(
         self,
         repo_name: str,
@@ -277,7 +301,10 @@ class GitHubClient(GitProvider):
             submission: Review data including summary and line comments.
 
         Raises:
-            GithubException: If API call fails.
+            AuthenticationError: If token is invalid.
+            ForbiddenError: If insufficient permissions.
+            RateLimitError: If rate limit exceeded (will retry).
+            ServerError: If GitHub server error (will retry).
         """
         try:
             repo = self.github.get_repo(repo_name)
@@ -315,9 +342,13 @@ class GitHubClient(GitProvider):
                 len(review_comments),
             )
 
-        except GithubException:
-            logger.exception("Failed to submit review to PR #%s in %s", mr_id, repo_name)
-            raise
+        except RateLimitExceededException as e:
+            logger.warning("GitHub rate limit exceeded submitting review to PR #%s", mr_id)
+            msg = f"GitHub rate limit exceeded: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            logger.warning("Failed to submit review to PR #%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_github_exception(e) from e
 
     # Backward compatibility alias
     def post_review_comment(self, repo_name: str, pr_number: int, comment: str) -> None:

@@ -1,0 +1,66 @@
+# =============================================================================
+# AI Code Review - GitLab CI Template
+# =============================================================================
+# Include this template in your .gitlab-ci.yml:
+#
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/KonstZiv/ai-code-reviewer/main/examples/gitlab-ci.yml'
+#
+# Or copy the job definition to your .gitlab-ci.yml
+#
+# Required CI/CD variables:
+#   - GOOGLE_API_KEY: Your Google API key for Gemini (masked, protected)
+#
+# The CI_JOB_TOKEN is automatically provided by GitLab CI.
+# =============================================================================
+
+# AI Code Review job
+ai-review:
+  stage: test
+  image: ghcr.io/konstziv/ai-code-reviewer:latest
+
+  # Only run on merge requests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+  variables:
+    # GitLab token (automatically provided)
+    GITLAB_TOKEN: $CI_JOB_TOKEN
+    # Google API key (set in CI/CD settings)
+    GOOGLE_API_KEY: $GOOGLE_API_KEY
+    # Optional: customize settings
+    # LANGUAGE: "en"
+    # LANGUAGE_MODE: "adaptive"
+    # GEMINI_MODEL: "gemini-2.5-flash"
+    # LOG_LEVEL: "INFO"
+
+  script:
+    - ai-review
+
+  # Allow failure so it doesn't block the pipeline
+  allow_failure: true
+
+  # Cache nothing - stateless
+  cache: []
+
+# =============================================================================
+# Alternative: Using your own GitLab token with more permissions
+# =============================================================================
+# If CI_JOB_TOKEN doesn't have enough permissions, create a Project Access Token:
+# 1. Go to Settings > Access Tokens
+# 2. Create token with 'api' scope
+# 3. Add as CI/CD variable: GITLAB_API_TOKEN
+#
+# Then use this configuration:
+#
+# ai-review:
+#   stage: test
+#   image: ghcr.io/konstziv/ai-code-reviewer:latest
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+#   variables:
+#     GITLAB_TOKEN: $GITLAB_API_TOKEN
+#     GOOGLE_API_KEY: $GOOGLE_API_KEY
+#   script:
+#     - ai-review
+#   allow_failure: true

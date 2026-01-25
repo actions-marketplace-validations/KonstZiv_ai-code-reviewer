@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from gitlab.exceptions import GitlabError, GitlabGetError
+from gitlab.exceptions import GitlabAuthenticationError, GitlabError
 
 from ai_reviewer.core.models import (
     CommentAuthorType,
@@ -13,6 +13,13 @@ from ai_reviewer.core.models import (
 )
 from ai_reviewer.integrations.base import GitProvider, LineComment, ReviewSubmission
 from ai_reviewer.integrations.gitlab import GitLabClient
+from ai_reviewer.utils.retry import (
+    AuthenticationError,
+    ForbiddenError,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
+)
 
 
 class TestGitLabClient:
@@ -321,30 +328,75 @@ class TestGitLabClient:
         # Summary should still be posted
         mock_mr.notes.create.assert_called_once()
 
-    def test_rate_limit_handling(self, client: GitLabClient) -> None:
-        """Test that rate limit (429) is handled."""
+    @patch("ai_reviewer.integrations.gitlab.with_retry", lambda f: f)  # Disable retry for test
+    def test_rate_limit_raises_error(self, client: GitLabClient) -> None:
+        """Test that rate limit (429) raises RateLimitError."""
         error = GitlabError("Too Many Requests")
         error.response_code = 429
         client.gitlab.projects.get.side_effect = error
 
-        result = client.get_merge_request("owner/repo", 1)
-        assert result is None
-
-    def test_other_gitlab_error_raised(self, client: GitLabClient) -> None:
-        """Test that other GitLab errors are re-raised."""
-        client.gitlab.projects.get.side_effect = GitlabGetError("Not Found")
-
-        with pytest.raises(GitlabGetError):
+        with pytest.raises(RateLimitError):
             client.get_merge_request("owner/repo", 1)
 
+    @patch("ai_reviewer.integrations.gitlab.with_retry", lambda f: f)  # Disable retry for test
+    def test_not_found_raises_error(self, client: GitLabClient) -> None:
+        """Test that 404 raises NotFoundError."""
+        error = GitlabError("Not Found")
+        error.response_code = 404
+        client.gitlab.projects.get.side_effect = error
+
+        with pytest.raises(NotFoundError):
+            client.get_merge_request("owner/repo", 1)
+
+    @patch("ai_reviewer.integrations.gitlab.with_retry", lambda f: f)  # Disable retry for test
+    def test_unauthorized_raises_error(self, client: GitLabClient) -> None:
+        """Test that 401 raises AuthenticationError."""
+        client.gitlab.projects.get.side_effect = GitlabAuthenticationError("Unauthorized")
+
+        with pytest.raises(AuthenticationError):
+            client.get_merge_request("owner/repo", 1)
+
+    @patch("ai_reviewer.integrations.gitlab.with_retry", lambda f: f)  # Disable retry for test
+    def test_forbidden_raises_error(self, client: GitLabClient) -> None:
+        """Test that 403 raises ForbiddenError."""
+        error = GitlabError("Forbidden")
+        error.response_code = 403
+        client.gitlab.projects.get.side_effect = error
+
+        with pytest.raises(ForbiddenError):
+            client.get_merge_request("owner/repo", 1)
+
+    @patch("ai_reviewer.integrations.gitlab.with_retry", lambda f: f)  # Disable retry for test
+    def test_server_error_raises_error(self, client: GitLabClient) -> None:
+        """Test that 5xx raises ServerError."""
+        error = GitlabError("Internal Server Error")
+        error.response_code = 500
+        client.gitlab.projects.get.side_effect = error
+
+        with pytest.raises(ServerError):
+            client.get_merge_request("owner/repo", 1)
+
+    @patch("ai_reviewer.integrations.gitlab.with_retry", lambda f: f)  # Disable retry for test
     def test_post_comment_rate_limit(self, client: GitLabClient) -> None:
         """Test rate limit handling in post_comment."""
         error = GitlabError("Too Many Requests")
         error.response_code = 429
         client.gitlab.projects.get.side_effect = error
 
-        result = client.post_comment("owner/repo", 1, "Test")
-        assert result is None
+        with pytest.raises(RateLimitError):
+            client.post_comment("owner/repo", 1, "Test")
+
+    @patch("ai_reviewer.integrations.gitlab.with_retry", lambda f: f)  # Disable retry for test
+    def test_submit_review_rate_limit(self, client: GitLabClient) -> None:
+        """Test rate limit handling in submit_review."""
+        error = GitlabError("Too Many Requests")
+        error.response_code = 429
+        client.gitlab.projects.get.side_effect = error
+
+        submission = ReviewSubmission(summary="Test")
+
+        with pytest.raises(RateLimitError):
+            client.submit_review("owner/repo", 1, submission)
 
 
 class TestExtractGitLabContext:

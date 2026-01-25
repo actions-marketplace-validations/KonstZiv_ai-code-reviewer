@@ -11,11 +11,19 @@ import time
 from typing import TYPE_CHECKING, NoReturn
 
 from google import genai
+from google.api_core import exceptions as google_exceptions
 from google.genai import types
 from pydantic import ValidationError
 
 from ai_reviewer.core.models import ReviewMetrics, ReviewResult
 from ai_reviewer.integrations.prompts import SYSTEM_PROMPT, build_review_prompt
+from ai_reviewer.utils.retry import (
+    AuthenticationError,
+    ForbiddenError,
+    RateLimitError,
+    ServerError,
+    with_retry,
+)
 
 if TYPE_CHECKING:
     from pydantic import SecretStr
@@ -84,6 +92,48 @@ def _raise_parsing_error() -> NoReturn:
     raise ValueError(_PARSING_ERROR_MSG)
 
 
+def _convert_google_exception(e: Exception) -> Exception:
+    """Convert Google API exception to our exception hierarchy.
+
+    Args:
+        e: Google API exception.
+
+    Returns:
+        Converted exception (RetryableError or APIClientError).
+    """
+    err = e
+    # Check for google.api_core.exceptions types
+    if isinstance(e, google_exceptions.ResourceExhausted):
+        err = RateLimitError(f"Gemini: {e}")
+
+    if isinstance(e, google_exceptions.Unauthenticated):
+        err = AuthenticationError(f"Gemini: Invalid API key - {e}")
+
+    if isinstance(e, google_exceptions.PermissionDenied):
+        err = ForbiddenError(f"Gemini: {e}")
+
+    if isinstance(
+        e,
+        (
+            google_exceptions.InternalServerError,
+            google_exceptions.ServiceUnavailable,
+            google_exceptions.DeadlineExceeded,
+        ),
+    ):
+        err = ServerError(f"Gemini: {e}")
+
+    # Check error message for rate limit indicators
+    error_msg = str(e).lower()
+    if "rate limit" in error_msg or "quota" in error_msg or "429" in error_msg:
+        err = RateLimitError(f"Gemini: {e}")
+
+    if "503" in error_msg or "500" in error_msg or "server error" in error_msg:
+        err = ServerError(f"Gemini: {e}")
+
+    # Return original exception for non-retryable errors
+    return err
+
+
 class GeminiClient:
     """Client for interacting with Google Gemini API.
 
@@ -103,6 +153,7 @@ class GeminiClient:
         self.model_name = model_name
         logger.debug("Gemini client initialized with model %s", model_name)
 
+    @with_retry
     def generate_review(self, prompt: str) -> ReviewResult:
         """Generate a code review from the given prompt.
 
@@ -113,7 +164,10 @@ class GeminiClient:
             Structured review result with metrics.
 
         Raises:
-            Exception: If API call fails or response parsing fails.
+            AuthenticationError: If API key is invalid.
+            RateLimitError: If rate limit exceeded (will retry).
+            ServerError: If Gemini server error (will retry).
+            ValidationError: If response parsing fails.
         """
         try:
             start_time = time.perf_counter()
@@ -182,7 +236,18 @@ class GeminiClient:
         except ValidationError:
             logger.exception("Failed to validate Gemini response structure")
             raise
-        except Exception:
+        except (
+            google_exceptions.GoogleAPIError,
+            google_exceptions.RetryError,
+        ) as e:
+            logger.warning("Gemini API error: %s", e)
+            raise _convert_google_exception(e) from e
+        except Exception as e:
+            # Check if it's a retryable error based on message
+            converted = _convert_google_exception(e)
+            if converted is not e:
+                logger.warning("Gemini API error: %s", e)
+                raise converted from e
             logger.exception("Gemini API call failed")
             raise
 

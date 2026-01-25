@@ -313,3 +313,74 @@ class TestGeminiClientWithMetrics:
         assert result.metrics.prompt_tokens == 1000
         assert result.metrics.completion_tokens == 0  # None → 0
         assert result.metrics.total_tokens == 1000
+
+
+class TestGeminiClientErrorHandling:
+    """Tests for GeminiClient error handling and exception conversion."""
+
+    @pytest.fixture
+    def mock_genai_client(self) -> MagicMock:
+        """Mock google.genai.Client."""
+        with patch("ai_reviewer.integrations.gemini.genai.Client") as mock:
+            yield mock
+
+    @pytest.fixture
+    def client(self, mock_genai_client: MagicMock) -> GeminiClient:
+        """Create GeminiClient instance with mocked backend."""
+        return GeminiClient(SecretStr("test-key"))
+
+    @patch("ai_reviewer.integrations.gemini.with_retry", lambda f: f)  # Disable retry for test
+    def test_rate_limit_raises_error(self, client: GeminiClient) -> None:
+        """Test that ResourceExhausted raises RateLimitError."""
+        from google.api_core import exceptions as google_exceptions
+
+        from ai_reviewer.utils.retry import RateLimitError
+
+        client.client.models.generate_content.side_effect = google_exceptions.ResourceExhausted(
+            "Quota exceeded"
+        )
+
+        with pytest.raises(RateLimitError):
+            client.generate_review("Test prompt")
+
+    @patch("ai_reviewer.integrations.gemini.with_retry", lambda f: f)  # Disable retry for test
+    def test_auth_error_raises_error(self, client: GeminiClient) -> None:
+        """Test that Unauthenticated raises AuthenticationError."""
+        from google.api_core import exceptions as google_exceptions
+
+        from ai_reviewer.utils.retry import AuthenticationError
+
+        client.client.models.generate_content.side_effect = google_exceptions.Unauthenticated(
+            "Invalid API key"
+        )
+
+        with pytest.raises(AuthenticationError):
+            client.generate_review("Test prompt")
+
+    @patch("ai_reviewer.integrations.gemini.with_retry", lambda f: f)  # Disable retry for test
+    def test_forbidden_raises_error(self, client: GeminiClient) -> None:
+        """Test that PermissionDenied raises ForbiddenError."""
+        from google.api_core import exceptions as google_exceptions
+
+        from ai_reviewer.utils.retry import ForbiddenError
+
+        client.client.models.generate_content.side_effect = google_exceptions.PermissionDenied(
+            "Access denied"
+        )
+
+        with pytest.raises(ForbiddenError):
+            client.generate_review("Test prompt")
+
+    @patch("ai_reviewer.integrations.gemini.with_retry", lambda f: f)  # Disable retry for test
+    def test_server_error_raises_error(self, client: GeminiClient) -> None:
+        """Test that InternalServerError raises ServerError."""
+        from google.api_core import exceptions as google_exceptions
+
+        from ai_reviewer.utils.retry import ServerError
+
+        client.client.models.generate_content.side_effect = google_exceptions.InternalServerError(
+            "Internal error"
+        )
+
+        with pytest.raises(ServerError):
+            client.generate_review("Test prompt")
