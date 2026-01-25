@@ -21,7 +21,6 @@ dependencies = [
     # LLM Orchestration
     "langchain>=1.2.6",
     "langgraph>=1.0.6",
-
     # LLM Providers
     "langchain-anthropic>=1.3.1",         # Claude
     "langchain-openai>=1.1.7",            # GPT
@@ -31,36 +30,29 @@ dependencies = [
     "anthropic>=0.76.0",                  # Direct Anthropic SDK
     "openai>=2.15.0",                     # Direct OpenAI SDK
     "google-genai>=1.59.0",                # New Google GenAI SDK
-
     # Core
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
     "click>=8.3.1",
-
     # Resilience
     "tenacity>=9.0.0",
-
     # HTTP & APIs
     "httpx>=0.28.1",
     "python-gitlab>=7.1.0",
     "PyGithub>=2.8.1",
-
     # Git operations
     "GitPython>=3.1.46",
-
     # Config & Environment
     "python-dotenv>=1.2.1",
     "pyyaml>=6.0.3",
-
     # Language validation
     "python-iso639>=0.0.10",
-
     # CLI & Output
     "rich>=14.2.0",
     "typer>=0.21.1",
-
     # Async
     "aiofiles>=25.1.0",
+    "google-api-core>=2.29.0",
 ]
 
 [project.scripts]
@@ -203,6 +195,7 @@ module = [
     "langchain.*",
     "langgraph.*",
     "google.genai.*",
+    "google.api_core.*",
     "iso639.*",
 ]
 ignore_missing_imports = true

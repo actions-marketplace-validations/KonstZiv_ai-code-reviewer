@@ -1,0 +1,44 @@
+name: 'AI Code Review'
+description: 'AI-powered code review for pull requests using Google Gemini'
+author: 'Kostyantin Zivenko'
+
+branding:
+  icon: 'code'
+  color: 'blue'
+
+inputs:
+  github_token:
+    description: 'GitHub token for API access (usually secrets.GITHUB_TOKEN)'
+    required: true
+  google_api_key:
+    description: 'Google API key for Gemini'
+    required: true
+  language:
+    description: 'Response language (ISO 639 code, e.g., en, uk, de)'
+    required: false
+    default: 'en'
+  language_mode:
+    description: 'Language mode: adaptive (detect from PR) or fixed'
+    required: false
+    default: 'adaptive'
+  gemini_model:
+    description: 'Gemini model to use'
+    required: false
+    default: 'gemini-2.5-flash'
+  log_level:
+    description: 'Log level (DEBUG, INFO, WARNING, ERROR)'
+    required: false
+    default: 'INFO'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    GITHUB_TOKEN: ${{ inputs.github_token }}
+    GOOGLE_API_KEY: ${{ inputs.google_api_key }}
+    LANGUAGE: ${{ inputs.language }}
+    LANGUAGE_MODE: ${{ inputs.language_mode }}
+    GEMINI_MODEL: ${{ inputs.gemini_model }}
+    LOG_LEVEL: ${{ inputs.log_level }}
+    # GitHub Actions environment variables are automatically available
+    GITHUB_ACTIONS: 'true'

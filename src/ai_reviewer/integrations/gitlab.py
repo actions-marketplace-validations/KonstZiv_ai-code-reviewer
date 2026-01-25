@@ -11,13 +11,12 @@ Reference:
 
 from __future__ import annotations
 
-import functools
 import logging
 import re
-from typing import TYPE_CHECKING, ParamSpec, TypeVar
+from typing import TYPE_CHECKING
 
 import gitlab
-from gitlab.exceptions import GitlabError, GitlabGetError
+from gitlab.exceptions import GitlabAuthenticationError, GitlabError
 
 from ai_reviewer.core.models import (
     Comment,
@@ -29,47 +28,63 @@ from ai_reviewer.core.models import (
     MergeRequest,
 )
 from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.utils.retry import (
+    AuthenticationError,
+    ForbiddenError,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
+    with_retry,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from ai_reviewer.integrations.base import ReviewSubmission
 
 
 logger = logging.getLogger(__name__)
 
-P = ParamSpec("P")
-R = TypeVar("R")
-
+# HTTP status codes
+HTTP_UNAUTHORIZED = 401
+HTTP_FORBIDDEN = 403
+HTTP_NOT_FOUND = 404
 HTTP_TOO_MANY_REQUESTS = 429
+HTTP_INTERNAL_SERVER_ERROR = 500
 
 
-def handle_gitlab_errors(func: Callable[P, R]) -> Callable[P, R | None]:  # noqa: UP047
-    """Decorator to handle GitLab API errors.
-
-    Catches rate limit errors (429) and returns None instead of raising.
-    Other errors are re-raised.
+def _convert_gitlab_exception(e: GitlabError) -> Exception:
+    """Convert python-gitlab exception to our exception hierarchy.
 
     Args:
-        func: The function to decorate.
+        e: python-gitlab exception.
 
     Returns:
-        The decorated function which returns None on rate limit error.
+        Converted exception (RetryableError or APIClientError).
     """
+    # GitlabAuthenticationError is a specific subclass
+    if isinstance(e, GitlabAuthenticationError):
+        return AuthenticationError(f"GitLab: {e}")
 
-    @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
-        try:
-            return func(*args, **kwargs)
-        except GitlabError as e:
-            # Check for rate limit
-            if hasattr(e, "response_code") and e.response_code == HTTP_TOO_MANY_REQUESTS:
-                logger.exception("GitLab API rate limit exceeded.")
-                return None
-            # Re-raise other errors
-            raise
+    # Check response_code attribute
+    status = getattr(e, "response_code", None)
+    message = f"GitLab: {e}"
 
-    return wrapper
+    # Mapping of status codes to exception types
+    status_map: dict[int, type[Exception]] = {
+        HTTP_UNAUTHORIZED: AuthenticationError,
+        HTTP_FORBIDDEN: ForbiddenError,
+        HTTP_NOT_FOUND: NotFoundError,
+        HTTP_TOO_MANY_REQUESTS: RateLimitError,
+    }
+
+    if status in status_map:
+        return status_map[status](message)
+
+    if status is not None and status >= HTTP_INTERNAL_SERVER_ERROR:
+        return ServerError(message, status_code=status)
+
+    # For other errors, return as-is (will not be retried)
+    # GitlabError is treated as Any due to ignore_missing_imports
+    return e  # type: ignore[no-any-return]
 
 
 class GitLabClient(GitProvider):
@@ -92,8 +107,8 @@ class GitLabClient(GitProvider):
         self._url = url
         logger.debug("GitLab client initialized for %s", url)
 
-    @handle_gitlab_errors
-    def get_merge_request(self, repo_name: str, mr_id: int) -> MergeRequest | None:
+    @with_retry
+    def get_merge_request(self, repo_name: str, mr_id: int) -> MergeRequest:
         """Fetch a merge request from GitLab and convert to MergeRequest model.
 
         Args:
@@ -101,17 +116,20 @@ class GitLabClient(GitProvider):
             mr_id: Merge request IID (project-level ID).
 
         Returns:
-            MergeRequest model populated with MR data, or None on rate limit.
+            MergeRequest model populated with MR data.
 
         Raises:
-            GitlabError: If API call fails.
+            AuthenticationError: If token is invalid.
+            NotFoundError: If MR or project doesn't exist.
+            RateLimitError: If rate limit exceeded (will retry).
+            ServerError: If GitLab server error (will retry).
         """
         try:
             project = self.gitlab.projects.get(repo_name)
             mr = project.mergerequests.get(mr_id)
-        except GitlabGetError:
-            logger.exception("Failed to fetch MR !%s from %s", mr_id, repo_name)
-            raise
+        except GitlabError as e:
+            logger.warning("GitLab API error for MR !%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_gitlab_exception(e) from e
 
         # Fetch notes (comments)
         comments: list[Comment] = []
@@ -190,12 +208,14 @@ class GitLabClient(GitProvider):
             updated_at=mr.updated_at,
         )
 
-    @handle_gitlab_errors
     def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
         """Attempt to find a linked issue for the MR.
 
         Looks for patterns like "Closes #123" or "Fixes #123" in the MR description.
         If found, fetches the issue details from GitLab.
+
+        Note: This method does NOT use retry as linked task is optional.
+        Failure to fetch linked task should not block the review.
 
         Args:
             repo_name: Project path (e.g., 'owner/repo').
@@ -227,11 +247,11 @@ class GitLabClient(GitProvider):
                 description=issue.description or "",
                 url=issue.web_url,
             )
-        except GitlabGetError as e:
+        except GitlabError as e:
             logger.warning("Found issue link #%s but failed to fetch it: %s", issue_number, e)
             return None
 
-    @handle_gitlab_errors
+    @with_retry
     def post_comment(self, repo_name: str, mr_id: int, body: str) -> None:
         """Post a general comment (note) to the merge request.
 
@@ -244,18 +264,21 @@ class GitLabClient(GitProvider):
             body: The comment text to post.
 
         Raises:
-            GitlabError: If API call fails.
+            AuthenticationError: If token is invalid.
+            ForbiddenError: If insufficient permissions.
+            RateLimitError: If rate limit exceeded (will retry).
+            ServerError: If GitLab server error (will retry).
         """
         try:
             project = self.gitlab.projects.get(repo_name)
             mr = project.mergerequests.get(mr_id)
             mr.notes.create({"body": body})
             logger.info("Posted comment to MR !%s in %s", mr_id, repo_name)
-        except GitlabError:
-            logger.exception("Failed to post comment to MR !%s in %s", mr_id, repo_name)
-            raise
+        except GitlabError as e:
+            logger.warning("Failed to post comment to MR !%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_gitlab_exception(e) from e
 
-    @handle_gitlab_errors
+    @with_retry
     def submit_review(
         self,
         repo_name: str,
@@ -273,7 +296,10 @@ class GitLabClient(GitProvider):
             submission: Review data including summary and line comments.
 
         Raises:
-            GitlabError: If API call fails.
+            AuthenticationError: If token is invalid.
+            ForbiddenError: If insufficient permissions.
+            RateLimitError: If rate limit exceeded (will retry).
+            ServerError: If GitLab server error (will retry).
         """
         try:
             project = self.gitlab.projects.get(repo_name)
@@ -334,6 +360,6 @@ class GitLabClient(GitProvider):
                 len(submission.line_comments),
             )
 
-        except GitlabError:
-            logger.exception("Failed to submit review to MR !%s in %s", mr_id, repo_name)
-            raise
+        except GitlabError as e:
+            logger.warning("Failed to submit review to MR !%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_gitlab_exception(e) from e

@@ -1,0 +1,45 @@
+# =============================================================================
+# AI Code Review - GitHub Actions Workflow Example
+# =============================================================================
+# Copy this file to your repository: .github/workflows/ai-review.yml
+#
+# Required secrets:
+#   - GOOGLE_API_KEY: Your Google API key for Gemini
+#
+# The GITHUB_TOKEN is automatically provided by GitHub Actions.
+# =============================================================================
+
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Prevent multiple reviews running simultaneously on the same PR
+concurrency:
+  group: ai-review-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: AI Review
+    runs-on: ubuntu-latest
+
+    # Skip if PR is from a fork (no access to secrets)
+    if: github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: AI Code Review
+        uses: KonstZiv/ai-code-reviewer@v0.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          # Optional: customize language and model
+          # language: 'en'
+          # language_mode: 'adaptive'
+          # gemini_model: 'gemini-2.5-flash'
+          # log_level: 'INFO'

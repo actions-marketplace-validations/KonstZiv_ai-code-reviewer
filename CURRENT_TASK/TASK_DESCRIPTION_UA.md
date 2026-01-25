@@ -460,17 +460,17 @@ GEMINI_FLASH_PRICING = {
 
 ---
 
-### Завдання 5: Контейнеризація та дистрибуція 🐳
-**Мета:** Zero-setup для користувачів
+### Завдання 5: Контейнеризація та локальна підготовка 🐳
+**Мета:** Підготувати Docker image та GitHub Action для подальшої публікації
 
 **Статус:** ⏳ Очікує
 **Оцінка часу:** 3 години
 
 **Кроки:**
 1. Створити multi-stage `Dockerfile`
-2. Створити `action.yml` для GitHub Marketplace
+2. Створити `action.yml` для GitHub Action
 3. Створити приклади CI конфігурацій
-4. Налаштувати GitHub Container Registry
+4. Створити `.dockerignore` для оптимізації збірки
 
 **Dockerfile:**
 ```dockerfile
@@ -548,16 +548,19 @@ ai-review:
 ```
 
 **Критерії прийняття:**
-- ✅ Docker image збирається та працює
-- ✅ GitHub Action доступний через `uses:`
-- ✅ GitLab template працює з `image:`
+- ✅ Docker image збирається локально та працює
+- ✅ `action.yml` створено та валідний
+- ✅ Приклади CI конфігурацій готові
 
 **Файли:**
 - `Dockerfile` (новий)
+- `.dockerignore` (новий)
 - `action.yml` (новий)
 - `examples/github-workflow.yml` (новий)
 - `examples/gitlab-ci.yml` (новий)
-- `.github/workflows/docker-publish.yml` (новий)
+- `examples/README.md` (новий)
+
+> **Примітка:** Публікація Docker image на GHCR/DockerHub та GitHub Marketplace винесена в Завдання 8 (CI/CD Pipeline)
 
 ---
 
@@ -669,33 +672,215 @@ plugins:
 
 ---
 
-### Завдання 8: CI/CD Pipeline 🔄
-**Мета:** Повна автоматизація release процесу
+### Завдання 8: CI/CD Pipeline та публікація 🔄
+**Мета:** Повна автоматизація release процесу + публікація на всіх платформах
 
 **Статус:** ⏳ Очікує
-**Оцінка часу:** 2 години
+**Оцінка часу:** 4 години
 
 **Workflows:**
 1. `tests.yml` — якість + тести на push/PR
 2. `ai-review.yml` — self-review на PR
 3. `release.yml` — PyPI + Docker + Docs на тег
-4. `docker-publish.yml` — GHCR publish
+4. `docker-publish.yml` — GHCR + DockerHub publish
 
-**Кроки:**
+---
+
+#### 8.1 Docker публікація (GHCR + DockerHub)
+
+**GitHub Container Registry (GHCR):**
+```yaml
+# .github/workflows/docker-publish.yml
+name: Docker Publish
+
+on:
+  push:
+    tags: ['v*']
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY_GHCR: ghcr.io
+  REGISTRY_DOCKER: docker.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_DOCKER }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
+            ${{ env.REGISTRY_DOCKER }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+**DockerHub опис (README для DockerHub):**
+Створити `DOCKERHUB_README.md` з:
+- Короткий опис проєкту
+- Quick start з `docker run`
+- Посилання на повну документацію
+- Badges (version, pulls, size)
+
+**Secrets потрібні:**
+- `DOCKERHUB_USERNAME` — username на DockerHub
+- `DOCKERHUB_TOKEN` — Access Token (не пароль!)
+
+---
+
+#### 8.2 GitHub Marketplace публікація
+
+**Вимоги для Marketplace:**
+1. Репозиторій має бути **публічним**
+2. `action.yml` в корені репозиторію ✅
+3. Створити **Release** з semantic version tag (v1.0.0)
+4. Додати детальний **README.md** з:
+   - Опис що робить Action
+   - Inputs/Outputs документація
+   - Приклади використання
+   - Badges
+
+**Кроки публікації на Marketplace:**
+1. Перейти на сторінку Release в GitHub
+2. Створити новий Release з тегом `v1.0.0`
+3. Поставити галочку "Publish this Action to the GitHub Marketplace"
+4. Обрати категорії: `Code quality`, `Code review`
+5. Додати іконку та колір (вже в action.yml)
+
+**action.yml доповнення для Marketplace:**
+```yaml
+name: 'AI Code Reviewer'
+description: 'AI-powered code review with inline suggestions and Apply button'
+author: 'KonstZiv'
+branding:
+  icon: 'eye'
+  color: 'purple'
+
+inputs:
+  github_token:
+    description: 'GitHub token for API access'
+    required: false
+    default: ${{ github.token }}
+  google_api_key:
+    description: 'Google Gemini API Key'
+    required: true
+  language:
+    description: 'Response language (ISO 639 code: en, uk, de, es, etc.)'
+    required: false
+    default: 'en'
+  language_mode:
+    description: 'Language detection mode: adaptive (detect from context) or fixed'
+    required: false
+    default: 'adaptive'
+  gemini_model:
+    description: 'Gemini model to use'
+    required: false
+    default: 'gemini-2.0-flash'
+  log_level:
+    description: 'Logging level: DEBUG, INFO, WARNING, ERROR'
+    required: false
+    default: 'INFO'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    GITHUB_TOKEN: ${{ inputs.github_token }}
+    GOOGLE_API_KEY: ${{ inputs.google_api_key }}
+    LANGUAGE: ${{ inputs.language }}
+    LANGUAGE_MODE: ${{ inputs.language_mode }}
+    GEMINI_MODEL: ${{ inputs.gemini_model }}
+    LOG_LEVEL: ${{ inputs.log_level }}
+```
+
+---
+
+#### 8.3 PyPI публікація
+
+**Trusted Publishing (рекомендовано):**
+1. Налаштувати PyPI Trusted Publisher в Settings → Publishing
+2. Додати GitHub як trusted publisher:
+   - Owner: `KonstZiv`
+   - Repository: `ai-code-reviewer`
+   - Workflow: `release.yml`
+
+**release.yml оновлення:**
+```yaml
+# В існуючому release.yml додати:
+- name: Publish to PyPI
+  uses: pypa/gh-action-pypi-publish@release/v1
+  with:
+    # Trusted publishing - не потрібен API token!
+    packages-dir: dist/
+```
+
+---
+
+**Кроки виконання:**
 1. Оновити `tests.yml` для CLI tests
-2. Оновити `release.yml` для Docker publish
-3. Створити `docker-publish.yml`
-4. Налаштувати PyPI trusted publishing
+2. Створити `.github/workflows/docker-publish.yml`
+3. Налаштувати DockerHub secrets
+4. Оновити `action.yml` для Marketplace
+5. Налаштувати PyPI trusted publishing
+6. Оновити `release.yml` для повного pipeline
+7. Створити `DOCKERHUB_README.md`
 
 **Критерії прийняття:**
 - ✅ Всі workflows зелені
-- ✅ Docker image публікується в GHCR
-- ✅ PyPI publish працює на тег
+- ✅ Docker image публікується в GHCR (`ghcr.io/konstziv/ai-code-reviewer`)
+- ✅ Docker image публікується в DockerHub (`konstziv/ai-code-reviewer`)
+- ✅ GitHub Action доступний через `uses: KonstZiv/ai-code-reviewer@v1`
+- ✅ GitHub Action опублікований на Marketplace
+- ✅ PyPI publish працює на тег (`pip install ai-code-reviewer`)
 
 **Файли:**
 - `.github/workflows/tests.yml` (оновлення)
 - `.github/workflows/release.yml` (оновлення)
 - `.github/workflows/docker-publish.yml` (новий)
+- `action.yml` (оновлення для Marketplace)
+- `DOCKERHUB_README.md` (новий)
 
 ---
 

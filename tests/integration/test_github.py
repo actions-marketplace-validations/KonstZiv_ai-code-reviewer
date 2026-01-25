@@ -14,6 +14,12 @@ from ai_reviewer.core.models import (
 )
 from ai_reviewer.integrations.base import GitProvider, LineComment, ReviewSubmission
 from ai_reviewer.integrations.github import GitHubClient
+from ai_reviewer.utils.retry import (
+    AuthenticationError,
+    ForbiddenError,
+    NotFoundError,
+    RateLimitError,
+)
 
 
 class TestGitHubClient:
@@ -254,41 +260,61 @@ class TestGitHubClient:
         call_kwargs = mock_pr.create_review.call_args[1]
         assert call_kwargs["comments"] is None
 
-    def test_rate_limit_handling(self, client: GitHubClient) -> None:
-        """Test that RateLimitExceededException is handled."""
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)  # Disable retry for test
+    def test_rate_limit_raises_error(self, client: GitHubClient) -> None:
+        """Test that RateLimitExceededException raises RateLimitError."""
         client.github.get_repo.side_effect = RateLimitExceededException(403, "Rate limit", {})
 
-        # Should return None instead of raising exception
-        result = client.get_merge_request("owner/repo", 1)
-        assert result is None
-
-    def test_rate_limit_403_handling(self, client: GitHubClient) -> None:
-        """Test that 403 with 'rate limit' text is handled."""
-        client.github.get_repo.side_effect = GithubException(403, "API rate limit exceeded", {})
-
-        result = client.get_merge_request("owner/repo", 1)
-        assert result is None
-
-    def test_other_github_exception_raised(self, client: GitHubClient) -> None:
-        """Test that other GitHub exceptions are re-raised."""
-        client.github.get_repo.side_effect = GithubException(404, "Not Found", {})
-
-        with pytest.raises(GithubException):
+        # Now raises RateLimitError instead of returning None
+        with pytest.raises(RateLimitError):
             client.get_merge_request("owner/repo", 1)
 
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)  # Disable retry for test
+    def test_rate_limit_403_raises_error(self, client: GitHubClient) -> None:
+        """Test that 403 with 'rate limit' text raises RateLimitError."""
+        client.github.get_repo.side_effect = GithubException(403, "API rate limit exceeded", {})
+
+        with pytest.raises(RateLimitError):
+            client.get_merge_request("owner/repo", 1)
+
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)  # Disable retry for test
+    def test_not_found_raises_error(self, client: GitHubClient) -> None:
+        """Test that 404 raises NotFoundError."""
+        client.github.get_repo.side_effect = GithubException(404, "Not Found", {})
+
+        with pytest.raises(NotFoundError):
+            client.get_merge_request("owner/repo", 1)
+
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)  # Disable retry for test
+    def test_unauthorized_raises_error(self, client: GitHubClient) -> None:
+        """Test that 401 raises AuthenticationError."""
+        client.github.get_repo.side_effect = GithubException(401, "Unauthorized", {})
+
+        with pytest.raises(AuthenticationError):
+            client.get_merge_request("owner/repo", 1)
+
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)  # Disable retry for test
+    def test_forbidden_raises_error(self, client: GitHubClient) -> None:
+        """Test that 403 (non-rate-limit) raises ForbiddenError."""
+        client.github.get_repo.side_effect = GithubException(403, "Permission denied", {})
+
+        with pytest.raises(ForbiddenError):
+            client.get_merge_request("owner/repo", 1)
+
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)  # Disable retry for test
     def test_submit_review_rate_limit(self, client: GitHubClient) -> None:
         """Test rate limit handling in submit_review."""
         client.github.get_repo.side_effect = RateLimitExceededException(403, "Rate limit", {})
 
         submission = ReviewSubmission(summary="Test")
-        result = client.submit_review("owner/repo", 1, submission)
 
-        assert result is None
+        with pytest.raises(RateLimitError):
+            client.submit_review("owner/repo", 1, submission)
 
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)  # Disable retry for test
     def test_post_comment_rate_limit(self, client: GitHubClient) -> None:
         """Test rate limit handling in post_comment."""
         client.github.get_repo.side_effect = RateLimitExceededException(403, "Rate limit", {})
 
-        result = client.post_comment("owner/repo", 1, "Test")
-
-        assert result is None
+        with pytest.raises(RateLimitError):
+            client.post_comment("owner/repo", 1, "Test")
