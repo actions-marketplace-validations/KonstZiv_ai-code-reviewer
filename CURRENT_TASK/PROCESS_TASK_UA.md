@@ -381,11 +381,11 @@ examples/:
 
 ---
 
-**Фаза 0: Узгодження структури** (Claude + Human)
-- [ ] Обговорити фінальну структуру docs/
-- [ ] Визначити список файлів для MVP
-- [ ] Узгодити i18n підхід (uk → en → інші)
-- [ ] Затвердити структуру
+**Фаза 0: Узгодження структури** (Claude + Human) ✅
+- [x] Обговорити фінальну структуру docs/
+- [x] Визначити список файлів для MVP (10 файлів UK + README)
+- [x] Узгодити i18n підхід (uk → en → інші)
+- [x] Затвердити структуру (2026-01-25)
 
 **Фаза 1: Створення** (Claude)
 - [ ] Налаштувати MkDocs + mkdocs-material
@@ -393,11 +393,15 @@ examples/:
 - [ ] Створити структуру директорій
 - [ ] Написати документацію **українською** (uk/):
   - [ ] index.md (landing)
+  - [ ] installation.md (Docker / PyPI / Source)
   - [ ] quick-start.md (GitHub + GitLab)
   - [ ] configuration.md (всі опції)
   - [ ] github.md (platform-specific)
   - [ ] gitlab.md (platform-specific)
+  - [ ] api.md (CLI reference)
   - [ ] troubleshooting.md (FAQ + errors)
+  - [ ] examples/*.md (5 файлів)
+- [ ] Створити README.md (останній, з посиланнями)
 
 **Фаза 2: Вичитка** (Human)
 - [ ] Прочитати uk/ версію
@@ -428,22 +432,65 @@ examples/:
 | 🇲🇪 Crnogorski | me | — | — | ⏳ |
 | 🇮🇹 Italiano | it | — | — | ⏳ |
 
-**Структура docs/ (MVP):**
+**Затверджена структура docs/ (MVP):**
 ```
 docs/
-  uk/                 ← Source of truth (пишеться першою)
-    index.md
-    quick-start.md
-    configuration.md
-    github.md
-    gitlab.md
-    troubleshooting.md
-  en/                 ← Primary for international
-  de/
-  es/
-  me/
-  it/
+├── uk/                          # Source of truth
+│   ├── index.md                 # Landing (що це, features, how it works)
+│   ├── installation.md          # Docker / PyPI / Source install
+│   ├── quick-start.md           # Copy-paste GitHub + GitLab
+│   ├── configuration.md         # Всі env vars, опції, defaults
+│   ├── github.md                # GitHub-specific
+│   ├── gitlab.md                # GitLab-specific
+│   ├── api.md                   # CLI commands reference
+│   ├── troubleshooting.md       # FAQ + errors
+│   └── examples/                # Приклади workflows
+│       ├── index.md             # Огляд прикладів
+│       ├── github-minimal.md
+│       ├── github-advanced.md
+│       ├── gitlab-minimal.md
+│       └── gitlab-advanced.md
+├── en/                          # Primary for international
+├── de/
+├── es/
+├── me/
+└── it/
 mkdocs.yml
+README.md                        # Короткий landing → посилання на docs
+                                 # Створюється ОСТАННІМ
+```
+
+**Порядок створення файлів:**
+| # | Файл | Опис |
+|---|------|------|
+| 1 | `index.md` | Landing page |
+| 2 | `installation.md` | Docker / PyPI / Source |
+| 3 | `quick-start.md` | Copy-paste workflows |
+| 4 | `configuration.md` | Env vars, опції |
+| 5 | `github.md` | GitHub-specific |
+| 6 | `gitlab.md` | GitLab-specific |
+| 7 | `api.md` | CLI reference |
+| 8 | `troubleshooting.md` | FAQ + errors |
+| 9 | `examples/*.md` | Приклади workflows |
+| 10 | **README.md** | Останній (всі посилання готові) |
+
+**Навігація (mkdocs.yml):**
+```yaml
+nav:
+  - Головна: index.md
+  - Встановлення: installation.md
+  - Швидкий старт: quick-start.md
+  - Конфігурація: configuration.md
+  - GitHub: github.md
+  - GitLab: gitlab.md
+  - CLI Reference: api.md
+  - Приклади:
+    - examples/index.md
+    - examples/github-minimal.md
+    - examples/github-advanced.md
+    - examples/gitlab-minimal.md
+    - examples/gitlab-advanced.md
+  - Troubleshooting: troubleshooting.md
 ```
 
 **Нотатки:**
@@ -453,7 +500,9 @@ Workflow:
 2. Після затвердження — переклад на всі мови
 3. EN стає "primary" для міжнародної аудиторії
 4. Виправлення робляться один раз до перекладу
+5. README.md створюється останнім з робочими посиланнями
 
+Фаза 0 затверджена: 2026-01-25
 Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 ```
 
