@@ -375,7 +375,7 @@ examples/:
 ---
 
 ### 📚 Завдання 7: Багатомовна документація
-**Статус:** ⏳ Очікує Завдання 6
+**Статус:** 🏗️ Фаза 1 завершена, очікує Фазу 2 (Human review)
 **Призначено:** Claude Code (AI) + Human (review)
 **Оцінка часу:** 6 годин
 
@@ -387,23 +387,23 @@ examples/:
 - [x] Узгодити i18n підхід (uk → en → інші)
 - [x] Затвердити структуру (2026-01-25)
 
-**Фаза 1: Створення** (Claude)
-- [ ] Налаштувати MkDocs + mkdocs-material
-- [ ] Налаштувати i18n плагін
-- [ ] Створити структуру директорій
-- [ ] Написати документацію **українською** (uk/):
-  - [ ] index.md (landing)
-  - [ ] installation.md (Docker / PyPI / Source)
-  - [ ] quick-start.md (GitHub + GitLab)
-  - [ ] configuration.md (всі опції)
-  - [ ] github.md (platform-specific)
-  - [ ] gitlab.md (platform-specific)
-  - [ ] api.md (CLI reference)
-  - [ ] troubleshooting.md (FAQ + errors)
-  - [ ] examples/*.md (5 файлів)
-- [ ] Створити README.md (останній, з посиланнями)
+**Фаза 1: Створення** (Claude) ✅ **ЗАВЕРШЕНО** (2026-01-26)
+- [x] Налаштувати MkDocs + mkdocs-material
+- [x] Налаштувати i18n плагін (mkdocs-static-i18n)
+- [x] Створити структуру директорій
+- [x] Написати документацію **українською** (uk/):
+  - [x] index.md (landing)
+  - [x] installation.md (Docker / PyPI / Source)
+  - [x] quick-start.md (GitHub + GitLab)
+  - [x] configuration.md (всі опції)
+  - [x] github.md (platform-specific)
+  - [x] gitlab.md (platform-specific)
+  - [x] api.md (CLI reference)
+  - [x] troubleshooting.md (FAQ + errors)
+  - [x] examples/*.md (5 файлів)
+- [ ] Створити README.md (останній, після Фази 2)
 
-**Фаза 2: Вичитка** (Human)
+**Фаза 2: Вичитка** (Human) ⏳ **НАСТУПНИЙ КРОК**
 - [ ] Прочитати uk/ версію
 - [ ] Внести правки/коментарі
 - [ ] Затвердити фінальний текст
@@ -412,11 +412,11 @@ examples/:
 - [ ] Перекласти на English (en/) — primary
 - [ ] Перекласти на Deutsch (de/)
 - [ ] Перекласти на Español (es/)
-- [ ] Перекласти на Crnogorski (me/)
+- [ ] Перекласти на Crnogorski (sr/) — *примітка: locale sr через обмеження Material theme*
 - [ ] Перекласти на Italiano (it/)
 
 **Фаза 4: Деплой** (Claude)
-- [ ] Перемикач мов працює
+- [x] Перемикач мов працює (налаштовано в mkdocs.yml)
 - [ ] GitHub Pages / GitLab Pages налаштовано
 - [ ] Автодеплой працює
 
@@ -425,11 +425,11 @@ examples/:
 **Статус мов:**
 | Мова | Код | Фаза 1 | Фаза 2 | Фаза 3 |
 |------|-----|--------|--------|--------|
-| 🇺🇦 Українська | uk | ⏳ | ⏳ | — |
-| 🇬🇧 English | en | — | — | ⏳ |
+| 🇺🇦 Українська | uk | ✅ | ⏳ | — |
+| 🇬🇧 English | en | ✅ (copy of uk) | — | ⏳ |
 | 🇩🇪 Deutsch | de | — | — | ⏳ |
 | 🇪🇸 Español | es | — | — | ⏳ |
-| 🇲🇪 Crnogorski | me | — | — | ⏳ |
+| 🇲🇪 Crnogorski | sr | — | — | ⏳ |
 | 🇮🇹 Italiano | it | — | — | ⏳ |
 
 **Затверджена структура docs/ (MVP):**
@@ -504,6 +504,17 @@ Workflow:
 
 Фаза 0 затверджена: 2026-01-25
 Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
+
+Фаза 1 завершена: 2026-01-26
+- mkdocs.yml оновлено з i18n плагіном
+- 13 файлів uk/ створено (8 основних + 5 examples)
+- en/ = копія uk/ (тимчасово, для fallback)
+- Зміна: me → sr (MkDocs Material не підтримує Montenegrin)
+- navigation.instant вимкнено (конфлікт з i18n switcher)
+- `uv run mkdocs build` успішно збирає site/ (7.1MB)
+- `uv run mkdocs serve` для локального перегляду
+
+Наступний крок: Human review uk/ версії
 ```
 
 ---
@@ -645,7 +656,7 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
     ↓
 Завдання 6 (Testing)        ██████████  ✅ Завершено
     ↓
-Завдання 7 (Docs)           ░░░░░░░░░░  🎯 Наступне
+Завдання 7 (Docs)           ██████░░░░  🏗️ Фаза 1 ✅, Фаза 2 ⏳
     ↓
 Завдання 8 (CI/CD)          ░░░░░░░░░░
     ↓
@@ -660,35 +671,40 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 
 ### Фокус на сьогодні
 ```
-Завдання 7: Багатомовна документація
-- Налаштувати i18n плагін для MkDocs
-- Створити структуру директорій
-- Написати документацію 6 мовами
+Завдання 7: Багатомовна документація — Фаза 2 (Human review)
+- Вичитка uk/ документації
+- Внесення правок/коментарів
+- Затвердження тексту для перекладу
 ```
 
 ### Прогрес з останнього оновлення
 ```
-✅ Завдання 6 (Testing/Retry) - ЗАВЕРШЕНО (2026-01-25)
-  - Створено utils/retry.py з повною ієрархією exceptions
-  - RetryableError → RateLimitError, ServerError (retry з backoff)
-  - APIClientError → AuthenticationError, ForbiddenError, NotFoundError (fail fast)
-  - @with_retry decorator з tenacity (5 attempts, 2s-30s backoff)
-  - Оновлено GitHub, GitLab, Gemini clients
-  - 33 нових тести для retry module
-  - Оновлено інтеграційні тести для нової поведінки
-  - Виправлено всі ruff/mypy issues
-  - 343 тести, 92% coverage
-  - Всі pre-commit hooks проходять
+🏗️ Завдання 7 Фаза 1 (Docs Setup + UK) - ЗАВЕРШЕНО (2026-01-26)
+  - Оновлено mkdocs.yml з i18n плагіном (mkdocs-static-i18n)
+  - Налаштовано 6 мов: uk, en, de, es, sr (Crnogorski), it
+  - Створено docs/uk/ з 13 файлами:
+    - index.md (landing page)
+    - installation.md (Docker / PyPI / Source)
+    - quick-start.md (GitHub + GitLab copy-paste)
+    - configuration.md (всі env vars)
+    - github.md (GitHub-specific)
+    - gitlab.md (GitLab-specific)
+    - api.md (CLI reference)
+    - troubleshooting.md (FAQ + errors)
+    - examples/*.md (5 файлів)
+  - docs/en/ = копія uk/ (fallback до перекладу)
+  - `uv run mkdocs build` успішно (7.1MB site/)
+  - Зміна: me → sr (MkDocs Material обмеження)
 ```
 
 ### Блокери
 ```
-Немає
+Фаза 2 потребує Human review — документація готова для вичитки
 ```
 
 ### Питання
 ```
-Немає - готовий до виконання Завдання 7 (Documentation)
+Немає — чекаю на review uk/ документації перед перекладом
 ```
 
 ---
@@ -783,6 +799,19 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 - Уніфікована обробка помилок у всіх API clients
 - Максимум 5 спроб з exponential backoff (2s → 30s)
 - Структуроване логування: attempt, error_type, retry_in_ms
+
+### Рішення 13: 2026-01-26 — Locale для Crnogorski
+**Питання:** MkDocs Material не підтримує locale `me` (Montenegrin)
+**Рішення:** Використовувати `sr` (Serbian) як locale для чорногорської мови
+**Обґрунтування:**
+- MkDocs Material має обмежений набір мовних шаблонів
+- Сербська і чорногорська дуже близькі (латиниця)
+- Альтернативи: `hr` (Croatian) або custom template
+- `sr` найближчий з доступних
+**Вплив:**
+- mkdocs.yml: locale `sr` з name `Crnogorski`
+- URL буде /sr/ замість /me/
+- Функціональність повністю збережена
 
 ---
 
