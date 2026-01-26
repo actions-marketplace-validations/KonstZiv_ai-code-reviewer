@@ -403,9 +403,16 @@ examples/:
   - [x] examples/*.md (5 файлів)
 - [ ] Створити README.md (останній, після Фази 2)
 
-**Фаза 2: Вичитка** (Human) ⏳ **НАСТУПНИЙ КРОК**
-- [ ] Прочитати uk/ версію
-- [ ] Внести правки/коментарі
+**Фаза 2: Вичитка** (Human) 🏗️ **В ПРОЦЕСІ**
+- [x] index.md — відревʼювовано, правки внесені (2026-01-26)
+- [ ] installation.md
+- [ ] quick-start.md
+- [ ] configuration.md
+- [ ] github.md
+- [ ] gitlab.md
+- [ ] api.md
+- [ ] troubleshooting.md
+- [ ] examples/*.md (5 файлів)
 - [ ] Затвердити фінальний текст
 
 **Фаза 3: Переклад** (Claude)
@@ -514,7 +521,26 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 - `uv run mkdocs build` успішно збирає site/ (7.1MB)
 - `uv run mkdocs serve` для локального перегляду
 
-Наступний крок: Human review uk/ версії
+Фаза 2 розпочата: 2026-01-26
+- index.md — Human внів значні правки (розширено опис, уточнено вартість)
+- При sync en/index.md = uk/index.md (fallback до перекладу)
+
+=== ІНФО ДЛЯ ВІДНОВЛЕННЯ СЕСІЇ ===
+Поточний стан:
+- Завдання 7, Фаза 2 (Human review) в процесі
+- Відревʼювовано: index.md ✅
+- Очікують review: installation.md, quick-start.md, configuration.md,
+  github.md, gitlab.md, api.md, troubleshooting.md, examples/*.md
+
+Команди для роботи:
+- Перегляд: `uv run mkdocs serve` → http://127.0.0.1:8000/ai-code-reviewer/uk/
+- Build: `uv run mkdocs build`
+- Sync en після правок uk: `cp docs/uk/<file>.md docs/en/<file>.md`
+
+Після Фази 2:
+- Фаза 3: Переклад en/, de/, es/, sr/, it/
+- Фаза 4: GitHub Pages deploy
+- README.md створюється останнім
 ```
 
 ---
@@ -672,39 +698,38 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 ### Фокус на сьогодні
 ```
 Завдання 7: Багатомовна документація — Фаза 2 (Human review)
-- Вичитка uk/ документації
+- Продовження вичитки uk/ документації
 - Внесення правок/коментарів
 - Затвердження тексту для перекладу
 ```
 
 ### Прогрес з останнього оновлення
 ```
-🏗️ Завдання 7 Фаза 1 (Docs Setup + UK) - ЗАВЕРШЕНО (2026-01-26)
-  - Оновлено mkdocs.yml з i18n плагіном (mkdocs-static-i18n)
-  - Налаштовано 6 мов: uk, en, de, es, sr (Crnogorski), it
-  - Створено docs/uk/ з 13 файлами:
-    - index.md (landing page)
-    - installation.md (Docker / PyPI / Source)
-    - quick-start.md (GitHub + GitLab copy-paste)
-    - configuration.md (всі env vars)
-    - github.md (GitHub-specific)
-    - gitlab.md (GitLab-specific)
-    - api.md (CLI reference)
-    - troubleshooting.md (FAQ + errors)
-    - examples/*.md (5 файлів)
-  - docs/en/ = копія uk/ (fallback до перекладу)
-  - `uv run mkdocs build` успішно (7.1MB site/)
-  - Зміна: me → sr (MkDocs Material обмеження)
+🏗️ Завдання 7 Фаза 2 (Human Review) - В ПРОЦЕСІ (2026-01-26)
+  ✅ index.md — відревʼювовано, Human вніс правки:
+     - Розширено опис (senior developer погляд)
+     - Уточнено інтеграцію LLM провайдерів
+     - Оновлено секцію "Що ви отримуєте"
+     - Оновлено інструкції Швидкий старт (детальніше)
+     - Оновлено вартість (Free Tier vs Pay-as-you-go)
+
+  ⏳ Очікують review:
+     - installation.md
+     - quick-start.md
+     - configuration.md
+     - github.md, gitlab.md
+     - api.md, troubleshooting.md
+     - examples/*.md (5 файлів)
 ```
 
 ### Блокери
 ```
-Фаза 2 потребує Human review — документація готова для вичитки
+Немає — Human review в процесі
 ```
 
 ### Питання
 ```
-Немає — чекаю на review uk/ документації перед перекладом
+Немає — продовжуємо review uk/ файлів
 ```
 
 ---
