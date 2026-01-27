@@ -4,7 +4,7 @@
 
 ---
 
-## Токени
+## Токени {#tokens}
 
 ### CI_JOB_TOKEN (автоматичний)
 
@@ -29,16 +29,23 @@ variables:
 
     Для повної функціональності використовуйте Personal Access Token.
 
-### Personal Access Token (рекомендовано)
+### Personal Access Token (рекомендовано) {#get-token}
 
-1. `User Settings → Access Tokens → Add new token`
-2. Scopes: `api`
-3. Збережіть токен
+Для **локального запуску** або **повної функціональності в CI** потрібен Personal Access Token:
+
+1. Перейдіть до `User Settings → Access Tokens → Add new token`
+2. Введіть назву токену (наприклад, `ai-code-reviewer`)
+3. Оберіть scope: **`api`**
+4. Натисніть **Create personal access token**
+5. Скопіюйте токен та збережіть як `GITLAB_TOKEN`
 
 ```yaml
 variables:
   GITLAB_TOKEN: $GITLAB_TOKEN  # З CI/CD Variables
 ```
+
+!!! warning "Збережіть токен"
+    GitLab показує токен **лише один раз**. Збережіть його одразу.
 
 ---
 

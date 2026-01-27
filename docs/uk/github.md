@@ -14,7 +14,7 @@ permissions:
   pull-requests: write  # Писати коментарі
 ```
 
-### GITHUB_TOKEN
+### GITHUB_TOKEN в Actions
 
 В GitHub Actions автоматично доступний `GITHUB_TOKEN`:
 
@@ -34,6 +34,33 @@ env:
     Для PR з fork репозиторіїв `GITHUB_TOKEN` має **лише read** права.
 
     AI Review не зможе постити коментарі для fork PRs.
+
+### Як отримати Personal Access Token {#get-token}
+
+Для **локального запуску** потрібен Personal Access Token (PAT):
+
+1. Перейдіть до `Settings → Developer settings → Personal access tokens`
+2. Оберіть **Fine-grained tokens** (рекомендовано) або Classic
+3. Натисніть **Generate new token**
+
+**Fine-grained token (рекомендовано):**
+
+| Налаштування | Значення |
+|--------------|----------|
+| Repository access | Only select repositories → ваш репозиторій |
+| Permissions | `Pull requests: Read and write` |
+
+**Classic token:**
+
+| Scope | Опис |
+|-------|------|
+| `repo` | Повний доступ до репозиторію |
+
+4. Натисніть **Generate token**
+5. Скопіюйте токен та збережіть як `GITHUB_TOKEN`
+
+!!! warning "Збережіть токен"
+    GitHub показує токен **лише один раз**. Збережіть його одразу.
 
 ---
 
