@@ -1,55 +1,55 @@
 # Troubleshooting
 
-FAQ та вирішення типових проблем.
+FAQ and solving common problems.
 
 ---
 
-## Поширені проблеми
+## Common Problems
 
-### Review не з'являється
+### Review Not Appearing
 
-**Симптом:** CI job пройшов успішно, але коментарів немає.
+**Symptom:** CI job passed successfully, but there are no comments.
 
-**Перевірте:**
+**Check:**
 
-1. **Логи CI job** — чи є помилки?
-2. **API ключ** — чи валідний `GOOGLE_API_KEY`?
-3. **Токен** — чи є права на write?
+1. **CI job logs** — are there errors?
+2. **API key** — is `GOOGLE_API_KEY` valid?
+3. **Token** — are there write permissions?
 
 === "GitHub"
 
     ```yaml
     permissions:
       contents: read
-      pull-requests: write  # ← Обов'язково!
+      pull-requests: write  # ← Required!
     ```
 
 === "GitLab"
 
-    Переконайтесь що `GITLAB_TOKEN` має scope `api`.
+    Make sure `GITLAB_TOKEN` has scope `api`.
 
 ---
 
 ### "Configuration Error: GOOGLE_API_KEY is too short"
 
-**Причина:** Ключ не встановлено або він некоректний.
+**Cause:** Key is not set or is incorrect.
 
-**Рішення:**
+**Solution:**
 
-1. Перевірте що секрет додано в repo settings
-2. Перевірте назву (case-sensitive)
-3. Перевірте що ключ валідний на [Google AI Studio](https://aistudio.google.com/)
+1. Check that the secret is added in repo settings
+2. Check the name (case-sensitive)
+3. Check that the key is valid at [Google AI Studio](https://aistudio.google.com/)
 
 ---
 
 ### "401 Unauthorized" / "403 Forbidden"
 
-**Причина:** Невалідний або недостатній токен.
+**Cause:** Invalid or insufficient token.
 
 === "GitHub"
 
     ```yaml
-    # Перевірте permissions
+    # Check permissions
     permissions:
       contents: read
       pull-requests: write
@@ -57,41 +57,41 @@ FAQ та вирішення типових проблем.
 
 === "GitLab"
 
-    - Перевірте що токен не expired
-    - Перевірте scope: потрібен `api`
-    - Використовуйте PAT замість `CI_JOB_TOKEN`
+    - Check that the token is not expired
+    - Check scope: need `api`
+    - Use PAT instead of `CI_JOB_TOKEN`
 
 ---
 
 ### "404 Not Found"
 
-**Причина:** PR/MR або репозиторій не знайдено.
+**Cause:** PR/MR or repository not found.
 
-**Рішення:**
+**Solution:**
 
-1. Перевірте що PR/MR існує
-2. Перевірте назву репозиторію
-3. Перевірте що токен має доступ до репозиторію
+1. Check that PR/MR exists
+2. Check repository name
+3. Check that token has access to the repository
 
 ---
 
 ### "429 Too Many Requests" (Rate Limit)
 
-**Причина:** Перевищено ліміт API.
+**Cause:** API limit exceeded.
 
-**Gemini Free Tier ліміти:**
+**Gemini Free Tier limits:**
 
-| Ліміт | Значення |
-|-------|----------|
+| Limit | Value |
+|-------|-------|
 | Requests per minute | 15 |
 | Tokens per day | 1,000,000 |
 | Requests per day | 1,500 |
 
-**Рішення:**
+**Solution:**
 
-1. AI Code Reviewer автоматично робить retry з exponential backoff
-2. Якщо проблема постійна — зачекайте або перейдіть на paid tier
-3. Додайте `concurrency` для скасування дублікатів:
+1. AI Code Reviewer automatically retries with exponential backoff
+2. If the problem persists — wait or switch to paid tier
+3. Add `concurrency` to cancel duplicates:
 
 ```yaml
 concurrency:
@@ -103,33 +103,33 @@ concurrency:
 
 ### "500 Internal Server Error"
 
-**Причина:** Проблема на стороні API (Google, GitHub, GitLab).
+**Cause:** Problem on the API side (Google, GitHub, GitLab).
 
-**Рішення:**
+**Solution:**
 
-1. AI Code Reviewer автоматично робить retry (до 5 спроб)
-2. Перевірте статус сервісів:
+1. AI Code Reviewer automatically retries (up to 5 attempts)
+2. Check service status:
    - [Google Cloud Status](https://status.cloud.google.com/)
    - [GitHub Status](https://www.githubstatus.com/)
    - [GitLab Status](https://status.gitlab.com/)
 
 ---
 
-### Review занадто повільний
+### Review Too Slow
 
-**Причина:** Великий PR або повільна мережа.
+**Cause:** Large PR or slow network.
 
-**Рішення:**
+**Solution:**
 
-1. Зменшіть розмір PR
-2. Налаштуйте ліміти:
+1. Reduce PR size
+2. Configure limits:
 
 ```bash
 export REVIEW_MAX_FILES=10
 export REVIEW_MAX_DIFF_LINES=300
 ```
 
-3. Встановіть timeout:
+3. Set timeout:
 
 ```yaml
 # GitHub
@@ -141,75 +141,75 @@ timeout: 10m
 
 ---
 
-### Fork PRs не отримують review
+### Fork PRs Not Getting Review
 
-**Причина:** Секрети недоступні для fork PRs (security).
+**Cause:** Secrets are not available for fork PRs (security).
 
-**Рішення:**
+**Solution:**
 
-Це очікувана поведінка. Для fork PRs:
+This is expected behavior. For fork PRs:
 
-1. Maintainer може запустити review вручну
-2. Або використати `pull_request_target` (обережно з безпекою!)
+1. Maintainer can run review manually
+2. Or use `pull_request_target` (be careful with security!)
 
 ---
 
-### Мова відповідей неправильна
+### Wrong Response Language
 
-**Причина:** Неправильна конфігурація мови.
+**Cause:** Incorrect language configuration.
 
-**Рішення:**
+**Solution:**
 
-1. Для фіксованої мови:
+1. For fixed language:
 ```bash
 export LANGUAGE=uk
 export LANGUAGE_MODE=fixed
 ```
 
-2. Для адаптивної мови — переконайтесь що PR description написаний потрібною мовою
+2. For adaptive language — make sure PR description is written in the desired language
 
 ---
 
 ## FAQ
 
-### Чи можна використовувати без API ключа?
+### Can I use it without an API key?
 
-**Ні.** Потрібен Google Gemini API ключ. Free tier достатній для більшості проєктів.
+**No.** A Google Gemini API key is required. Free tier is sufficient for most projects.
 
-### Чи підтримується Bitbucket?
+### Is Bitbucket supported?
 
-**Ні** (поки що). Тільки GitHub та GitLab.
+**No** (not yet). Only GitHub and GitLab.
 
-### Чи можна використовувати інші LLM (ChatGPT, Claude)?
+### Can I use other LLMs (ChatGPT, Claude)?
 
-**Ні** (в MVP). Підтримка інших LLM планується в майбутніх версіях.
+**No** (in MVP). Support for other LLMs is planned for future versions.
 
-### Чи безпечно передавати код до Google API?
+### Is it safe to send code to Google API?
 
-**Важливо знати:**
+**Important to know:**
 
-- Код передається до Google Gemini API для аналізу
-- Ознайомтесь з [Google AI Terms](https://ai.google.dev/terms)
-- Для sensitive проєктів розгляньте self-hosted рішення (у майбутніх версіях)
+- Code is sent to Google Gemini API for analysis
+- Review the [Google AI Terms](https://ai.google.dev/terms)
+- For sensitive projects, consider self-hosted solutions (in future versions)
 
-### Скільки коштує?
+### How much does it cost?
 
 **Gemini Flash pricing:**
 
-| Метрика | Вартість |
-|---------|----------|
+| Metric | Cost |
+|--------|------|
 | Input tokens | $0.075 / 1M |
 | Output tokens | $0.30 / 1M |
 
-**Приблизно:** ~1000 reviews = ~$1
+**Approximately:** ~1000 reviews = ~$1
 
-Free tier: ~100 reviews/день безкоштовно.
+Free tier: ~100 reviews/day for free.
 
-### Як відключити review для певних файлів?
+### How to disable review for certain files?
 
-Поки що немає `.ai-reviewerignore`. Планується в майбутніх версіях.
+There's no `.ai-reviewerignore` yet. Planned for future versions.
 
-Workaround: фільтруйте в workflow:
+Workaround: filter in workflow:
 
 ```yaml
 on:
@@ -219,9 +219,9 @@ on:
       - 'docs/**'
 ```
 
-### Чи можна запустити локально?
+### Can I run it locally?
 
-**Так:**
+**Yes:**
 
 ```bash
 pip install ai-code-reviewer
@@ -234,25 +234,25 @@ ai-review --provider github --repo owner/repo --pr 123
 
 ## Debugging
 
-### Увімкнути verbose логи
+### Enable Verbose Logs
 
 ```bash
 export LOG_LEVEL=DEBUG
 ai-review
 ```
 
-### Перевірити конфігурацію
+### Check Configuration
 
 ```bash
-# Перевірте що змінні встановлені
+# Check that variables are set
 echo $GOOGLE_API_KEY | head -c 10
 echo $GITHUB_TOKEN | head -c 10
 ```
 
-### Тестовий запуск API
+### Test API Call
 
 ```bash
-# Перевірити Gemini API
+# Test Gemini API
 curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GOOGLE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"contents":[{"parts":[{"text":"Hello"}]}]}'
@@ -260,23 +260,23 @@ curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0
 
 ---
 
-## Отримати допомогу
+## Get Help
 
-Якщо проблема не вирішена:
+If the problem is not resolved:
 
-1. :bug: [GitHub Issues](https://github.com/KonstZiv/ai-code-reviewer/issues) — для багів
-2. :speech_balloon: [GitHub Discussions](https://github.com/KonstZiv/ai-code-reviewer/discussions) — для питань
+1. :bug: [GitHub Issues](https://github.com/KonstZiv/ai-code-reviewer/issues) — for bugs
+2. :speech_balloon: [GitHub Discussions](https://github.com/KonstZiv/ai-code-reviewer/discussions) — for questions
 
-**При створенні issue додайте:**
+**When creating an issue, include:**
 
-- Версію AI Code Reviewer (`ai-review --version`)
-- CI провайдер (GitHub/GitLab)
-- Логи (з прихованими секретами!)
-- Кроки для відтворення
+- AI Code Reviewer version (`ai-review --version`)
+- CI provider (GitHub/GitLab)
+- Logs (with secrets hidden!)
+- Steps to reproduce
 
 ---
 
-## Наступний крок
+## Next Step
 
-- [Приклади →](examples/index.md)
-- [Конфігурація →](configuration.md)
+- [Examples →](examples/index.md)
+- [Configuration →](configuration.md)

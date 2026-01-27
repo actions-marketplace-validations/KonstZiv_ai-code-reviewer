@@ -1,64 +1,64 @@
-# Приклади
+# Examples
 
-Готові конфігурації для копіювання.
+Ready-to-use configurations for copy-paste.
 
 ---
 
 ## GitHub Actions
 
-| Приклад | Опис | Складність |
-|---------|------|------------|
-| [Мінімальний](github-minimal.md) | Базова конфігурація | :star: |
-| [Розширений](github-advanced.md) | Фільтри, concurrency, українська | :star::star: |
+| Example | Description | Complexity |
+|---------|-------------|------------|
+| [Minimal](github-minimal.md) | Basic configuration | :star: |
+| [Advanced](github-advanced.md) | Filters, concurrency, language | :star::star: |
 
 ## GitLab CI
 
-| Приклад | Опис | Складність |
-|---------|------|------------|
-| [Мінімальний](gitlab-minimal.md) | Базова конфігурація | :star: |
-| [Розширений](gitlab-advanced.md) | Stages, PAT, self-hosted | :star::star: |
+| Example | Description | Complexity |
+|---------|-------------|------------|
+| [Minimal](gitlab-minimal.md) | Basic configuration | :star: |
+| [Advanced](gitlab-advanced.md) | Stages, PAT, self-hosted | :star::star: |
 
 ---
 
-## Швидкий вибір
+## Quick Selection
 
 ```mermaid
 graph TD
-    A[Який провайдер?] --> B{GitHub}
+    A[Which provider?] --> B{GitHub}
     A --> C{GitLab}
-    B --> D[Просто спробувати?]
-    C --> E[Просто спробувати?]
-    D --> |Так| F[github-minimal]
-    D --> |Ні| G[github-advanced]
-    E --> |Так| H[gitlab-minimal]
-    E --> |Ні| I[gitlab-advanced]
+    B --> D[Just trying it out?]
+    C --> E[Just trying it out?]
+    D --> |Yes| F[github-minimal]
+    D --> |No| G[github-advanced]
+    E --> |Yes| H[gitlab-minimal]
+    E --> |No| I[gitlab-advanced]
 ```
 
 ---
 
-## Що вибрати?
+## What to Choose?
 
-### Мінімальний
+### Minimal
 
-- :white_check_mark: Швидкий старт
-- :white_check_mark: Працює з дефолтами
-- :white_check_mark: Мінімум конфігурації
+- :white_check_mark: Quick start
+- :white_check_mark: Works with defaults
+- :white_check_mark: Minimal configuration
 
-**Використовуйте для:** перший запуск, тестування.
+**Use for:** first run, testing.
 
-### Розширений
+### Advanced
 
-- :white_check_mark: Concurrency (скасування дублікатів)
-- :white_check_mark: Фільтрація fork PRs
-- :white_check_mark: Українська мова
-- :white_check_mark: Timeout захист
+- :white_check_mark: Concurrency (cancel duplicates)
+- :white_check_mark: Fork PR filtering
+- :white_check_mark: Custom language
+- :white_check_mark: Timeout protection
 
-**Використовуйте для:** production.
+**Use for:** production.
 
 ---
 
-## Порада
+## Tip
 
-1. Почніть з **мінімального** прикладу
-2. Переконайтесь що працює
-3. Додайте потрібні опції з **розширеного**
+1. Start with the **minimal** example
+2. Make sure it works
+3. Add needed options from the **advanced** example

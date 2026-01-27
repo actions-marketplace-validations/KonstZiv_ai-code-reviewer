@@ -1,20 +1,20 @@
-# GitHub: Мінімальний приклад
+# GitHub: Minimal Example
 
-Найпростіша конфігурація для GitHub Actions.
+The simplest configuration for GitHub Actions.
 
 ---
 
-## Крок 1: Додайте секрет
+## Step 1: Add a Secret
 
 `Settings → Secrets and variables → Actions → New repository secret`
 
-| Назва | Значення |
-|-------|----------|
-| `GOOGLE_API_KEY` | Ваш Gemini API ключ |
+| Name | Value |
+|------|-------|
+| `GOOGLE_API_KEY` | Your Gemini API key |
 
 ---
 
-## Крок 2: Створіть файл
+## Step 2: Create the File
 
 `.github/workflows/ai-review.yml`:
 
@@ -40,33 +40,33 @@ jobs:
 
 ---
 
-## Крок 3: Створіть PR
+## Step 3: Create a PR
 
-Готово! AI review з'явиться автоматично.
+Done! AI review will appear automatically.
 
 ---
 
-## Що включено
+## What's Included
 
-| Функція | Статус |
+| Feature | Status |
 |---------|--------|
 | Inline comments | :white_check_mark: |
-| Apply Suggestion кнопка | :white_check_mark: |
-| Мовна адаптивність | :white_check_mark: (adaptive) |
-| Метрики | :white_check_mark: |
+| Apply Suggestion button | :white_check_mark: |
+| Language adaptivity | :white_check_mark: (adaptive) |
+| Metrics | :white_check_mark: |
 
 ---
 
-## Обмеження
+## Limitations
 
-| Обмеження | Рішення |
-|-----------|---------|
-| Fork PRs не працюють | Очікувана поведінка |
-| Немає concurrency | Див. [розширений приклад](github-advanced.md) |
-| Мова англійська за замовчуванням | Додайте `language: uk` |
+| Limitation | Solution |
+|------------|----------|
+| Fork PRs don't work | Expected behavior |
+| No concurrency | See [advanced example](github-advanced.md) |
+| English by default | Add `language: uk` |
 
 ---
 
-## Наступний крок
+## Next Step
 
-:point_right: [Розширений приклад →](github-advanced.md)
+:point_right: [Advanced example →](github-advanced.md)

@@ -1,20 +1,20 @@
-# GitLab: Мінімальний приклад
+# GitLab: Minimal Example
 
-Найпростіша конфігурація для GitLab CI.
+The simplest configuration for GitLab CI.
 
 ---
 
-## Крок 1: Додайте змінну
+## Step 1: Add a Variable
 
 `Settings → CI/CD → Variables → Add variable`
 
-| Назва | Значення | Опції |
-|-------|----------|-------|
-| `GOOGLE_API_KEY` | Ваш Gemini API ключ | Masked |
+| Name | Value | Options |
+|------|-------|---------|
+| `GOOGLE_API_KEY` | Your Gemini API key | Masked |
 
 ---
 
-## Крок 2: Додайте job
+## Step 2: Add a Job
 
 `.gitlab-ci.yml`:
 
@@ -31,33 +31,33 @@ ai-review:
 
 ---
 
-## Крок 3: Створіть MR
+## Step 3: Create an MR
 
-Готово! AI review з'явиться як коментарі до MR.
+Done! AI review will appear as comments on the MR.
 
 ---
 
-## Що включено
+## What's Included
 
-| Функція | Статус |
+| Feature | Status |
 |---------|--------|
-| Notes до MR | :white_check_mark: |
-| Мовна адаптивність | :white_check_mark: (adaptive) |
-| Метрики | :white_check_mark: |
+| Notes on MR | :white_check_mark: |
+| Language adaptivity | :white_check_mark: (adaptive) |
+| Metrics | :white_check_mark: |
 | Auto-retry | :white_check_mark: |
 
 ---
 
-## Обмеження
+## Limitations
 
-| Обмеження | Рішення |
-|-----------|---------|
-| `CI_JOB_TOKEN` обмежений | Використовуйте PAT |
-| Немає inline discussions | Потрібен PAT з scope `api` |
-| MR блокується при помилці | Додайте `allow_failure: true` |
+| Limitation | Solution |
+|------------|----------|
+| `CI_JOB_TOKEN` is limited | Use PAT |
+| No inline discussions | Need PAT with scope `api` |
+| MR blocked on error | Add `allow_failure: true` |
 
 ---
 
-## Наступний крок
+## Next Step
 
-:point_right: [Розширений приклад →](gitlab-advanced.md)
+:point_right: [Advanced example →](gitlab-advanced.md)

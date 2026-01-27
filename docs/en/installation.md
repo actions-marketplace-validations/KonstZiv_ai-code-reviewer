@@ -1,16 +1,16 @@
-# Встановлення
+# Installation
 
-Варіант встановлення залежить від моделі використання та мети.
+The installation option depends on your use case and goals.
 
 ---
 
-## 1. CI/CD — автоматичний review {#ci-cd}
+## 1. CI/CD — Automated Review {#ci-cd}
 
-Найпоширеніший сценарій: AI Code Reviewer запускається автоматично при створенні або оновленні PR/MR.
+The most common scenario: AI Code Reviewer runs automatically when a PR/MR is created or updated.
 
 ### GitHub Actions
 
-Найпростіший спосіб для GitHub — використання готового GitHub Action:
+The simplest way for GitHub — use the ready-made GitHub Action:
 
 ```yaml
 # .github/workflows/ai-review.yml
@@ -32,21 +32,21 @@ jobs:
           google_api_key: ${{ secrets.GOOGLE_API_KEY }}
 ```
 
-**Необхідні налаштування:**
+**Required setup:**
 
-| Що потрібно | Де налаштувати |
-|-------------|----------------|
+| What's needed | Where to configure |
+|---------------|-------------------|
 | `GOOGLE_API_KEY` | Repository → Settings → Secrets → Actions |
 
-:point_right: [Повний приклад з concurrency та фільтрацією →](quick-start.md#github-actions)
+:point_right: [Full example with concurrency and filtering →](quick-start.md#github-actions)
 
-:point_right: [Детальний GitHub Guide →](github.md)
+:point_right: [Detailed GitHub Guide →](github.md)
 
 ---
 
 ### GitLab CI
 
-Для GitLab використовуйте Docker image в `.gitlab-ci.yml`:
+For GitLab, use the Docker image in `.gitlab-ci.yml`:
 
 ```yaml
 # .gitlab-ci.yml
@@ -62,64 +62,64 @@ ai-review:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
 ```
 
-**Необхідні налаштування:**
+**Required setup:**
 
-| Що потрібно | Де налаштувати |
-|-------------|----------------|
+| What's needed | Where to configure |
+|---------------|-------------------|
 | `GOOGLE_API_KEY` | Project → Settings → CI/CD → Variables (Masked) |
-| `GITLAB_TOKEN` | Опціонально, для inline comments ([детальніше](gitlab.md#tokens)) |
+| `GITLAB_TOKEN` | Optional, for inline comments ([details](gitlab.md#tokens)) |
 
-:point_right: [Повний приклад →](quick-start.md#gitlab-ci)
+:point_right: [Full example →](quick-start.md#gitlab-ci)
 
-:point_right: [Детальний GitLab Guide →](gitlab.md)
+:point_right: [Detailed GitLab Guide →](gitlab.md)
 
 ---
 
-## 2. Локальне тестування / оцінка {#local}
+## 2. Local Testing / Evaluation {#local}
 
-### Навіщо це потрібно?
+### Why is this needed?
 
-1. **Оцінка перед впровадженням** — спробувати на реальному PR перш ніж додавати в CI
-2. **Debugging** — якщо в CI щось не працює, запустити локально з `--log-level DEBUG`
-3. **Ретроспективний review** — проаналізувати старий PR/MR
-4. **Демо** — показати команді/менеджменту як це працює
+1. **Evaluation before deployment** — try on a real PR before adding to CI
+2. **Debugging** — if something doesn't work in CI, run locally with `--log-level DEBUG`
+3. **Retrospective review** — analyze an old PR/MR
+4. **Demo** — show the team/management how it works
 
-### Як це працює
+### How it works
 
 ```
-Локальний термінал
+Local terminal
        │
        ▼
    ai-review CLI
        │
-       ├──► GitHub/GitLab API (читає PR/MR, diff, linked issues)
+       ├──► GitHub/GitLab API (reads PR/MR, diff, linked issues)
        │
-       ├──► Gemini API (отримує review)
+       ├──► Gemini API (gets review)
        │
-       └──► GitHub/GitLab API (публікує коментарі)
+       └──► GitHub/GitLab API (publishes comments)
 ```
 
-### Обов'язкові змінні оточення
+### Required Environment Variables
 
-| Змінна | Опис | Коли потрібна | Як отримати |
-|--------|------|---------------|-------------|
-| `GOOGLE_API_KEY` | API ключ Gemini | **Завжди** | [Google AI Studio](https://aistudio.google.com/) |
-| `GITHUB_TOKEN` | GitHub Personal Access Token | Для GitHub | [Інструкція](github.md#get-token) |
-| `GITLAB_TOKEN` | GitLab Personal Access Token | Для GitLab | [Інструкція](gitlab.md#get-token) |
+| Variable | Description | When needed | How to get |
+|----------|-------------|-------------|------------|
+| `GOOGLE_API_KEY` | Gemini API key | **Always** | [Google AI Studio](https://aistudio.google.com/) |
+| `GITHUB_TOKEN` | GitHub Personal Access Token | For GitHub | [Instructions](github.md#get-token) |
+| `GITLAB_TOKEN` | GitLab Personal Access Token | For GitLab | [Instructions](gitlab.md#get-token) |
 
 ---
 
-### Варіант A: Docker (рекомендовано)
+### Option A: Docker (recommended)
 
-Не потребує встановлення Python — все в контейнері.
+No Python installation required — everything is in the container.
 
-**Крок 1: Завантажте image**
+**Step 1: Pull the image**
 
 ```bash
 docker pull ghcr.io/konstziv/ai-code-reviewer:latest
 ```
 
-**Крок 2: Запустіть review**
+**Step 2: Run the review**
 
 === "GitHub PR"
 
@@ -142,18 +142,18 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
     ```
 
 !!! tip "Docker images"
-    Доступні з двох реєстрів:
+    Available from two registries:
 
     - `ghcr.io/konstziv/ai-code-reviewer:latest` — GitHub Container Registry
     - `konstziv/ai-code-reviewer:latest` — DockerHub
 
 ---
 
-### Варіант B: pip / uv
+### Option B: pip / uv
 
-Встановлення як Python пакету.
+Installation as a Python package.
 
-**Крок 1: Встановіть**
+**Step 1: Install**
 
 === "pip"
 
@@ -173,17 +173,17 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
     pipx install ai-code-reviewer
     ```
 
-!!! note "Python версія"
-    Потрібен Python **3.13+**
+!!! note "Python version"
+    Requires Python **3.13+**
 
-**Крок 2: Налаштуйте змінні**
+**Step 2: Set up variables**
 
 ```bash
 export GOOGLE_API_KEY=your_api_key
-export GITHUB_TOKEN=your_token  # або GITLAB_TOKEN для GitLab
+export GITHUB_TOKEN=your_token  # or GITLAB_TOKEN for GitLab
 ```
 
-**Крок 3: Запустіть**
+**Step 3: Run**
 
 === "GitHub PR"
 
@@ -199,63 +199,63 @@ export GITHUB_TOKEN=your_token  # або GITLAB_TOKEN для GitLab
 
 ---
 
-### Опціональні змінні
+### Optional Variables
 
-Для тонкого налаштування доступні додаткові змінні:
+Additional variables are available for fine-tuning:
 
-| Змінна | Default | Вплив |
-|--------|---------|-------|
-| `LANGUAGE` | `en` | Мова відповідей (ISO 639) |
-| `LANGUAGE_MODE` | `adaptive` | Режим визначення мови |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Модель Gemini |
-| `LOG_LEVEL` | `INFO` | Рівень логування |
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `LANGUAGE` | `en` | Response language (ISO 639) |
+| `LANGUAGE_MODE` | `adaptive` | Language detection mode |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model |
+| `LOG_LEVEL` | `INFO` | Logging level |
 
-:point_right: [Повний список змінних →](configuration.md#optional)
+:point_right: [Full list of variables →](configuration.md#optional)
 
 ---
 
-## 3. Корпоративне середовище (air-gapped) {#airgapped}
+## 3. Corporate Environment (air-gapped) {#airgapped}
 
-Для середовищ з обмеженим доступом до інтернету.
+For environments with limited internet access.
 
-### Обмеження
+### Limitations
 
-!!! warning "Потрібен доступ до Gemini API"
-    AI Code Reviewer використовує Google Gemini API для аналізу коду.
+!!! warning "Gemini API access required"
+    AI Code Reviewer uses Google Gemini API for code analysis.
 
-    **Потрібен доступ до:** `generativelanguage.googleapis.com`
+    **Required access to:** `generativelanguage.googleapis.com`
 
-    Наразі підтримка локально розгорнутих LLM моделей **не реалізована**.
+    Support for locally deployed LLM models is **not implemented** yet.
 
-### Розгортання Docker image
+### Docker Image Deployment
 
-**Крок 1: На машині з доступом до інтернету**
+**Step 1: On a machine with internet access**
 
 ```bash
-# Завантажити image
+# Pull the image
 docker pull ghcr.io/konstziv/ai-code-reviewer:latest
 
-# Зберегти в файл
+# Save to file
 docker save ghcr.io/konstziv/ai-code-reviewer:latest > ai-code-reviewer.tar
 ```
 
-**Крок 2: Перенести файл у закрите середовище**
+**Step 2: Transfer the file to the closed environment**
 
-**Крок 3: Завантажити в internal registry**
+**Step 3: Load into internal registry**
 
 ```bash
-# Завантажити з файлу
+# Load from file
 docker load < ai-code-reviewer.tar
 
-# Перетегувати для internal registry
+# Re-tag for internal registry
 docker tag ghcr.io/konstziv/ai-code-reviewer:latest \
     registry.internal.company.com/devops/ai-code-reviewer:latest
 
-# Опублікувати
+# Push
 docker push registry.internal.company.com/devops/ai-code-reviewer:latest
 ```
 
-**Крок 4: Використати в GitLab CI**
+**Step 4: Use in GitLab CI**
 
 ```yaml
 ai-review:
@@ -269,88 +269,88 @@ ai-review:
 
 ---
 
-## 4. Контриб'ютори / розробка {#development}
+## 4. Contributors / Development {#development}
 
-Якщо ви маєте час і натхнення допомогти в розвитку пакета, або бажаєте використати його як основу для власних розробок — ми щиро вітаємо і заохочуємо до таких дій!
+If you have the time and inspiration to help develop the package, or want to use it as a foundation for your own development — we sincerely welcome and encourage such actions!
 
-### Встановлення для розробки
+### Development Installation
 
 ```bash
-# Клонувати репозиторій
+# Clone the repository
 git clone https://github.com/KonstZiv/ai-code-reviewer.git
 cd ai-code-reviewer
 
-# Встановити залежності (використовуємо uv)
+# Install dependencies (we use uv)
 uv sync
 
-# Перевірити
+# Verify
 uv run ai-review --help
 
-# Запустити тести
+# Run tests
 uv run pytest
 
-# Запустити перевірки якості
+# Run quality checks
 uv run ruff check .
 uv run mypy .
 ```
 
 !!! info "uv"
-    Ми використовуємо [uv](https://github.com/astral-sh/uv) для керування залежностями.
+    We use [uv](https://github.com/astral-sh/uv) for dependency management.
 
-    Встановити: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+    Install: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
-### Структура проєкту
+### Project Structure
 
 ```
 ai-code-reviewer/
-├── src/ai_reviewer/      # Вихідний код
-│   ├── core/             # Моделі, конфіг, форматування
+├── src/ai_reviewer/      # Source code
+│   ├── core/             # Models, config, formatting
 │   ├── integrations/     # GitHub, GitLab, Gemini
-│   └── utils/            # Утиліти
-├── tests/                # Тести
-├── docs/                 # Документація
-└── examples/             # Приклади CI конфігурацій
+│   └── utils/            # Utilities
+├── tests/                # Tests
+├── docs/                 # Documentation
+└── examples/             # CI configuration examples
 ```
 
-:point_right: [Як зробити внесок →](https://github.com/KonstZiv/ai-code-reviewer/blob/main/CONTRIBUTING.md)
+:point_right: [How to contribute →](https://github.com/KonstZiv/ai-code-reviewer/blob/main/CONTRIBUTING.md)
 
 ---
 
-## Вимоги {#requirements}
+## Requirements {#requirements}
 
-### Системні вимоги
+### System Requirements
 
-| Компонент | Вимога |
-|-----------|--------|
-| Python | 3.13+ (для pip install) |
-| Docker | 20.10+ (для Docker) |
+| Component | Requirement |
+|-----------|-------------|
+| Python | 3.13+ (for pip install) |
+| Docker | 20.10+ (for Docker) |
 | OS | Linux, macOS, Windows |
 | RAM | 256MB+ |
-| Мережа | Доступ до `generativelanguage.googleapis.com` |
+| Network | Access to `generativelanguage.googleapis.com` |
 
-### API ключі
+### API Keys
 
-| Ключ | Обов'язковий | Як отримати |
-|------|--------------|-------------|
-| Google Gemini API | **Так** | [Google AI Studio](https://aistudio.google.com/) |
-| GitHub PAT | Для GitHub | [Інструкція](github.md#get-token) |
-| GitLab PAT | Для GitLab | [Інструкція](gitlab.md#get-token) |
+| Key | Required | How to get |
+|-----|----------|------------|
+| Google Gemini API | **Yes** | [Google AI Studio](https://aistudio.google.com/) |
+| GitHub PAT | For GitHub | [Instructions](github.md#get-token) |
+| GitLab PAT | For GitLab | [Instructions](gitlab.md#get-token) |
 
-### Ліміти Gemini API
+### Gemini API Limits
 
 !!! info "Free tier"
-    Google Gemini має безкоштовний tier:
+    Google Gemini has a free tier:
 
-    | Ліміт | Значення |
-    |-------|----------|
+    | Limit | Value |
+    |-------|-------|
     | Requests per minute | 15 RPM |
     | Tokens per day | 1M |
     | Requests per day | 1500 |
 
-    Для більшості проєктів цього достатньо.
+    This is sufficient for most projects.
 
 ---
 
-## Наступний крок
+## Next Step
 
-:point_right: [Швидкий старт →](quick-start.md)
+:point_right: [Quick Start →](quick-start.md)

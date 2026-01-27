@@ -1,7 +1,9 @@
 site_name: AI Code Reviewer
 site_description: AI-powered code review tool with inline suggestions for GitHub and GitLab
 site_author: Kostyantin Zivenko
-site_url: https://konstziv.github.io/ai-code-reviewer
+# NOTE: For local development, use empty string or comment out.
+# For GitHub Pages deployment, set the full URL:
+site_url: !ENV [SITE_URL, ""]
 
 repo_name: KonstZiv/ai-code-reviewer
 repo_url: https://github.com/KonstZiv/ai-code-reviewer
@@ -59,25 +61,8 @@ extra:
     - icon: fontawesome/brands/docker
       link: https://ghcr.io/konstziv/ai-code-reviewer
 
-  alternate:
-    - name: English
-      link: /en/
-      lang: en
-    - name: Українська
-      link: /uk/
-      lang: uk
-    - name: Deutsch
-      link: /de/
-      lang: de
-    - name: Español
-      link: /es/
-      lang: es
-    - name: Crnogorski
-      link: /sr/
-      lang: sr
-    - name: Italiano
-      link: /it/
-      lang: it
+  # Language switcher is auto-configured by i18n plugin with reconfigure_material: true
+  # DO NOT add manual 'alternate' section - it conflicts with the plugin
 
 markdown_extensions:
   # Code highlighting

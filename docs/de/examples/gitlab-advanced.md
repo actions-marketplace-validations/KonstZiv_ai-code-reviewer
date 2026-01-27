@@ -1,33 +1,33 @@
-# GitLab: Advanced Example
+# GitLab: Erweitertes Beispiel
 
-Production-ready configuration with all best practices.
+Produktionsreife Konfiguration mit allen Best Practices.
 
 ---
 
-## Step 1: Create a PAT
+## Schritt 1: PAT erstellen
 
 `User Settings → Access Tokens → Add new token`
 
-| Field | Value |
-|-------|-------|
+| Feld | Wert |
+|------|------|
 | Name | `ai-code-reviewer` |
 | Scopes | `api` |
-| Expiration | As needed |
+| Ablaufdatum | Nach Bedarf |
 
 ---
 
-## Step 2: Add Variables
+## Schritt 2: Variablen hinzufügen
 
 `Settings → CI/CD → Variables`
 
-| Name | Value | Options |
-|------|-------|---------|
-| `GOOGLE_API_KEY` | Gemini API key | Masked |
-| `GITLAB_TOKEN` | PAT from Step 1 | Masked |
+| Name | Wert | Optionen |
+|------|------|----------|
+| `GOOGLE_API_KEY` | Gemini API-Schlüssel | Masked |
+| `GITLAB_TOKEN` | PAT aus Schritt 1 | Masked |
 
 ---
 
-## Step 3: Add a Job
+## Schritt 3: Job hinzufügen
 
 `.gitlab-ci.yml`:
 
@@ -36,7 +36,7 @@ stages:
   - test
   - review
 
-# ... other jobs ...
+# ... andere Jobs ...
 
 ai-review:
   stage: review
@@ -48,16 +48,16 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-  # Don't block MR if review fails
+  # MR nicht blockieren, wenn Review fehlschlägt
   allow_failure: true
 
-  # Timeout protection
+  # Timeout-Schutz
   timeout: 10m
 
-  # Can be cancelled on new commit
+  # Kann bei neuem Commit abgebrochen werden
   interruptible: true
 
-  # Don't wait for other stages
+  # Nicht auf andere Stages warten
   needs: []
 
   variables:
@@ -69,20 +69,20 @@ ai-review:
 
 ---
 
-## What's Included
+## Was enthalten ist
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Inline discussions | :white_check_mark: | With PAT token |
-| Non-blocking | :white_check_mark: | `allow_failure: true` |
-| Timeout | :white_check_mark: | 10 minutes |
-| Interruptible | :white_check_mark: | Cancelled on new commit |
-| Parallel run | :white_check_mark: | `needs: []` |
-| Custom language | :white_check_mark: | `LANGUAGE: uk` |
+| Funktion | Status | Beschreibung |
+|----------|--------|--------------|
+| Inline-Discussions | :white_check_mark: | Mit PAT-Token |
+| Nicht-blockierend | :white_check_mark: | `allow_failure: true` |
+| Timeout | :white_check_mark: | 10 Minuten |
+| Unterbrechbar | :white_check_mark: | Bei neuem Commit abgebrochen |
+| Parallele Ausführung | :white_check_mark: | `needs: []` |
+| Benutzerdefinierte Sprache | :white_check_mark: | `LANGUAGE: uk` |
 
 ---
 
-## Variations
+## Variationen
 
 ### Self-hosted GitLab
 
@@ -95,15 +95,15 @@ ai-review:
     GITLAB_URL: https://gitlab.mycompany.com
 ```
 
-### With Custom Docker Registry
+### Mit benutzerdefinierter Docker Registry
 
 ```yaml
 ai-review:
-  # If ghcr.io is not accessible
+  # Wenn ghcr.io nicht erreichbar ist
   image: registry.mycompany.com/devops/ai-code-reviewer:latest
 ```
 
-### With DEBUG Logs
+### Mit DEBUG-Logs
 
 ```yaml
 ai-review:
@@ -114,7 +114,7 @@ ai-review:
     LOG_LEVEL: DEBUG
 ```
 
-### Only for Specific Branches
+### Nur für bestimmte Branches
 
 ```yaml
 ai-review:
@@ -130,36 +130,36 @@ ai-review:
 
 ## CI_JOB_TOKEN vs PAT
 
-| Feature | CI_JOB_TOKEN | PAT |
-|---------|--------------|-----|
-| Read MR | :white_check_mark: | :white_check_mark: |
-| Post notes | :white_check_mark: | :white_check_mark: |
-| Inline discussions | :x: | :white_check_mark: |
-| Requires setup | :x: | :white_check_mark: |
+| Funktion | CI_JOB_TOKEN | PAT |
+|----------|--------------|-----|
+| MR lesen | :white_check_mark: | :white_check_mark: |
+| Notes posten | :white_check_mark: | :white_check_mark: |
+| Inline-Discussions | :x: | :white_check_mark: |
+| Erfordert Einrichtung | :x: | :white_check_mark: |
 
-**Recommendation:** Use PAT for full functionality.
+**Empfehlung:** Verwenden Sie PAT für volle Funktionalität.
 
 ---
 
-## Troubleshooting
+## Fehlerbehebung
 
-### Review Not Posting Comments
+### Review postet keine Kommentare
 
-1. Check job logs
-2. Check that `GITLAB_TOKEN` has scope `api`
-3. Check that pipeline is running for MR
+1. Job-Logs überprüfen
+2. Überprüfen, ob `GITLAB_TOKEN` den Scope `api` hat
+3. Überprüfen, ob die Pipeline für MR läuft
 
 ### "401 Unauthorized"
 
-Token is invalid or expired. Create a new PAT.
+Token ist ungültig oder abgelaufen. Neuen PAT erstellen.
 
 ### "403 Forbidden"
 
-Token doesn't have access to the project. Check permissions.
+Token hat keinen Zugriff auf das Projekt. Berechtigungen überprüfen.
 
 ---
 
-## Full .gitlab-ci.yml Example
+## Vollständiges .gitlab-ci.yml Beispiel
 
 ```yaml
 stages:
@@ -208,6 +208,6 @@ deploy:
 
 ---
 
-## Next Step
+## Nächster Schritt
 
-:point_right: [Configuration →](../configuration.md)
+:point_right: [Konfiguration →](../configuration.md)

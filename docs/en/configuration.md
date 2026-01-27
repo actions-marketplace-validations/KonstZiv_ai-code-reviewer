@@ -1,98 +1,98 @@
-# Конфігурація
+# Configuration
 
-Всі налаштування через environment variables.
-
----
-
-## Обов'язкові змінні
-
-| Змінна | Опис | Приклад | Як отримати |
-|--------|------|---------|-------------|
-| `GOOGLE_API_KEY` | API ключ Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
-| `GITHUB_TOKEN` | GitHub PAT (для GitHub) | `ghp_...` | [Інструкція](github.md#get-token) |
-| `GITLAB_TOKEN` | GitLab PAT (для GitLab) | `glpat-...` | [Інструкція](gitlab.md#get-token) |
-
-!!! warning "Мінімум один провайдер"
-    Потрібен `GITHUB_TOKEN` **або** `GITLAB_TOKEN` залежно від платформи.
+All settings are configured via environment variables.
 
 ---
 
-## Опціональні змінні {#optional}
+## Required Variables
 
-### Загальні
+| Variable | Description | Example | How to get |
+|----------|-------------|---------|------------|
+| `GOOGLE_API_KEY` | Google Gemini API key | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
+| `GITHUB_TOKEN` | GitHub PAT (for GitHub) | `ghp_...` | [Instructions](github.md#get-token) |
+| `GITLAB_TOKEN` | GitLab PAT (for GitLab) | `glpat-...` | [Instructions](gitlab.md#get-token) |
 
-| Змінна | Опис | Default | Діапазон |
-|--------|------|---------|----------|
-| `LOG_LEVEL` | Рівень логування | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
-| `API_TIMEOUT` | Таймаут запитів (сек) | `60` | 1-300 |
+!!! warning "At least one provider required"
+    You need `GITHUB_TOKEN` **or** `GITLAB_TOKEN` depending on the platform.
 
-### Мова
+---
 
-| Змінна | Опис | Default | Приклади |
-|--------|------|---------|----------|
-| `LANGUAGE` | Мова відповідей | `en` | `uk`, `de`, `es`, `it`, `me` |
-| `LANGUAGE_MODE` | Режим визначення | `adaptive` | `adaptive`, `fixed` |
+## Optional Variables {#optional}
 
-**Режими мови:**
+### General
 
-- **`adaptive`** (default) — автоматично визначає мову з контексту PR/MR (опис, коментарі, linked task)
-- **`fixed`** — завжди використовує мову з `LANGUAGE`
+| Variable | Description | Default | Range |
+|----------|-------------|---------|-------|
+| `LOG_LEVEL` | Logging level | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `API_TIMEOUT` | Request timeout (sec) | `60` | 1-300 |
+
+### Language
+
+| Variable | Description | Default | Examples |
+|----------|-------------|---------|----------|
+| `LANGUAGE` | Response language | `en` | `uk`, `de`, `es`, `it`, `me` |
+| `LANGUAGE_MODE` | Detection mode | `adaptive` | `adaptive`, `fixed` |
+
+**Language modes:**
+
+- **`adaptive`** (default) — automatically detects language from PR/MR context (description, comments, linked task)
+- **`fixed`** — always uses the language from `LANGUAGE`
 
 !!! tip "ISO 639"
-    `LANGUAGE` приймає будь-який валідний ISO 639 код:
+    `LANGUAGE` accepts any valid ISO 639 code:
 
-    - 2-літерні: `en`, `uk`, `de`, `es`, `it`
-    - 3-літерні: `ukr`, `deu`, `spa`
-    - Назви: `English`, `Ukrainian`, `German`
+    - 2-letter: `en`, `uk`, `de`, `es`, `it`
+    - 3-letter: `ukr`, `deu`, `spa`
+    - Names: `English`, `Ukrainian`, `German`
 
 ### LLM
 
-| Змінна | Опис | Default |
-|--------|------|---------|
-| `GEMINI_MODEL` | Модель Gemini | `gemini-2.5-flash` |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
 
-**Доступні моделі:**
+**Available models:**
 
-| Модель | Опис | Вартість |
-|--------|------|----------|
-| `gemini-2.5-flash` | Швидка, дешева | $0.075 / 1M input |
-| `gemini-2.0-flash` | Попередня версія | $0.075 / 1M input |
-| `gemini-1.5-pro` | Потужніша | $1.25 / 1M input |
+| Model | Description | Cost |
+|-------|-------------|------|
+| `gemini-2.5-flash` | Fast, cheap | $0.075 / 1M input |
+| `gemini-2.0-flash` | Previous version | $0.075 / 1M input |
+| `gemini-1.5-pro` | More powerful | $1.25 / 1M input |
 
-!!! note "Актуальність цін"
-    Вартості вказані на день релізу і можуть змінюватись.
+!!! note "Pricing accuracy"
+    Prices are listed as of the release date and may change.
 
-    Актуальна інформація: [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing)
+    Current information: [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing)
 
 !!! tip "Free Tier"
-    Звертайте увагу на **Free Tier** у використанні певних моделей.
+    Pay attention to the **Free Tier** when using certain models.
 
-    У переважній більшості випадків безкоштовного ліміту достатньо для code review команди **4-8 розробників**.
+    In the vast majority of cases, the free limit is sufficient for code review of a team of **4-8 developers**.
 
 ### Review
 
-| Змінна | Опис | Default | Діапазон |
-|--------|------|---------|----------|
-| `REVIEW_MAX_FILES` | Макс. файлів у контексті | `20` | 1-100 |
-| `REVIEW_MAX_DIFF_LINES` | Макс. рядків diff на файл | `500` | 1-5000 |
+| Variable | Description | Default | Range |
+|----------|-------------|---------|-------|
+| `REVIEW_MAX_FILES` | Max files in context | `20` | 1-100 |
+| `REVIEW_MAX_DIFF_LINES` | Max diff lines per file | `500` | 1-5000 |
 
 ### GitLab
 
-| Змінна | Опис | Default |
-|--------|------|---------|
-| `GITLAB_URL` | URL GitLab сервера | `https://gitlab.com` |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GITLAB_URL` | GitLab server URL | `https://gitlab.com` |
 
 !!! info "Self-hosted GitLab"
-    Для self-hosted GitLab встановіть `GITLAB_URL`:
+    For self-hosted GitLab, set `GITLAB_URL`:
     ```bash
     export GITLAB_URL=https://gitlab.mycompany.com
     ```
 
 ---
 
-## Файл .env
+## .env File
 
-Зручно зберігати конфігурацію в `.env`:
+It's convenient to store configuration in `.env`:
 
 ```bash
 # .env
@@ -106,10 +106,10 @@ GEMINI_MODEL=gemini-2.5-flash
 LOG_LEVEL=INFO
 ```
 
-!!! danger "Безпека"
-    **Ніколи не комітьте `.env` в git!**
+!!! danger "Security"
+    **Never commit `.env` to git!**
 
-    Додайте до `.gitignore`:
+    Add to `.gitignore`:
     ```
     .env
     .env.*
@@ -117,14 +117,14 @@ LOG_LEVEL=INFO
 
 ---
 
-## CI/CD конфігурація
+## CI/CD Configuration
 
 ### GitHub Actions
 
 ```yaml
 env:
   GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-  GITHUB_TOKEN: ${{ github.token }}  # Автоматичний
+  GITHUB_TOKEN: ${{ github.token }}  # Automatic
   LANGUAGE: uk
   LANGUAGE_MODE: adaptive
 ```
@@ -133,58 +133,58 @@ env:
 
 ```yaml
 variables:
-  GOOGLE_API_KEY: $GOOGLE_API_KEY  # З CI/CD Variables
-  # GITLAB_TOKEN: $CI_JOB_TOKEN   # Автоматичний (обмежений)
-  GITLAB_TOKEN: $GITLAB_TOKEN      # Або PAT для повних прав
+  GOOGLE_API_KEY: $GOOGLE_API_KEY  # From CI/CD Variables
+  # GITLAB_TOKEN: $CI_JOB_TOKEN   # Automatic (limited)
+  GITLAB_TOKEN: $GITLAB_TOKEN      # Or PAT for full permissions
   LANGUAGE: uk
   LANGUAGE_MODE: adaptive
 ```
 
 ---
 
-## Валідація
+## Validation
 
-AI Code Reviewer валідує конфігурацію при старті:
+AI Code Reviewer validates configuration at startup:
 
-### Помилки валідації
+### Validation Errors
 
 ```
 ValidationError: GOOGLE_API_KEY is too short (minimum 10 characters)
 ```
 
-**Рішення:** Перевірте що змінна встановлена коректно.
+**Solution:** Check that the variable is set correctly.
 
 ```
 ValidationError: Invalid language code 'xyz'
 ```
 
-**Рішення:** Використовуйте валідний ISO 639 код.
+**Solution:** Use a valid ISO 639 code.
 
 ```
 ValidationError: LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
 ```
 
-**Рішення:** Використовуйте один з дозволених рівнів.
+**Solution:** Use one of the allowed levels.
 
 ---
 
-## Приклади конфігурацій
+## Configuration Examples
 
-### Мінімальна (GitHub)
+### Minimal (GitHub)
 
 ```bash
 export GOOGLE_API_KEY=AIza...
 export GITHUB_TOKEN=ghp_...
 ```
 
-### Мінімальна (GitLab)
+### Minimal (GitLab)
 
 ```bash
 export GOOGLE_API_KEY=AIza...
 export GITLAB_TOKEN=glpat-...
 ```
 
-### Українська мова, фіксована
+### Ukrainian language, fixed
 
 ```bash
 export GOOGLE_API_KEY=AIza...
@@ -201,7 +201,7 @@ export GITLAB_TOKEN=glpat-...
 export GITLAB_URL=https://gitlab.mycompany.com
 ```
 
-### Debug режим
+### Debug mode
 
 ```bash
 export GOOGLE_API_KEY=AIza...
@@ -211,14 +211,14 @@ export LOG_LEVEL=DEBUG
 
 ---
 
-## Пріоритет конфігурації
+## Configuration Priority
 
-1. **Environment variables** (найвищий)
-2. **Файл `.env`** в поточній директорії
+1. **Environment variables** (highest)
+2. **`.env` file** in the current directory
 
 ---
 
-## Наступний крок
+## Next Step
 
-- [GitHub інтеграція →](github.md)
-- [GitLab інтеграція →](gitlab.md)
+- [GitHub integration →](github.md)
+- [GitLab integration →](gitlab.md)

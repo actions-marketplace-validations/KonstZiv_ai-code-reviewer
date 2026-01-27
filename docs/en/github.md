@@ -1,72 +1,72 @@
 # GitHub
 
-Детальний гайд для інтеграції з GitHub Actions.
+Detailed guide for integration with GitHub Actions.
 
 ---
 
 ## Permissions
 
-### Мінімальні права
+### Minimum Permissions
 
 ```yaml
 permissions:
-  contents: read        # Читати код
-  pull-requests: write  # Писати коментарі
+  contents: read        # Read code
+  pull-requests: write  # Post comments
 ```
 
-### GITHUB_TOKEN в Actions
+### GITHUB_TOKEN in Actions
 
-В GitHub Actions автоматично доступний `GITHUB_TOKEN`:
+In GitHub Actions, `GITHUB_TOKEN` is automatically available:
 
 ```yaml
 env:
   GITHUB_TOKEN: ${{ github.token }}
 ```
 
-**Права автоматичного токену:**
+**Automatic token permissions:**
 
-| Право | Статус | Примітка |
-|-------|--------|----------|
-| `contents: read` | :white_check_mark: | За замовчуванням |
-| `pull-requests: write` | :white_check_mark: | Потрібно вказати в `permissions` |
+| Permission | Status | Note |
+|------------|--------|------|
+| `contents: read` | :white_check_mark: | Default |
+| `pull-requests: write` | :white_check_mark: | Must be specified in `permissions` |
 
 !!! warning "Fork PRs"
-    Для PR з fork репозиторіїв `GITHUB_TOKEN` має **лише read** права.
+    For PRs from fork repositories, `GITHUB_TOKEN` has **read-only** permissions.
 
-    AI Review не зможе постити коментарі для fork PRs.
+    AI Review cannot post comments for fork PRs.
 
-### Як отримати Personal Access Token {#get-token}
+### How to Get a Personal Access Token {#get-token}
 
-Для **локального запуску** потрібен Personal Access Token (PAT):
+For **local runs**, you need a Personal Access Token (PAT):
 
-1. Перейдіть до `Settings → Developer settings → Personal access tokens`
-2. Оберіть **Fine-grained tokens** (рекомендовано) або Classic
-3. Натисніть **Generate new token**
+1. Go to `Settings → Developer settings → Personal access tokens`
+2. Choose **Fine-grained tokens** (recommended) or Classic
+3. Click **Generate new token**
 
-**Fine-grained token (рекомендовано):**
+**Fine-grained token (recommended):**
 
-| Налаштування | Значення |
-|--------------|----------|
-| Repository access | Only select repositories → ваш репозиторій |
+| Setting | Value |
+|---------|-------|
+| Repository access | Only select repositories → your repository |
 | Permissions | `Pull requests: Read and write` |
 
 **Classic token:**
 
-| Scope | Опис |
-|-------|------|
-| `repo` | Повний доступ до репозиторію |
+| Scope | Description |
+|-------|-------------|
+| `repo` | Full access to repository |
 
-4. Натисніть **Generate token**
-5. Скопіюйте токен та збережіть як `GITHUB_TOKEN`
+4. Click **Generate token**
+5. Copy the token and save it as `GITHUB_TOKEN`
 
-!!! warning "Збережіть токен"
-    GitHub показує токен **лише один раз**. Збережіть його одразу.
+!!! warning "Save the token"
+    GitHub shows the token **only once**. Save it immediately.
 
 ---
 
 ## Triggers
 
-### Рекомендований trigger
+### Recommended Trigger
 
 ```yaml
 on:
@@ -74,15 +74,15 @@ on:
     types: [opened, synchronize, reopened]
 ```
 
-| Тип | Коли спрацьовує |
-|-----|-----------------|
-| `opened` | PR створено |
-| `synchronize` | Нові коміти в PR |
-| `reopened` | PR відкрито знову |
+| Type | When it triggers |
+|------|-----------------|
+| `opened` | PR created |
+| `synchronize` | New commits in PR |
+| `reopened` | PR reopened |
 
-### Фільтрація по файлах
+### File Filtering
 
-Запускати review тільки для певних файлів:
+Run review only for specific files:
 
 ```yaml
 on:
@@ -93,7 +93,7 @@ on:
       - '**.ts'
 ```
 
-### Фільтрація по гілках
+### Branch Filtering
 
 ```yaml
 on:
@@ -107,37 +107,37 @@ on:
 
 ## Secrets
 
-### Додавання секретів
+### Adding Secrets
 
 `Settings → Secrets and variables → Actions → New repository secret`
 
-| Secret | Обов'язковий | Опис |
-|--------|--------------|------|
-| `GOOGLE_API_KEY` | :white_check_mark: | Gemini API ключ |
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `GOOGLE_API_KEY` | :white_check_mark: | Gemini API key |
 
-### Використання
+### Usage
 
 ```yaml
 env:
   GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 ```
 
-!!! danger "Ніколи не хардкодьте секрети"
+!!! danger "Never hardcode secrets"
     ```yaml
-    # ❌ НЕПРАВИЛЬНО
+    # ❌ WRONG
     env:
       GOOGLE_API_KEY: AIza...
 
-    # ✅ ПРАВИЛЬНО
+    # ✅ CORRECT
     env:
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
     ```
 
 ---
 
-## Workflow приклади
+## Workflow Examples
 
-### Мінімальний
+### Minimal
 
 ```yaml
 name: AI Code Review
@@ -158,7 +158,7 @@ jobs:
           google_api_key: ${{ secrets.GOOGLE_API_KEY }}
 ```
 
-### З concurrency (рекомендовано)
+### With Concurrency (recommended)
 
 ```yaml
 name: AI Code Review
@@ -187,81 +187,81 @@ jobs:
           language_mode: adaptive
 ```
 
-**Що робить concurrency:**
+**What concurrency does:**
 
-- Якщо новий коміт пушиться поки review ще йде — старий review скасовується
-- Економить ресурси та API calls
+- If a new commit is pushed while review is still running — the old review is cancelled
+- Saves resources and API calls
 
-### З фільтрацією fork PRs
+### With Fork PR Filtering
 
 ```yaml
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Не запускати для fork PRs (немає доступу до secrets)
+    # Don't run for fork PRs (no access to secrets)
     if: github.event.pull_request.head.repo.full_name == github.repository
 ```
 
 ---
 
-## GitHub Action inputs
+## GitHub Action Inputs
 
-| Input | Опис | Default |
-|-------|------|---------|
-| `google_api_key` | Gemini API ключ | **required** |
-| `github_token` | GitHub токен | `${{ github.token }}` |
-| `language` | Мова відповідей | `en` |
-| `language_mode` | Режим мови | `adaptive` |
-| `gemini_model` | Модель Gemini | `gemini-2.0-flash` |
-| `log_level` | Рівень логування | `INFO` |
+| Input | Description | Default |
+|-------|-------------|---------|
+| `google_api_key` | Gemini API key | **required** |
+| `github_token` | GitHub token | `${{ github.token }}` |
+| `language` | Response language | `en` |
+| `language_mode` | Language mode | `adaptive` |
+| `gemini_model` | Gemini model | `gemini-2.0-flash` |
+| `log_level` | Log level | `INFO` |
 
 ---
 
-## Результат review
+## Review Result
 
-### Inline comments
+### Inline Comments
 
-AI Review публікує коментарі безпосередньо до рядків коду:
+AI Review posts comments directly on code lines:
 
-- :red_circle: **CRITICAL** — критичні проблеми (security, bugs)
-- :yellow_circle: **WARNING** — рекомендації
-- :blue_circle: **INFO** — навчальні нотатки
+- :red_circle: **CRITICAL** — critical issues (security, bugs)
+- :yellow_circle: **WARNING** — recommendations
+- :blue_circle: **INFO** — educational notes
 
 ### Apply Suggestion
 
-Кожен коментар з пропозицією коду має кнопку **"Apply suggestion"**:
+Each comment with a code suggestion has an **"Apply suggestion"** button:
 
 ```suggestion
 fixed_code_here
 ```
 
-GitHub автоматично рендерить це як інтерактивну кнопку.
+GitHub automatically renders this as an interactive button.
 
 ### Summary
 
-В кінці review публікується Summary з:
+At the end of the review, a Summary is posted with:
 
-- Загальною статистикою issues
-- Метриками (час, токени, вартість)
-- Good practices (позитивний фідбек)
+- Overall issue statistics
+- Metrics (time, tokens, cost)
+- Good practices (positive feedback)
 
 ---
 
 ## Troubleshooting
 
-### Review не постить коментарі
+### Review Not Posting Comments
 
-**Перевірте:**
+**Check:**
 
-1. `permissions: pull-requests: write` є в workflow
-2. `GOOGLE_API_KEY` секрет встановлено
-3. PR не з fork репозиторію
+1. `permissions: pull-requests: write` is in the workflow
+2. `GOOGLE_API_KEY` secret is set
+3. PR is not from a fork repository
 
 ### "Resource not accessible by integration"
 
-**Причина:** Недостатньо прав.
+**Cause:** Insufficient permissions.
 
-**Рішення:** Додайте permissions:
+**Solution:** Add permissions:
 
 ```yaml
 permissions:
@@ -269,21 +269,21 @@ permissions:
   pull-requests: write
 ```
 
-### Rate limit від Gemini
+### Rate Limit from Gemini
 
-**Причина:** Перевищено ліміт free tier (15 RPM).
+**Cause:** Free tier limit exceeded (15 RPM).
 
-**Рішення:**
+**Solution:**
 
-- Зачекайте хвилину
-- Додайте `concurrency` для скасування старих runs
-- Розгляньте paid tier
+- Wait a minute
+- Add `concurrency` to cancel old runs
+- Consider paid tier
 
 ---
 
-## Best practices
+## Best Practices
 
-### 1. Завжди використовуйте concurrency
+### 1. Always use concurrency
 
 ```yaml
 concurrency:
@@ -291,13 +291,13 @@ concurrency:
   cancel-in-progress: true
 ```
 
-### 2. Фільтруйте fork PRs
+### 2. Filter fork PRs
 
 ```yaml
 if: github.event.pull_request.head.repo.full_name == github.repository
 ```
 
-### 3. Встановіть timeout
+### 3. Set timeout
 
 ```yaml
 jobs:
@@ -305,7 +305,7 @@ jobs:
     timeout-minutes: 10
 ```
 
-### 4. Зробіть job non-blocking
+### 4. Make job non-blocking
 
 ```yaml
 jobs:
@@ -315,7 +315,7 @@ jobs:
 
 ---
 
-## Наступний крок
+## Next Step
 
-- [GitLab інтеграція →](gitlab.md)
+- [GitLab integration →](gitlab.md)
 - [CLI Reference →](api.md)

@@ -1,24 +1,24 @@
-# Швидкий старт
+# Quick Start
 
-Запустіть AI Code Reviewer за 1 хвилину.
+Get AI Code Reviewer running in 1 minute.
 
 ---
 
 ## GitHub Actions
 
-### Крок 1: Додайте секрет
+### Step 1: Add a secret
 
 `Settings → Secrets and variables → Actions → New repository secret`
 
-| Назва | Значення |
-|-------|----------|
-| `GOOGLE_API_KEY` | Ваш Gemini API ключ |
+| Name | Value |
+|------|-------|
+| `GOOGLE_API_KEY` | Your Gemini API key |
 
-:point_right: [Отримати ключ](https://aistudio.google.com/)
+:point_right: [Get your key](https://aistudio.google.com/)
 
-### Крок 2: Створіть workflow
+### Step 2: Create a workflow
 
-в корні Вашого проекту створіть файл `.github/workflows/ai-review.yml`
+In the root of your project, create file `.github/workflows/ai-review.yml`
 
 `.github/workflows/ai-review.yml`:
 
@@ -36,7 +36,7 @@ concurrency:
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Не запускати для fork PRs (немає доступу до secrets)
+    # Don't run for fork PRs (no access to secrets)
     if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
@@ -48,29 +48,27 @@ jobs:
           google_api_key: ${{ secrets.GOOGLE_API_KEY }}
 ```
 
-### Крок 3: Створіть PR
+### Step 3: Create a PR
 
-Готово! AI review з'явиться автоматично.
+Done! AI review will appear automatically.
 
 ---
 
 ## GitLab CI
 
-### Крок 1: Додайте змінну
+### Step 1: Add a variable
 
 `Settings → CI/CD → Variables`
 
-| Назва | Значення | Опції |
-|-------|----------|-------|
-| `GOOGLE_API_KEY` | Ваш Gemini API ключ | Masked, Protected |
+| Name | Value | Options |
+|------|-------|---------|
+| `GOOGLE_API_KEY` | Your Gemini API key | Masked, Protected |
 
+:point_right: [Get your key](https://aistudio.google.com/)
 
-:point_right: [Отримати ключ](https://aistudio.google.com/)
+### Step 2: Add a job
 
-
-### Крок 2: Додайте job
-
-в корні Вашого проєкту створіть файл `.gitlab-ci.yml`
+In the root of your project, create file `.gitlab-ci.yml`
 
 `.gitlab-ci.yml`:
 
@@ -87,88 +85,88 @@ ai-review:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
 ```
 
-### Крок 3: Створіть MR
+### Step 3: Create an MR
 
-Готово! AI review з'явиться як коментарі до MR.
+Done! AI review will appear as comments on the MR.
 
 ---
 
-## Локальний запуск
+## Local Run
 
-Для тестування локально вам потрібні:
+For local testing you need:
 
-- **GOOGLE_API_KEY** — [отримати в Google AI Studio](https://aistudio.google.com/)
-- **GITHUB_TOKEN** або **GITLAB_TOKEN** — залежно від платформи:
-    - GitHub: [як отримати PAT](github.md#get-token)
-    - GitLab: [як отримати PAT](gitlab.md#get-token)
+- **GOOGLE_API_KEY** — [get it at Google AI Studio](https://aistudio.google.com/)
+- **GITHUB_TOKEN** or **GITLAB_TOKEN** — depending on the platform:
+    - GitHub: [how to get PAT](github.md#get-token)
+    - GitLab: [how to get PAT](gitlab.md#get-token)
 
 === "GitHub"
 
     ```bash
-    # Встановити
+    # Install
     pip install ai-code-reviewer
 
-    # Налаштувати
+    # Configure
     export GOOGLE_API_KEY=your_key
     export GITHUB_TOKEN=your_github_pat
 
-    # Запустити для GitHub PR
+    # Run for GitHub PR
     ai-review --repo owner/repo --pr-number 123
     ```
 
 === "GitLab"
 
     ```bash
-    # Встановити
+    # Install
     pip install ai-code-reviewer
 
-    # Налаштувати
+    # Configure
     export GOOGLE_API_KEY=your_key
     export GITLAB_TOKEN=your_gitlab_pat
 
-    # Запустити для GitLab MR
+    # Run for GitLab MR
     ai-review --provider gitlab --project owner/repo --mr-iid 123
     ```
 
 ---
 
-## Що далі?
+## What's Next?
 
-| Задача | Документ |
-|--------|----------|
-| Налаштувати мову | [Конфігурація](configuration.md) |
-| Оптимізувати для GitHub | [GitHub Guide](github.md) |
-| Оптимізувати для GitLab | [GitLab Guide](gitlab.md) |
-| Подивитися приклади | [Приклади](examples/index.md) |
+| Task | Document |
+|------|----------|
+| Configure language | [Configuration](configuration.md) |
+| Optimize for GitHub | [GitHub Guide](github.md) |
+| Optimize for GitLab | [GitLab Guide](gitlab.md) |
+| See examples | [Examples](examples/index.md) |
 
 ---
 
-## Приклад результату
+## Example Result
 
-Після запуску ви побачите inline comments:
+After running, you'll see inline comments:
 
 ![AI Review Example](https://via.placeholder.com/800x400?text=AI+Review+Inline+Comment)
 
-Кожен коментар містить:
+Each comment contains:
 
 - :red_circle: / :yellow_circle: / :blue_circle: Severity badge
-- Опис проблеми
-- Кнопку **"Apply suggestion"**
-- Collapsible пояснення "Чому це важливо?"
+- Problem description
+- **"Apply suggestion"** button
+- Collapsible "Why does this matter?" explanation
 
 ---
 
 ## Troubleshooting
 
-### Review не з'являється?
+### Review not appearing?
 
-1. Перевірте логи CI job
-2. Перевірте що `GOOGLE_API_KEY` коректний
-3. Для GitHub: перевірте `permissions: pull-requests: write`
-4. Для fork PRs: секрети недоступні
+1. Check CI job logs
+2. Verify that `GOOGLE_API_KEY` is correct
+3. For GitHub: check `permissions: pull-requests: write`
+4. For fork PRs: secrets are not available
 
 ### Rate limit?
 
-Gemini free tier: 15 RPM. Зачекайте хвилину.
+Gemini free tier: 15 RPM. Wait a minute.
 
-:point_right: [Всі проблеми →](troubleshooting.md)
+:point_right: [All issues →](troubleshooting.md)

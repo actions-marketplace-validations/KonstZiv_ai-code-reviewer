@@ -1,20 +1,20 @@
-# GitHub: Advanced Example
+# GitHub: Napredni primjer
 
-Production-ready configuration with all best practices.
+Konfiguracija spremna za produkciju sa svim najboljim praksama.
 
 ---
 
-## Step 1: Add a Secret
+## Korak 1: Dodajte tajnu
 
 `Settings → Secrets and variables → Actions → New repository secret`
 
-| Name | Value |
+| Ime | Vrijednost |
 |------|-------|
-| `GOOGLE_API_KEY` | Your Gemini API key |
+| `GOOGLE_API_KEY` | Vaš Gemini API ključ |
 
 ---
 
-## Step 2: Create the File
+## Korak 2: Kreirajte fajl
 
 `.github/workflows/ai-review.yml`:
 
@@ -24,13 +24,13 @@ name: AI Code Review
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    # Optional: file filter
+    # Opciono: filter fajlova
     # paths:
     #   - '**.py'
     #   - '**.js'
     #   - '**.ts'
 
-# Cancel previous run on new commit
+# Otkaži prethodni run na novi commit
 concurrency:
   group: ai-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -40,13 +40,13 @@ jobs:
     name: AI Review
     runs-on: ubuntu-latest
 
-    # Don't run for fork PRs (secrets not available)
+    # Ne pokreći za fork PR-ove (tajne nijesu dostupne)
     if: github.event.pull_request.head.repo.full_name == github.repository
 
-    # Don't block PR if review fails
+    # Ne blokiraj PR ako revizija ne uspije
     continue-on-error: true
 
-    # Timeout protection
+    # Zaštita timeout-om
     timeout-minutes: 10
 
     permissions:
@@ -65,22 +65,22 @@ jobs:
 
 ---
 
-## What's Included
+## Šta je uključeno
 
-| Feature | Status | Description |
+| Funkcionalnost | Status | Opis |
 |---------|--------|-------------|
-| Inline comments | :white_check_mark: | With Apply Suggestion |
-| Concurrency | :white_check_mark: | Cancels old runs |
-| Fork filter | :white_check_mark: | Skips fork PRs |
-| Timeout | :white_check_mark: | 10 minutes max |
-| Non-blocking | :white_check_mark: | PR not blocked |
-| Custom language | :white_check_mark: | `language: uk` |
+| Inline komentari | :white_check_mark: | Sa Apply Suggestion |
+| Konkurentnost | :white_check_mark: | Otkazuje stare pokretanja |
+| Fork filter | :white_check_mark: | Preskače fork PR-ove |
+| Timeout | :white_check_mark: | Maksimalno 10 minuta |
+| Neblokirajući | :white_check_mark: | PR nije blokiran |
+| Prilagođeni jezik | :white_check_mark: | `language: uk` |
 
 ---
 
-## Variations
+## Varijacije
 
-### With File Filter
+### Sa filterom fajlova
 
 ```yaml
 on:
@@ -93,7 +93,7 @@ on:
       - 'docs/**'
 ```
 
-### With Branch Filter
+### Sa filterom grana
 
 ```yaml
 on:
@@ -103,16 +103,16 @@ on:
       - develop
 ```
 
-### With Custom Model
+### Sa prilagođenim modelom
 
 ```yaml
 - uses: KonstZiv/ai-code-reviewer@v1
   with:
     google_api_key: ${{ secrets.GOOGLE_API_KEY }}
-    gemini_model: gemini-1.5-pro  # More powerful model
+    gemini_model: gemini-1.5-pro  # Moćniji model
 ```
 
-### With DEBUG Logs
+### Sa DEBUG logovima
 
 ```yaml
 - uses: KonstZiv/ai-code-reviewer@v1
@@ -123,33 +123,33 @@ on:
 
 ---
 
-## Action Options
+## Opcije Action-a
 
-| Input | Description | Default |
+| Input | Opis | Podrazumijevano |
 |-------|-------------|---------|
-| `google_api_key` | Gemini API key | **required** |
+| `google_api_key` | Gemini API ključ | **obavezno** |
 | `github_token` | GitHub token | `${{ github.token }}` |
-| `language` | Response language | `en` |
+| `language` | Jezik odgovora | `en` |
 | `language_mode` | `adaptive` / `fixed` | `adaptive` |
 | `gemini_model` | Gemini model | `gemini-2.0-flash` |
-| `log_level` | Log level | `INFO` |
+| `log_level` | Nivo logova | `INFO` |
 
 ---
 
-## Troubleshooting
+## Rješavanje problema
 
-### Review Not Appearing
+### Revizija se ne pojavljuje
 
-1. Check workflow logs
-2. Check that it's not a fork PR
-3. Check `permissions: pull-requests: write`
+1. Provjerite logove workflow-a
+2. Provjerite da nije fork PR
+3. Provjerite `permissions: pull-requests: write`
 
 ### Rate Limit
 
-Concurrency automatically cancels old runs, reducing load.
+Konkurentnost automatski otkazuje stara pokretanja, smanjujući opterećenje.
 
 ---
 
-## Next Step
+## Sljedeći korak
 
-:point_right: [GitLab examples →](gitlab-minimal.md)
+:point_right: [GitLab primjeri →](gitlab-minimal.md)

@@ -1,33 +1,33 @@
-# GitLab: Advanced Example
+# GitLab: Napredni primjer
 
-Production-ready configuration with all best practices.
+Konfiguracija spremna za produkciju sa svim najboljim praksama.
 
 ---
 
-## Step 1: Create a PAT
+## Korak 1: Kreirajte PAT
 
 `User Settings → Access Tokens → Add new token`
 
-| Field | Value |
+| Polje | Vrijednost |
 |-------|-------|
 | Name | `ai-code-reviewer` |
 | Scopes | `api` |
-| Expiration | As needed |
+| Expiration | Po potrebi |
 
 ---
 
-## Step 2: Add Variables
+## Korak 2: Dodajte varijable
 
 `Settings → CI/CD → Variables`
 
-| Name | Value | Options |
+| Ime | Vrijednost | Opcije |
 |------|-------|---------|
-| `GOOGLE_API_KEY` | Gemini API key | Masked |
-| `GITLAB_TOKEN` | PAT from Step 1 | Masked |
+| `GOOGLE_API_KEY` | Gemini API ključ | Masked |
+| `GITLAB_TOKEN` | PAT iz Koraka 1 | Masked |
 
 ---
 
-## Step 3: Add a Job
+## Korak 3: Dodajte job
 
 `.gitlab-ci.yml`:
 
@@ -36,7 +36,7 @@ stages:
   - test
   - review
 
-# ... other jobs ...
+# ... ostali job-ovi ...
 
 ai-review:
   stage: review
@@ -48,16 +48,16 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-  # Don't block MR if review fails
+  # Ne blokiraj MR ako revizija ne uspije
   allow_failure: true
 
-  # Timeout protection
+  # Zaštita timeout-om
   timeout: 10m
 
-  # Can be cancelled on new commit
+  # Može se otkazati na novi commit
   interruptible: true
 
-  # Don't wait for other stages
+  # Ne čekaj druge faze
   needs: []
 
   variables:
@@ -69,20 +69,20 @@ ai-review:
 
 ---
 
-## What's Included
+## Šta je uključeno
 
-| Feature | Status | Description |
+| Funkcionalnost | Status | Opis |
 |---------|--------|-------------|
-| Inline discussions | :white_check_mark: | With PAT token |
-| Non-blocking | :white_check_mark: | `allow_failure: true` |
-| Timeout | :white_check_mark: | 10 minutes |
-| Interruptible | :white_check_mark: | Cancelled on new commit |
-| Parallel run | :white_check_mark: | `needs: []` |
-| Custom language | :white_check_mark: | `LANGUAGE: uk` |
+| Inline diskusije | :white_check_mark: | Sa PAT tokenom |
+| Neblokirajući | :white_check_mark: | `allow_failure: true` |
+| Timeout | :white_check_mark: | 10 minuta |
+| Prekidiv | :white_check_mark: | Otkazuje se na novi commit |
+| Paralelno pokretanje | :white_check_mark: | `needs: []` |
+| Prilagođeni jezik | :white_check_mark: | `LANGUAGE: uk` |
 
 ---
 
-## Variations
+## Varijacije
 
 ### Self-hosted GitLab
 
@@ -95,15 +95,15 @@ ai-review:
     GITLAB_URL: https://gitlab.mycompany.com
 ```
 
-### With Custom Docker Registry
+### Sa prilagođenim Docker registrom
 
 ```yaml
 ai-review:
-  # If ghcr.io is not accessible
+  # Ako ghcr.io nije dostupan
   image: registry.mycompany.com/devops/ai-code-reviewer:latest
 ```
 
-### With DEBUG Logs
+### Sa DEBUG logovima
 
 ```yaml
 ai-review:
@@ -114,7 +114,7 @@ ai-review:
     LOG_LEVEL: DEBUG
 ```
 
-### Only for Specific Branches
+### Samo za određene grane
 
 ```yaml
 ai-review:
@@ -130,36 +130,36 @@ ai-review:
 
 ## CI_JOB_TOKEN vs PAT
 
-| Feature | CI_JOB_TOKEN | PAT |
+| Funkcionalnost | CI_JOB_TOKEN | PAT |
 |---------|--------------|-----|
-| Read MR | :white_check_mark: | :white_check_mark: |
-| Post notes | :white_check_mark: | :white_check_mark: |
-| Inline discussions | :x: | :white_check_mark: |
-| Requires setup | :x: | :white_check_mark: |
+| Čitanje MR | :white_check_mark: | :white_check_mark: |
+| Objavljivanje bilješki | :white_check_mark: | :white_check_mark: |
+| Inline diskusije | :x: | :white_check_mark: |
+| Zahtijeva podešavanje | :x: | :white_check_mark: |
 
-**Recommendation:** Use PAT for full functionality.
+**Preporuka:** Koristite PAT za punu funkcionalnost.
 
 ---
 
-## Troubleshooting
+## Rješavanje problema
 
-### Review Not Posting Comments
+### Revizija ne objavljuje komentare
 
-1. Check job logs
-2. Check that `GITLAB_TOKEN` has scope `api`
-3. Check that pipeline is running for MR
+1. Provjerite logove job-a
+2. Provjerite da `GITLAB_TOKEN` ima scope `api`
+3. Provjerite da se pipeline pokreće za MR
 
 ### "401 Unauthorized"
 
-Token is invalid or expired. Create a new PAT.
+Token je nevažeći ili je istekao. Kreirajte novi PAT.
 
 ### "403 Forbidden"
 
-Token doesn't have access to the project. Check permissions.
+Token nema pristup projektu. Provjerite dozvole.
 
 ---
 
-## Full .gitlab-ci.yml Example
+## Puni primjer .gitlab-ci.yml
 
 ```yaml
 stages:
@@ -208,6 +208,6 @@ deploy:
 
 ---
 
-## Next Step
+## Sljedeći korak
 
-:point_right: [Configuration →](../configuration.md)
+:point_right: [Konfiguracija →](../configuration.md)
