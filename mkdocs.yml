@@ -11,6 +11,9 @@ edit_uri: edit/main/docs/
 
 copyright: Copyright &copy; 2024-2026 Kostyantin Zivenko
 
+extra_css:
+  - stylesheets/extra.css
+
 theme:
   name: material
   language: en
@@ -127,10 +130,10 @@ plugins:
       languages:
         - locale: en
           default: true
-          name: English
+          name: 🇬🇧 English
           build: true
         - locale: uk
-          name: Українська
+          name: 🇺🇦 Українська
           build: true
           nav_translations:
             Home: Головна
@@ -143,7 +146,7 @@ plugins:
             Examples: Приклади
             Troubleshooting: Вирішення проблем
         - locale: de
-          name: Deutsch
+          name: 🇩🇪 Deutsch
           build: true
           nav_translations:
             Home: Startseite
@@ -156,7 +159,7 @@ plugins:
             Examples: Beispiele
             Troubleshooting: Fehlerbehebung
         - locale: es
-          name: Español
+          name: 🇪🇸 Español
           build: true
           nav_translations:
             Home: Inicio
@@ -169,7 +172,7 @@ plugins:
             Examples: Ejemplos
             Troubleshooting: Solución de problemas
         - locale: sr
-          name: Crnogorski
+          name: 🇲🇪 Crnogorski
           build: true
           nav_translations:
             Home: Početna
@@ -182,7 +185,7 @@ plugins:
             Examples: Primjeri
             Troubleshooting: Rješavanje problema
         - locale: it
-          name: Italiano
+          name: 🇮🇹 Italiano
           build: true
           nav_translations:
             Home: Home
