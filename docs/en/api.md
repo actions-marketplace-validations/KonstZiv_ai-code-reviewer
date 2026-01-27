@@ -59,6 +59,13 @@ export GITHUB_TOKEN=your_token
 ai-review --provider github --repo owner/repo --pr 123
 ```
 
+<small>
+**Де взяти значення:**
+
+- `--repo` — з URL репозиторію: `github.com/owner/repo` → `owner/repo`
+- `--pr` — номер з URL: `github.com/owner/repo/pull/123` → `123`
+</small>
+
 ### Вручну для GitLab
 
 ```bash
@@ -67,6 +74,13 @@ export GITLAB_TOKEN=your_token
 
 ai-review --provider gitlab --repo owner/repo --pr 456
 ```
+
+<small>
+**Де взяти значення:**
+
+- `--repo` — project path з URL: `gitlab.com/group/project` → `group/project`
+- `--pr` — номер MR з URL: `gitlab.com/group/project/-/merge_requests/456` → `456`
+</small>
 
 ### Скорочений синтаксис
 

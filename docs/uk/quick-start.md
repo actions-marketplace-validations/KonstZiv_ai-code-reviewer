@@ -1,6 +1,6 @@
 # Швидкий старт
 
-Запустіть AI Code Reviewer за 30 секунд.
+Запустіть AI Code Reviewer за 1 хвилину.
 
 ---
 
@@ -17,6 +17,8 @@
 :point_right: [Отримати ключ](https://aistudio.google.com/)
 
 ### Крок 2: Створіть workflow
+
+в корні Вашого проекту створіть файл `.github/workflows/ai-review.yml`
 
 `.github/workflows/ai-review.yml`:
 
@@ -62,7 +64,13 @@ jobs:
 |-------|----------|-------|
 | `GOOGLE_API_KEY` | Ваш Gemini API ключ | Masked, Protected |
 
+
+:point_right: [Отримати ключ](https://aistudio.google.com/)
+
+
 ### Крок 2: Додайте job
+
+в корні Вашого проєкту створіть файл `.gitlab-ci.yml`
 
 `.gitlab-ci.yml`:
 
@@ -87,22 +95,40 @@ ai-review:
 
 ## Локальний запуск
 
-Для тестування локально:
+Для тестування локально вам потрібні:
 
-```bash
-# Встановити
-pip install ai-code-reviewer
+- **GOOGLE_API_KEY** — [отримати в Google AI Studio](https://aistudio.google.com/)
+- **GITHUB_TOKEN** або **GITLAB_TOKEN** — залежно від платформи:
+    - GitHub: [як отримати PAT](github.md#get-token)
+    - GitLab: [як отримати PAT](gitlab.md#get-token)
 
-# Налаштувати
-export GOOGLE_API_KEY=your_key
-export GITHUB_TOKEN=your_github_pat  # або GITLAB_TOKEN
+=== "GitHub"
 
-# Запустити для GitHub PR
-ai-review --repo owner/repo --pr-number 123
+    ```bash
+    # Встановити
+    pip install ai-code-reviewer
 
-# Запустити для GitLab MR
-ai-review --provider gitlab --project owner/repo --mr-iid 123
-```
+    # Налаштувати
+    export GOOGLE_API_KEY=your_key
+    export GITHUB_TOKEN=your_github_pat
+
+    # Запустити для GitHub PR
+    ai-review --repo owner/repo --pr-number 123
+    ```
+
+=== "GitLab"
+
+    ```bash
+    # Встановити
+    pip install ai-code-reviewer
+
+    # Налаштувати
+    export GOOGLE_API_KEY=your_key
+    export GITLAB_TOKEN=your_gitlab_pat
+
+    # Запустити для GitLab MR
+    ai-review --provider gitlab --project owner/repo --mr-iid 123
+    ```
 
 ---
 

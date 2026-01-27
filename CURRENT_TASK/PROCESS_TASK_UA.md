@@ -375,7 +375,7 @@ examples/:
 ---
 
 ### 📚 Завдання 7: Багатомовна документація
-**Статус:** 🏗️ Фаза 1 завершена, очікує Фазу 2 (Human review)
+**Статус:** 🏗️ Фаза 2 завершена, готово до Фази 3 (Переклад)
 **Призначено:** Claude Code (AI) + Human (review)
 **Оцінка часу:** 6 годин
 
@@ -405,15 +405,15 @@ examples/:
 
 **Фаза 2: Вичитка** (Human) 🏗️ **В ПРОЦЕСІ**
 - [x] index.md — відревʼювовано, правки внесені (2026-01-26)
-- [ ] installation.md
-- [ ] quick-start.md
-- [ ] configuration.md
-- [ ] github.md
-- [ ] gitlab.md
-- [ ] api.md
-- [ ] troubleshooting.md
-- [ ] examples/*.md (5 файлів)
-- [ ] Затвердити фінальний текст
+- [x] installation.md — відревʼювовано, переписано за новою структурою (2026-01-27)
+- [x] quick-start.md — відревʼювовано (2026-01-27)
+- [x] configuration.md — відревʼювовано (2026-01-27)
+- [x] github.md — відревʼювовано (2026-01-27)
+- [x] gitlab.md — відревʼювовано (2026-01-27)
+- [x] api.md — відревʼювовано (2026-01-27)
+- [x] troubleshooting.md — відревʼювовано (2026-01-27)
+- [x] examples/*.md (5 файлів) — відревʼювовано (2026-01-27)
+- [x] Затвердити фінальний текст — ✅ Фаза 2 завершена (2026-01-27)
 
 **Фаза 3: Переклад** (Claude)
 - [ ] Перекласти на English (en/) — primary
@@ -706,21 +706,19 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 
 ### Прогрес з останнього оновлення
 ```
-🏗️ Завдання 7 Фаза 2 (Human Review) - В ПРОЦЕСІ (2026-01-26)
-  ✅ index.md — відревʼювовано, Human вніс правки:
-     - Розширено опис (senior developer погляд)
-     - Уточнено інтеграцію LLM провайдерів
-     - Оновлено секцію "Що ви отримуєте"
-     - Оновлено інструкції Швидкий старт (детальніше)
-     - Оновлено вартість (Free Tier vs Pay-as-you-go)
+✅ Завдання 7 Фаза 2 (Human Review) - ЗАВЕРШЕНО (2026-01-27)
+  Всі 13 файлів uk/ відревʼювовано:
+  ✅ index.md
+  ✅ installation.md — переписано за новою структурою (4 сценарії)
+  ✅ quick-start.md — додано табси GitHub/GitLab для локального запуску
+  ✅ configuration.md — додано колонку "Як отримати", інфо про Free Tier
+  ✅ github.md — додано секцію отримання PAT
+  ✅ gitlab.md — додано анкери для токенів
+  ✅ api.md — додано пояснення --repo та --pr
+  ✅ troubleshooting.md
+  ✅ examples/*.md (5 файлів)
 
-  ⏳ Очікують review:
-     - installation.md
-     - quick-start.md
-     - configuration.md
-     - github.md, gitlab.md
-     - api.md, troubleshooting.md
-     - examples/*.md (5 файлів)
+  Готово до Фази 3: Переклад на en/, de/, es/, sr/, it/
 ```
 
 ### Блокери

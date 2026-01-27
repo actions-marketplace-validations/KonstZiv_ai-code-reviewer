@@ -6,11 +6,11 @@
 
 ## Обов'язкові змінні
 
-| Змінна | Опис | Приклад |
-|--------|------|---------|
-| `GOOGLE_API_KEY` | API ключ Google Gemini | `AIza...` |
-| `GITHUB_TOKEN` | GitHub PAT (для GitHub) | `ghp_...` |
-| `GITLAB_TOKEN` | GitLab PAT (для GitLab) | `glpat-...` |
+| Змінна | Опис | Приклад | Як отримати |
+|--------|------|---------|-------------|
+| `GOOGLE_API_KEY` | API ключ Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
+| `GITHUB_TOKEN` | GitHub PAT (для GitHub) | `ghp_...` | [Інструкція](github.md#get-token) |
+| `GITLAB_TOKEN` | GitLab PAT (для GitLab) | `glpat-...` | [Інструкція](gitlab.md#get-token) |
 
 !!! warning "Мінімум один провайдер"
     Потрібен `GITHUB_TOKEN` **або** `GITLAB_TOKEN` залежно від платформи.
@@ -58,6 +58,16 @@
 | `gemini-2.5-flash` | Швидка, дешева | $0.075 / 1M input |
 | `gemini-2.0-flash` | Попередня версія | $0.075 / 1M input |
 | `gemini-1.5-pro` | Потужніша | $1.25 / 1M input |
+
+!!! note "Актуальність цін"
+    Вартості вказані на день релізу і можуть змінюватись.
+
+    Актуальна інформація: [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing)
+
+!!! tip "Free Tier"
+    Звертайте увагу на **Free Tier** у використанні певних моделей.
+
+    У переважній більшості випадків безкоштовного ліміту достатньо для code review команди **4-8 розробників**.
 
 ### Review
 
