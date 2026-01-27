@@ -1,48 +1,48 @@
 # AI Code Reviewer
 
-**AI-асистент для автоматичного code review у вашому CI/CD pipeline.**
+**AI-powered assistant for automated code review in your CI/CD pipeline.**
 
 ---
 
-## Що це?
+## What is it?
 
-AI Code Reviewer — інструмент, який автоматично аналізує ваші Pull Requests (GitHub) та Merge Requests (GitLab), знаходить проблеми та пропонує виправлення з кнопкою **"Apply Suggestion"**.
-Фактично Ви отримуєте незаангажований погляд senior developer на Ваш код і поради як його покращити.
+AI Code Reviewer is a tool that automatically analyzes your Pull Requests (GitHub) and Merge Requests (GitLab), finds issues and suggests fixes with an **"Apply Suggestion"** button.
+Essentially, you get an unbiased senior developer's perspective on your code along with suggestions for improvement.
 
-Можлива інтеграція з широким набором існуючих LLM провайдерів (за замовчуванням  **Google Gemini**, модель **gemini-2.5-flash** (на момент виходу поточного релізу - безкоштовного варіанту використання - Free Tier - що обмежує кількість запитів за хвилину і за день - цілком достатньо для нормального робочого процесу команди 4-8 full time розробників)).
+Integration with a wide range of existing LLM providers is possible (by default **Google Gemini**, model **gemini-2.5-flash** — at the time of the current release, the free tier usage limits on requests per minute and per day are sufficient for a normal workflow of a team of 4-8 full-time developers).
 
 
 ---
 
-## Що ви отримуєте?
+## What do you get?
 
 
-- :white_check_mark: **Code Comments** — загальна оцінка коду та рекомендації
-- :white_check_mark: **Task Alignment** — відповідність PR/MR контексту завдання
-- :white_check_mark: **Inline Comments** — коментарі прямо до рядків коду
-- :white_check_mark: **Apply Suggestion** — одна кнопка для застосування виправлення
-- :white_check_mark: **Менторські пояснення** — чому це важливо + посилання на ресурси
-- :white_check_mark: **Мовна адаптивність** — визначає мову з контексту PR/MR
-- :white_check_mark: **Метрики** — час виконання, токени
-- :white_check_mark: **Стійкість** — retry logic для 429/5xx помилок
+- :white_check_mark: **Code Comments** — overall code assessment and recommendations
+- :white_check_mark: **Task Alignment** — PR/MR alignment with task context
+- :white_check_mark: **Inline Comments** — comments directly on code lines
+- :white_check_mark: **Apply Suggestion** — one-click button to apply fixes
+- :white_check_mark: **Mentoring explanations** — why it matters + resource links
+- :white_check_mark: **Language adaptivity** — detects language from PR/MR context
+- :white_check_mark: **Metrics** — execution time, tokens
+- :white_check_mark: **Resilience** — retry logic for 429/5xx errors
 
 ---
 
-## Швидкий старт
+## Quick Start
 
-Важливо: для реалізації подальших кроків Вам знадобиться Ваш особистий Google API key. Отримати його можна безкоштовно або в [Google AI Studio](https://aistudio.google.com/api-keys) або в [Google Cloud Console](https://console.cloud.google.com/).
+Important: to follow the next steps you'll need your personal Google API key. You can get it for free either at [Google AI Studio](https://aistudio.google.com/api-keys) or [Google Cloud Console](https://console.cloud.google.com/).
 
-*AI Code Reviewer може бути налаштований для використання різних LLM провайдерів і моделей, як безкоштовних у використанні, так і платних. В наступних прикладах використовується модель* **gemini-2.5-flash** *В інших розділах документації пояснюється як підключити інших провадерів і використовувати інші моделі. Нам цікава Ваша думка про різницю у використанні різних моделей - будем раді читати в коментарях про Ваш досвід.*
+*AI Code Reviewer can be configured to use different LLM providers and models, both free and paid. The following examples use the* **gemini-2.5-flash** *model. Other documentation sections explain how to connect other providers and use other models. We're interested in your opinion about the differences between various models — we'd love to read about your experience in the comments.*
 
 
 ### GitHub
 
 
-У Вашому репозиторії створіть:
-- в розділі `settings` -> `Secrets and variables[Security]` -> `Actions` -> press `New repository sectet`:
-    - створіть secret з назвою `GOOGLE_API_KEY` і значенням Вашого Google API key.
-- в корені проєкту репозиторія:
-    - створіть файл `.github/workflows/ai-review.yml` наступного вмісту:
+In your repository, create:
+- in `Settings` → `Secrets and variables [Security]` → `Actions` → press `New repository secret`:
+    - create a secret named `GOOGLE_API_KEY` with your Google API key as the value.
+- in the root of your project repository:
+    - create file `.github/workflows/ai-review.yml` with the following content:
 
 ```yaml
 # .github/workflows/ai-review.yml
@@ -65,14 +65,14 @@ jobs:
 
 ### GitLab
 
-У Вашому репозиторії створіть:
-- в розділі `settings` -> `CI/CD` -> `Variables` -> `CI/CD Variables` -> press `Add variable`:
+In your repository, create:
+- in `Settings` → `CI/CD` → `Variables` → `CI/CD Variables` → press `Add variable`:
     - `Type`: Variable (default)
-    - `Visibility`: Masked (щоб не відображалась в логах)
+    - `Visibility`: Masked (so it's not shown in logs)
     - `Key`: GOOGLE_API_KEY
-    - `Value`: значенням Вашого Google API key
-- в корені репозиторію проєкту:
-    - створіть файл `.gitlab-ci.yml` наступного вмісту:
+    - `Value`: your Google API key
+- in the root of your project repository:
+    - create file `.gitlab-ci.yml` with the following content:
 
 ```yaml
 # .gitlab-ci.yml
@@ -86,83 +86,83 @@ ai-review:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
 ```
 
-:point_right: [Детальніше →](quick-start.md)
+:point_right: [Learn more →](quick-start.md)
 
 
-Створіть новий PR/MR - отрмайте ревью.
+Create a new PR/MR — get a review.
 
-**Якість ревью напряму залежить від розуміння AI Code Reviewer Ваших намірів** (як і реального "живого" ревʼювера). Тому хорошою ідеєю буде супроводжувати процес розробки документуванням:
-- створити issue з описом проблеми і бажаними результатами
-- створити в issue повʼязану гілку/повʼязаний PR/MR, в якому описати детальніше проблему, шлях вирішення, обмеження, бажані результати, особливі випадки - будь що що додає розуміння контексту, інструментів, результатів
-- якщо ви працюєте командою - то спілкуйтесь в issue, коментуйте PR/MR - все це додає контекст і підвищує якість ревʼю
+**Review quality directly depends on AI Code Reviewer's understanding of your intentions** (just like with a real human reviewer). Therefore, it's a good idea to accompany the development process with documentation:
+- create an issue describing the problem and desired results
+- create a linked branch/linked PR/MR in the issue, describing the problem in more detail, the solution approach, constraints, desired results, edge cases — anything that adds context understanding, tools, results
+- if you work in a team — communicate in issues, comment on PR/MRs — all this adds context and improves review quality
 
 ---
 
-## Підтримувані платформи
+## Supported Platforms
 
-| Платформа | Статус | Інтеграція |
-|-----------|--------|------------|
+| Platform | Status | Integration |
+|----------|--------|-------------|
 | **GitHub** | :white_check_mark: | GitHub Actions / GitHub Action |
 | **GitLab** | :white_check_mark: | GitLab CI / Docker image |
 | **Self-hosted** | :white_check_mark: | Docker / PyPI |
 
 ---
 
-## Як це працює?
+## How does it work?
 
 ```mermaid
 graph TD
-    A[PR/MR створено] --> B[CI запускає AI Review]
-    B --> C[Отримання diff + контексту]
-    C --> D[Аналіз через Gemini]
-    D --> E[Публікація Inline Comments]
-    E --> F[Кнопка Apply Suggestion]
+    A[PR/MR created] --> B[CI runs AI Review]
+    B --> C[Get diff + context]
+    C --> D[Analyze with Gemini]
+    D --> E[Post Inline Comments]
+    E --> F[Apply Suggestion button]
 ```
 
-**Крок за кроком:**
+**Step by step:**
 
-1. Ви створюєте PR/MR
-2. CI pipeline запускає AI Code Reviewer
-3. Інструмент отримує diff, опис PR, linked task
-4. Gemini аналізує код та генерує рекомендації
-5. Результат публікується як inline comments з кнопкою "Apply"
+1. You create a PR/MR
+2. CI pipeline runs AI Code Reviewer
+3. The tool fetches diff, PR description, linked task
+4. Gemini analyzes the code and generates recommendations
+5. Results are posted as inline comments with an "Apply" button
 
 ---
 
-## Приклад review
+## Review Example
 
 !!! danger "🔴 CRITICAL: Hardcoded Secret"
-    **Файл:** `config.py:15`
+    **File:** `config.py:15`
 
-    Знайдено захардкоджений API ключ у коді.
+    Hardcoded API key found in code.
 
     ```suggestion
     API_KEY = os.getenv("API_KEY")
     ```
 
-    ??? info "Чому це важливо?"
-        Секрети в коді потрапляють у git історію і можуть бути викрадені.
-        Використовуйте environment variables або secret managers.
+    ??? info "Why does this matter?"
+        Secrets in code end up in git history and can be stolen.
+        Use environment variables or secret managers.
 
         :link: [OWASP: Hardcoded Credentials](https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password)
 
 ---
 
-## Категорії проблем
+## Issue Categories
 
-| Категорія | Опис |
-|-----------|------|
-| :lock: **Security** | Вразливості, секрети в коді |
-| :memo: **Code Quality** | Читабельність, naming, DRY |
+| Category | Description |
+|----------|-------------|
+| :lock: **Security** | Vulnerabilities, hardcoded secrets |
+| :memo: **Code Quality** | Readability, naming, DRY |
 | :building_construction: **Architecture** | SOLID, design patterns |
-| :zap: **Performance** | N+1, неефективні алгоритми |
-| :test_tube: **Testing** | Покриття, edge cases |
+| :zap: **Performance** | N+1, inefficient algorithms |
+| :test_tube: **Testing** | Coverage, edge cases |
 
 ---
 
-## Встановлення
+## Installation
 
-=== "Docker (рекомендовано)"
+=== "Docker (recommended)"
 
     ```bash
     docker pull ghcr.io/konstziv/ai-code-reviewer:latest
@@ -182,42 +182,42 @@ graph TD
     uv sync
     ```
 
-:point_right: [Детальніше →](installation.md)
+:point_right: [Learn more →](installation.md)
 
 ---
 
-## Конфігурація
+## Configuration
 
-Мінімальна конфігурація — тільки API ключ:
+Minimal configuration — just the API key:
 
 ```bash
 export GOOGLE_API_KEY=your_api_key
 ```
 
-Додаткові опції:
+Additional options:
 
-| Змінна | Опис | Default |
-|--------|------|---------|
-| `LANGUAGE` | Мова відповідей (ISO 639) | `en` |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LANGUAGE` | Response language (ISO 639) | `en` |
 | `LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `GEMINI_MODEL` | Модель Gemini | `gemini-2.0-flash` |
-| `LOG_LEVEL` | Рівень логування | `INFO` |
+| `GEMINI_MODEL` | Gemini model | `gemini-2.0-flash` |
+| `LOG_LEVEL` | Logging level | `INFO` |
 
-:point_right: [Всі опції →](configuration.md)
+:point_right: [All options →](configuration.md)
 
 ---
 
-## Документація
+## Documentation
 
 <div class="grid cards" markdown>
 
--   :rocket: **[Швидкий старт](quick-start.md)**
+-   :rocket: **[Quick Start](quick-start.md)**
 
-    Copy-paste інструкції для GitHub та GitLab
+    Copy-paste instructions for GitHub and GitLab
 
--   :gear: **[Конфігурація](configuration.md)**
+-   :gear: **[Configuration](configuration.md)**
 
-    Всі environment variables та опції
+    All environment variables and options
 
 -   :octicons-mark-github-16: **[GitHub](github.md)**
 
@@ -229,42 +229,42 @@ export GOOGLE_API_KEY=your_api_key
 
 -   :material-console: **[CLI Reference](api.md)**
 
-    Команди та параметри
+    Commands and parameters
 
 -   :material-lifebuoy: **[Troubleshooting](troubleshooting.md)**
 
-    FAQ та вирішення проблем
+    FAQ and problem solving
 
 </div>
 
 ---
 
-## Вартість
+## Cost
 
-AI Code Reviewer використовує **Google Gemini 2.5 Flash** — в режимі Free Tire. Обмеження (на дату релізу) 500 RPD. Цього цілком достатньо для обслуговування PR/MR команди з 4 - 8 full time розробників з врахуванням як ревʼю так і змістовних коментарів (без flood та off-top).
-Якщо використовувати платний рівень використання (Pay-as-you-go), то вартість умовного ревʼю і необмежених бесід:
+AI Code Reviewer uses **Google Gemini 2.5 Flash** — in Free Tier mode. Limits (at release date) are 500 RPD. This is sufficient for serving PR/MRs for a team of 4-8 full-time developers, including both reviews and meaningful comments (without flood and off-topic).
+If using the paid tier (Pay-as-you-go), the cost of a typical review and unlimited conversations:
 
-| Метрика | Вартість            |
-|---------|---------------------|
-| Input tokens | $0.30 / 1M          |
-| Output tokens | $2.5 / 1M           |
-| **Типовий review** | **~$0.003 - $0.01** |
+| Metric | Cost |
+|--------|------|
+| Input tokens | $0.30 / 1M |
+| Output tokens | $2.5 / 1M |
+| **Typical review** | **~$0.003 - $0.01** |
 
 :bulb: ~1000 reviews = ~$3 ... ~$10
 
 ---
 
-## Ліцензія
+## License
 
-Apache 2.0 — вільне використання, модифікація та розповсюдження.
-
----
-
-## Підтримка
-
-- :bug: [GitHub Issues](https://github.com/KonstZiv/ai-code-reviewer/issues) — баги та пропозиції
-- :speech_balloon: [GitHub Discussions](https://github.com/KonstZiv/ai-code-reviewer/discussions) — питання та обговорення
+Apache 2.0 — free to use, modify, and distribute.
 
 ---
 
-**Готові покращити свої code reviews?** :point_right: [Почати →](quick-start.md)
+## Support
+
+- :bug: [GitHub Issues](https://github.com/KonstZiv/ai-code-reviewer/issues) — bugs and suggestions
+- :speech_balloon: [GitHub Discussions](https://github.com/KonstZiv/ai-code-reviewer/discussions) — questions and discussions
+
+---
+
+**Ready to improve your code reviews?** :point_right: [Get started →](quick-start.md)
