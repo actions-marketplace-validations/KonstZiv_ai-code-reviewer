@@ -829,6 +829,15 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
     - 5 груп студентів
     - Кожна група: сценарій + верифікація docs
     - Детальний план Групи 1 готовий
+
+2026-01-28: Bug-fix v1.0.0a1 ✅
+  ✅ Виправлено 3 баги після релізу:
+    1. docs.yml: додано SITE_URL для правильних посилань перемикача мов
+    2. tests.yml: додано CODECOV_TOKEN + активовано репо на codecov.io
+    3. README.md: 4 backticks для вкладених code blocks (таблиці)
+
+  ✅ Гілка bug-fix-v1.0.0a1 змержена в main
+  ✅ Всі badges працюють, документація з перемикачем мов працює
 ```
 
 ### Блокери
@@ -838,7 +847,7 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 
 ### Питання
 ```
-Виявлені баги потребують виправлення — чекаємо конкретний опис
+Немає — готові до ручного тестування
 ```
 
 ---
@@ -1133,3 +1142,57 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 **Памʼятай:** Оновлюй цей документ під час роботи! 📝
 
 **WOW-ефект понад усе! 🎆**
+
+---
+
+## 🔄 Відновлення сесії (Session Recovery)
+
+**Останнє оновлення:** 2026-01-28
+
+### Поточний стан
+- **Sprint 1:** майже завершено (8/10 завдань done, 9 — в роботі)
+- **Реліз:** v1.0.0a1 опубліковано (alpha)
+- **Баги:** всі виправлені після релізу
+
+### Опубліковані артефакти (всі працюють ✅)
+| Артефакт | URL |
+|----------|-----|
+| PyPI | https://pypi.org/project/ai-reviewbot/1.0.0a1/ |
+| DockerHub | https://hub.docker.com/r/konstziv/ai-reviewbot |
+| GHCR | https://github.com/KonstZiv/ai-code-reviewer/pkgs/container/ai-code-reviewer |
+| Marketplace | https://github.com/marketplace/actions/ai-reviewbot |
+| Documentation | https://konstziv.github.io/ai-code-reviewer/ |
+| Codecov | https://codecov.io/gh/KonstZiv/ai-code-reviewer |
+
+### Наступні кроки
+1. **Деталізувати плани груп 2-5** для ручного тестування
+2. **Роздати завдання студентам** (5 груп)
+3. **Зібрати звіти** та виправити знайдені баги
+4. **Завдання 10:** Стабільний реліз v1.0.0 після QA
+
+### План ручного тестування (Завдання 9)
+5 груп, кожна тестує сценарій + верифікує документацію:
+
+| # | Група | Сценарій | Статус плану |
+|---|-------|----------|--------------|
+| 1 | GitHub Quick Start | Marketplace Action → PR → коментарі | ✅ Готовий |
+| 2 | GitLab Quick Start | Docker в CI → MR → коментарі | ⏳ Потрібно |
+| 3 | Конфігурація | Мова, model, language_mode | ⏳ Потрібно |
+| 4 | Docker | Pull + run локально | ⏳ Потрібно |
+| 5 | PyPI | pip install + використання | ⏳ Потрібно |
+
+**Детальний план Групи 1** — див. секцію "Завдання 9" вище.
+
+### Команди для початку роботи
+```bash
+cd /Users/kostyantynzivenko/Desktop/documents/REVIEW-AI/ai-code-reviewer
+git status
+uv run pytest  # перевірити що тести проходять
+uv run mkdocs serve  # локальний перегляд документації
+```
+
+### Важливі файли
+- `CURRENT_TASK/PROCESS_TASK_UA.md` — цей файл (прогрес спрінту)
+- `mkdocs.yml` — конфігурація документації
+- `.github/workflows/` — CI/CD workflows
+- `docs/uk/` — українська документація (source of truth)
