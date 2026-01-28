@@ -10,7 +10,7 @@
 
 | Метрика | Ціль | Поточне | Статус |
 |---------|------|---------|--------|
-| **Завдань виконано** | 10/10 | 8/10 | 🏗️ |
+| **Завдань виконано** | 10/10 | 9/10 | 🏗️ |
 | **Покриття тестами** | ≥80% | 92% | ✅ |
 | **GitHub інтеграція** | ✅ Працює | ✅ GitProvider ABC | ✅ |
 | **GitLab інтеграція** | ✅ Працює | ✅ GitLabClient готовий | ✅ |
@@ -375,44 +375,55 @@ examples/:
 ---
 
 ### 📚 Завдання 7: Багатомовна документація
-**Статус:** ⏳ Очікує Завдання 6
+**Статус:** ✅ **ЗАВЕРШЕНО** (2026-01-27)
 **Призначено:** Claude Code (AI) + Human (review)
 **Оцінка часу:** 6 годин
 
 ---
 
-**Фаза 0: Узгодження структури** (Claude + Human)
-- [ ] Обговорити фінальну структуру docs/
-- [ ] Визначити список файлів для MVP
-- [ ] Узгодити i18n підхід (uk → en → інші)
-- [ ] Затвердити структуру
+**Фаза 0: Узгодження структури** (Claude + Human) ✅
+- [x] Обговорити фінальну структуру docs/
+- [x] Визначити список файлів для MVP (10 файлів UK + README)
+- [x] Узгодити i18n підхід (uk → en → інші)
+- [x] Затвердити структуру (2026-01-25)
 
-**Фаза 1: Створення** (Claude)
-- [ ] Налаштувати MkDocs + mkdocs-material
-- [ ] Налаштувати i18n плагін
-- [ ] Створити структуру директорій
-- [ ] Написати документацію **українською** (uk/):
-  - [ ] index.md (landing)
-  - [ ] quick-start.md (GitHub + GitLab)
-  - [ ] configuration.md (всі опції)
-  - [ ] github.md (platform-specific)
-  - [ ] gitlab.md (platform-specific)
-  - [ ] troubleshooting.md (FAQ + errors)
+**Фаза 1: Створення** (Claude) ✅ **ЗАВЕРШЕНО** (2026-01-26)
+- [x] Налаштувати MkDocs + mkdocs-material
+- [x] Налаштувати i18n плагін (mkdocs-static-i18n)
+- [x] Створити структуру директорій
+- [x] Написати документацію **українською** (uk/):
+  - [x] index.md (landing)
+  - [x] installation.md (Docker / PyPI / Source)
+  - [x] quick-start.md (GitHub + GitLab)
+  - [x] configuration.md (всі опції)
+  - [x] github.md (platform-specific)
+  - [x] gitlab.md (platform-specific)
+  - [x] api.md (CLI reference)
+  - [x] troubleshooting.md (FAQ + errors)
+  - [x] examples/*.md (5 файлів)
+- [ ] Створити README.md (останній, після Фази 2)
 
-**Фаза 2: Вичитка** (Human)
-- [ ] Прочитати uk/ версію
-- [ ] Внести правки/коментарі
-- [ ] Затвердити фінальний текст
+**Фаза 2: Вичитка** (Human) ✅ **ЗАВЕРШЕНО** (2026-01-27)
+- [x] index.md — відревʼювовано, правки внесені (2026-01-26)
+- [x] installation.md — відревʼювовано, переписано за новою структурою (2026-01-27)
+- [x] quick-start.md — відревʼювовано (2026-01-27)
+- [x] configuration.md — відревʼювовано (2026-01-27)
+- [x] github.md — відревʼювовано (2026-01-27)
+- [x] gitlab.md — відревʼювовано (2026-01-27)
+- [x] api.md — відревʼювовано (2026-01-27)
+- [x] troubleshooting.md — відревʼювовано (2026-01-27)
+- [x] examples/*.md (5 файлів) — відревʼювовано (2026-01-27)
+- [x] Затвердити фінальний текст — ✅ Фаза 2 завершена (2026-01-27)
 
-**Фаза 3: Переклад** (Claude)
-- [ ] Перекласти на English (en/) — primary
-- [ ] Перекласти на Deutsch (de/)
-- [ ] Перекласти на Español (es/)
-- [ ] Перекласти на Crnogorski (me/)
-- [ ] Перекласти на Italiano (it/)
+**Фаза 3: Переклад** (Claude) ✅ **ЗАВЕРШЕНО** (2026-01-27)
+- [x] Перекласти на English (en/) — primary
+- [x] Перекласти на Deutsch (de/)
+- [x] Перекласти на Español (es/)
+- [x] Перекласти на Crnogorski (sr/) — *примітка: locale sr через обмеження Material theme*
+- [x] Перекласти на Italiano (it/)
 
 **Фаза 4: Деплой** (Claude)
-- [ ] Перемикач мов працює
+- [x] Перемикач мов працює (налаштовано в mkdocs.yml)
 - [ ] GitHub Pages / GitLab Pages налаштовано
 - [ ] Автодеплой працює
 
@@ -421,29 +432,72 @@ examples/:
 **Статус мов:**
 | Мова | Код | Фаза 1 | Фаза 2 | Фаза 3 |
 |------|-----|--------|--------|--------|
-| 🇺🇦 Українська | uk | ⏳ | ⏳ | — |
-| 🇬🇧 English | en | — | — | ⏳ |
-| 🇩🇪 Deutsch | de | — | — | ⏳ |
-| 🇪🇸 Español | es | — | — | ⏳ |
-| 🇲🇪 Crnogorski | me | — | — | ⏳ |
-| 🇮🇹 Italiano | it | — | — | ⏳ |
+| 🇺🇦 Українська | uk | ✅ | ✅ | — (source) |
+| 🇬🇧 English | en | ✅ | — | ✅ |
+| 🇩🇪 Deutsch | de | — | — | ✅ |
+| 🇪🇸 Español | es | — | — | ✅ |
+| 🇲🇪 Crnogorski | sr | — | — | ✅ |
+| 🇮🇹 Italiano | it | — | — | ✅ |
 
-**Структура docs/ (MVP):**
+**Затверджена структура docs/ (MVP):**
 ```
 docs/
-  uk/                 ← Source of truth (пишеться першою)
-    index.md
-    quick-start.md
-    configuration.md
-    github.md
-    gitlab.md
-    troubleshooting.md
-  en/                 ← Primary for international
-  de/
-  es/
-  me/
-  it/
+├── uk/                          # Source of truth
+│   ├── index.md                 # Landing (що це, features, how it works)
+│   ├── installation.md          # Docker / PyPI / Source install
+│   ├── quick-start.md           # Copy-paste GitHub + GitLab
+│   ├── configuration.md         # Всі env vars, опції, defaults
+│   ├── github.md                # GitHub-specific
+│   ├── gitlab.md                # GitLab-specific
+│   ├── api.md                   # CLI commands reference
+│   ├── troubleshooting.md       # FAQ + errors
+│   └── examples/                # Приклади workflows
+│       ├── index.md             # Огляд прикладів
+│       ├── github-minimal.md
+│       ├── github-advanced.md
+│       ├── gitlab-minimal.md
+│       └── gitlab-advanced.md
+├── en/                          # Primary for international
+├── de/
+├── es/
+├── me/
+└── it/
 mkdocs.yml
+README.md                        # Короткий landing → посилання на docs
+                                 # Створюється ОСТАННІМ
+```
+
+**Порядок створення файлів:**
+| # | Файл | Опис |
+|---|------|------|
+| 1 | `index.md` | Landing page |
+| 2 | `installation.md` | Docker / PyPI / Source |
+| 3 | `quick-start.md` | Copy-paste workflows |
+| 4 | `configuration.md` | Env vars, опції |
+| 5 | `github.md` | GitHub-specific |
+| 6 | `gitlab.md` | GitLab-specific |
+| 7 | `api.md` | CLI reference |
+| 8 | `troubleshooting.md` | FAQ + errors |
+| 9 | `examples/*.md` | Приклади workflows |
+| 10 | **README.md** | Останній (всі посилання готові) |
+
+**Навігація (mkdocs.yml):**
+```yaml
+nav:
+  - Головна: index.md
+  - Встановлення: installation.md
+  - Швидкий старт: quick-start.md
+  - Конфігурація: configuration.md
+  - GitHub: github.md
+  - GitLab: gitlab.md
+  - CLI Reference: api.md
+  - Приклади:
+    - examples/index.md
+    - examples/github-minimal.md
+    - examples/github-advanced.md
+    - examples/gitlab-minimal.md
+    - examples/gitlab-advanced.md
+  - Troubleshooting: troubleshooting.md
 ```
 
 **Нотатки:**
@@ -453,14 +507,56 @@ Workflow:
 2. Після затвердження — переклад на всі мови
 3. EN стає "primary" для міжнародної аудиторії
 4. Виправлення робляться один раз до перекладу
+5. README.md створюється останнім з робочими посиланнями
 
+Фаза 0 затверджена: 2026-01-25
 Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
+
+Фаза 1 завершена: 2026-01-26
+- mkdocs.yml оновлено з i18n плагіном
+- 13 файлів uk/ створено (8 основних + 5 examples)
+- en/ = копія uk/ (тимчасово, для fallback)
+- Зміна: me → sr (MkDocs Material не підтримує Montenegrin)
+- navigation.instant вимкнено (конфлікт з i18n switcher)
+- `uv run mkdocs build` успішно збирає site/ (7.1MB)
+- `uv run mkdocs serve` для локального перегляду
+
+Фаза 2 розпочата: 2026-01-26
+- index.md — Human внів значні правки (розширено опис, уточнено вартість)
+- При sync en/index.md = uk/index.md (fallback до перекладу)
+
+Фаза 3 завершена: 2026-01-27
+- 52 файли перекладено (13 × 4 мови: en, de, es, sr, it)
+- Переклад виконано паралельно 4 агентами
+- UI покращення:
+  - Прапорці країн перед назвами мов
+  - Іконка 🌐 для перемикача мов (CSS override)
+  - docs/stylesheets/extra.css створено
+- Виправлено 404 при зміні мови:
+  - Видалено extra.alternate (конфліктувало з i18n плагіном)
+  - site_url: !ENV [SITE_URL, ""] для локальної розробки
+- `uv run mkdocs build` успішно збирає всі 6 мов (~2 сек)
+
+=== ІНФО ДЛЯ ВІДНОВЛЕННЯ СЕСІЇ ===
+Поточний стан:
+- Завдання 7 ЗАВЕРШЕНО ✅
+- Всі 6 мов документації готові
+- Перемикач мов працює
+
+Команди для роботи:
+- Перегляд: `uv run mkdocs serve` → http://127.0.0.1:8000/
+- Build: `uv run mkdocs build`
+
+Далі:
+- Завдання 8: CI/CD Pipeline та публікація
+- Фаза 4: GitHub Pages deploy
+- README.md створюється останнім
 ```
 
 ---
 
 ### 🔄 Завдання 8: CI/CD Pipeline та публікація
-**Статус:** ⏳ Очікує Завдання 6, 7
+**Статус:** ⏳ Готово до виконання
 **Призначено:** Claude Code (AI) + Human (secrets)
 **Оцінка часу:** 4 години
 
@@ -545,6 +641,7 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 - [ ] Docker image в GHCR
 - [ ] GitHub Release створено
 - [ ] Документація задеплоєна
+- [ ] **Верифікація документації:** перевірити всі посилання, команди, назви пакетів відповідають реальному стану
 - [ ] Анонс опубліковано
 
 **Нотатки:**
@@ -596,7 +693,7 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
     ↓
 Завдання 6 (Testing)        ██████████  ✅ Завершено
     ↓
-Завдання 7 (Docs)           ░░░░░░░░░░  🎯 Наступне
+Завдання 7 (Docs)           ██████████  ✅ Завершено
     ↓
 Завдання 8 (CI/CD)          ░░░░░░░░░░
     ↓
@@ -611,25 +708,28 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 
 ### Фокус на сьогодні
 ```
-Завдання 7: Багатомовна документація
-- Налаштувати i18n плагін для MkDocs
-- Створити структуру директорій
-- Написати документацію 6 мовами
+Завдання 8: CI/CD Pipeline та публікація
+- Оновити tests.yml, release.yml
+- Створити docker-publish.yml
+- Налаштувати GHCR, DockerHub, PyPI публікацію
 ```
 
 ### Прогрес з останнього оновлення
 ```
-✅ Завдання 6 (Testing/Retry) - ЗАВЕРШЕНО (2026-01-25)
-  - Створено utils/retry.py з повною ієрархією exceptions
-  - RetryableError → RateLimitError, ServerError (retry з backoff)
-  - APIClientError → AuthenticationError, ForbiddenError, NotFoundError (fail fast)
-  - @with_retry decorator з tenacity (5 attempts, 2s-30s backoff)
-  - Оновлено GitHub, GitLab, Gemini clients
-  - 33 нових тести для retry module
-  - Оновлено інтеграційні тести для нової поведінки
-  - Виправлено всі ruff/mypy issues
-  - 343 тести, 92% coverage
-  - Всі pre-commit hooks проходять
+✅ Завдання 7 Фаза 3 (Переклад) - ЗАВЕРШЕНО (2026-01-27)
+  52 файли перекладено на 4 мови:
+  ✅ English (en/) — 13 файлів
+  ✅ Deutsch (de/) — 13 файлів
+  ✅ Español (es/) — 13 файлів
+  ✅ Crnogorski (sr/) — 13 файлів
+  ✅ Italiano (it/) — 13 файлів
+
+  UI покращення:
+  ✅ Прапорці країн додано до назв мов (🇬🇧 🇺🇦 🇩🇪 🇪🇸 🇲🇪 🇮🇹)
+  ✅ Іконка перемикача мов змінена на 🌐
+  ✅ Створено docs/stylesheets/extra.css для кастомних стилів
+  ✅ Виправлено 404 при переключенні мов (видалено extra.alternate)
+  ✅ site_url тепер через ENV змінну для локальної розробки
 ```
 
 ### Блокери
@@ -639,7 +739,7 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 
 ### Питання
 ```
-Немає - готовий до виконання Завдання 7 (Documentation)
+Немає — готові до Завдання 8
 ```
 
 ---
@@ -735,6 +835,31 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 - Максимум 5 спроб з exponential backoff (2s → 30s)
 - Структуроване логування: attempt, error_type, retry_in_ms
 
+### Рішення 13: 2026-01-26 — Locale для Crnogorski
+**Питання:** MkDocs Material не підтримує locale `me` (Montenegrin)
+**Рішення:** Використовувати `sr` (Serbian) як locale для чорногорської мови
+**Обґрунтування:**
+- MkDocs Material має обмежений набір мовних шаблонів
+- Сербська і чорногорська дуже близькі (латиниця)
+- Альтернативи: `hr` (Croatian) або custom template
+- `sr` найближчий з доступних
+**Вплив:**
+- mkdocs.yml: locale `sr` з name `Crnogorski`
+- URL буде /sr/ замість /me/
+- Функціональність повністю збережена
+
+### Рішення 14: 2026-01-27 — Видалення extra.alternate
+**Питання:** Перемикач мов дає 404 при переході на /uk/
+**Рішення:** Видалити manual `extra.alternate` секцію з mkdocs.yml
+**Обґрунтування:**
+- mkdocs-static-i18n з `reconfigure_material: true` автоматично налаштовує switcher
+- Manual alternate конфліктував з автоматичним налаштуванням
+- Default language (en) знаходився в корені (/), а не в /en/
+**Вплив:**
+- mkdocs.yml: видалено extra.alternate секцію
+- site_url: !ENV [SITE_URL, ""] для гнучкості локальної розробки
+- Перемикач мов працює коректно
+
 ---
 
 ## 🐛 Проблеми та рішення
@@ -781,6 +906,9 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 - uv sync створює editable install — потрібно копіювати src в runtime
 - Multi-stage Docker: uv image для build, slim python для runtime
 - GitPython потребує git CLI в контейнері
+- mkdocs-static-i18n: reconfigure_material=true автоматично налаштовує switcher
+- MkDocs: site_url через ENV змінну (!ENV [VAR, "default"]) для локальної розробки
+- Emoji в YAML: безпечно використовувати у name полях без лапок
 ```
 
 ---
@@ -810,8 +938,8 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 - [ ] PyPI package опубліковано
 
 ### Документація
-- [ ] 6 мов документації
-- [ ] Перемикач мов працює
+- [x] 6 мов документації
+- [x] Перемикач мов працює
 - [ ] Автодеплой працює
 
 ### Реліз
@@ -847,10 +975,10 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 - Дата початку: 2026-01-20
 - Дата завершення: [Дата]
 - Тривалість: [Днів]
-- Завдань виконано: 8/10
+- Завдань виконано: 9/10
 - Покриття тестами: 92%
 - Рядків коду: ~1200
-- Нових файлів: 10 (base.py, time.py, gitlab.py, language.py, retry.py, Dockerfile, action.yml, .dockerignore, examples/*.yml)
+- Нових файлів: 11+ (base.py, time.py, gitlab.py, language.py, retry.py, Dockerfile, action.yml, .dockerignore, examples/*.yml, docs/stylesheets/extra.css, docs/{uk,en,de,es,sr,it}/*.md)
 - Тестів: 343
 - Коммітів: [X]
 

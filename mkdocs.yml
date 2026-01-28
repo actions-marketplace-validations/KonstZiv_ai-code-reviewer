@@ -1,57 +1,71 @@
 site_name: AI Code Reviewer
-site_description: AI-powered code review agent for CI/CD pipelines
-site_author: AI Code Reviewer Team
-site_url: https://ai-code-reviewer.readthedocs.io
+site_description: AI-powered code review tool with inline suggestions for GitHub and GitLab
+site_author: Kostyantin Zivenko
+# NOTE: For local development, use empty string or comment out.
+# For GitHub Pages deployment, set the full URL:
+site_url: !ENV [SITE_URL, ""]
 
-repo_name: your-org/ai-code-reviewer
-repo_url: https://github.com/your-org/ai-code-reviewer
+repo_name: KonstZiv/ai-code-reviewer
+repo_url: https://github.com/KonstZiv/ai-code-reviewer
 edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2024-2026 Kostyantin Zivenko
+
+extra_css:
+  - stylesheets/extra.css
 
 theme:
   name: material
   language: en
+  custom_dir: docs/overrides
   palette:
     # Light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: purple
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     # Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: purple
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
 
   features:
-    - navigation.instant
+    # Note: navigation.instant disabled - incompatible with i18n language switcher
     - navigation.tracking
     - navigation.tabs
     - navigation.sections
-    - navigation.expand
     - navigation.top
+    - navigation.footer
     - search.suggest
     - search.highlight
+    - search.share
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
+    - toc.follow
 
   icon:
     repo: fontawesome/brands/github
+    logo: material/robot-happy
 
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/your-org/ai-code-reviewer
-    - icon: fontawesome/brands/discord
-      link: https://discord.gg/your-server
+      link: https://github.com/KonstZiv/ai-code-reviewer
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/ai-code-reviewer/
+    - icon: fontawesome/brands/docker
+      link: https://ghcr.io/konstziv/ai-code-reviewer
 
-  version:
-    provider: mike
+  # Language switcher is auto-configured by i18n plugin with reconfigure_material: true
+  # DO NOT add manual 'alternate' section - it conflicts with the plugin
 
 markdown_extensions:
   # Code highlighting
@@ -67,7 +81,7 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
-  # Admonitions
+  # Admonitions (callouts)
   - admonition
   - pymdownx.details
 
@@ -83,6 +97,13 @@ markdown_extensions:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
+  # Tabs
+  - pymdownx.tabbed:
+      alternate_style: true
+
+  # Keys (keyboard shortcuts)
+  - pymdownx.keys
+
   # Other
   - attr_list
   - def_list
@@ -90,75 +111,105 @@ markdown_extensions:
   - md_in_html
   - toc:
       permalink: true
+      toc_depth: 3
 
 plugins:
-  - search
-  - mkdocstrings:
-      handlers:
-        python:
-          options:
-            docstring_style: google
-            show_source: true
-            show_root_heading: true
-            show_category_heading: true
-            members_order: source
-            heading_level: 2
+  - search:
+      lang:
+        - en
+        - uk
+        - de
+        - es
+        - it
+
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: 🇬🇧 English
+          build: true
+        - locale: uk
+          name: 🇺🇦 Українська
+          build: true
+          nav_translations:
+            Home: Головна
+            Installation: Встановлення
+            Quick Start: Швидкий старт
+            Configuration: Конфігурація
+            GitHub: GitHub
+            GitLab: GitLab
+            CLI Reference: CLI Довідник
+            Examples: Приклади
+            Troubleshooting: Вирішення проблем
+        - locale: de
+          name: 🇩🇪 Deutsch
+          build: true
+          nav_translations:
+            Home: Startseite
+            Installation: Installation
+            Quick Start: Schnellstart
+            Configuration: Konfiguration
+            GitHub: GitHub
+            GitLab: GitLab
+            CLI Reference: CLI Referenz
+            Examples: Beispiele
+            Troubleshooting: Fehlerbehebung
+        - locale: es
+          name: 🇪🇸 Español
+          build: true
+          nav_translations:
+            Home: Inicio
+            Installation: Instalación
+            Quick Start: Inicio rápido
+            Configuration: Configuración
+            GitHub: GitHub
+            GitLab: GitLab
+            CLI Reference: Referencia CLI
+            Examples: Ejemplos
+            Troubleshooting: Solución de problemas
+        - locale: sr
+          name: 🇲🇪 Crnogorski
+          build: true
+          nav_translations:
+            Home: Početna
+            Installation: Instalacija
+            Quick Start: Brzi početak
+            Configuration: Konfiguracija
+            GitHub: GitHub
+            GitLab: GitLab
+            CLI Reference: CLI Referenca
+            Examples: Primjeri
+            Troubleshooting: Rješavanje problema
+        - locale: it
+          name: 🇮🇹 Italiano
+          build: true
+          nav_translations:
+            Home: Home
+            Installation: Installazione
+            Quick Start: Avvio rapido
+            Configuration: Configurazione
+            GitHub: GitHub
+            GitLab: GitLab
+            CLI Reference: Riferimento CLI
+            Examples: Esempi
+            Troubleshooting: Risoluzione problemi
 
 nav:
   - Home: index.md
-
-  - Getting Started:
-    - Quick Start (1 min): getting-started/quick-start.md
-    - Installation: getting-started/installation.md
-    - First Review: getting-started/first-review.md
-    - Configuration: getting-started/configuration.md
-
-  - Deployment Scenarios:
-    - Overview: deployment/index.md
-    - Solo Developer (FREE): deployment/solo-dev.md
-    - Small Team ($10-30/mo): deployment/small-team.md
-    - Enterprise (Self-Hosted): deployment/enterprise.md
-
-  - Integration Guides:
-    - GitLab CI: guides/gitlab-ci.md
-    - GitHub Actions: guides/github-actions.md
-    - Webhook Mode: guides/webhook-mode.md
-    - Local Development: guides/local-dev.md
-
-  - Understanding the System:
-    - Architecture: guides/architecture.md
-    - How It Works: guides/how-it-works.md
-    - Agents Explained: guides/agents.md
-    - LLM Routing: guides/llm-routing.md
-    - Cost Optimization: guides/cost-optimization.md
-
-  - Configuration:
-    - Overview: configuration/index.md
-    - LLM Providers: configuration/llm-providers.md
-    - Review Settings: configuration/review-settings.md
-    - Repository Context: configuration/repository-context.md
-    - Environment Variables: configuration/environment.md
-
-  - Development:
-    - Contributing: development/contributing.md
-    - Architecture Deep Dive: development/architecture.md
-    - Adding Agents: development/adding-agents.md
-    - Adding LLM Providers: development/adding-providers.md
-    - Testing: development/testing.md
-    - Project Structure: development/project-structure.md
-
-  - API Reference:
-    - Core Models: api/core-models.md
-    - LLM Router: api/llm-router.md
-    - Agents: api/agents.md
-    - Integrations: api/integrations.md
-
-  - Troubleshooting:
-    - Common Issues: troubleshooting/common-issues.md
-    - FAQ: troubleshooting/faq.md
-    - Debugging: troubleshooting/debugging.md
-
-  - About:
-    - Changelog: about/changelog.md
-    - Roadmap: about/roadmap.md
-    - License: about/license.md
+  - Installation: installation.md
+  - Quick Start: quick-start.md
+  - Configuration: configuration.md
+  - GitHub: github.md
+  - GitLab: gitlab.md
+  - CLI Reference: api.md
+  - Examples:
+      - examples/index.md
+      - examples/github-minimal.md
+      - examples/github-advanced.md
+      - examples/gitlab-minimal.md
+      - examples/gitlab-advanced.md
+  - Troubleshooting: troubleshooting.md

@@ -83,8 +83,7 @@ def _convert_gitlab_exception(e: GitlabError) -> Exception:
         return ServerError(message, status_code=status)
 
     # For other errors, return as-is (will not be retried)
-    # GitlabError is treated as Any due to ignore_missing_imports
-    return e  # type: ignore[no-any-return]
+    return e
 
 
 class GitLabClient(GitProvider):

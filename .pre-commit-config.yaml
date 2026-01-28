@@ -28,6 +28,10 @@ repos:
           - typer>=0.9.0
           - rich>=13.0.0
           - PyGithub>=2.0.0
+          - python-gitlab>=5.0.0
+          - python-iso639>=0.0.10
+          - tenacity>=9.0.0
+          - httpx>=0.28.0
           - types-PyYAML
           - types-requests
         args: [--strict]
