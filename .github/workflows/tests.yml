@@ -65,6 +65,7 @@ jobs:
         if: matrix.python-version == '3.13'
         with:
           file: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
       - name: Upload coverage artifacts

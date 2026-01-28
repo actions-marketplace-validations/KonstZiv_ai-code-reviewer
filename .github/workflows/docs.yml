@@ -51,4 +51,6 @@ jobs:
         run: uv sync --group docs
 
       - name: Deploy to GitHub Pages
+        env:
+          SITE_URL: https://konstziv.github.io/ai-code-reviewer/
         run: uv run mkdocs gh-deploy --force

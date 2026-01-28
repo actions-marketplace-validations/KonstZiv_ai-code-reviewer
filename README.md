@@ -123,7 +123,7 @@ The reviewer provides structured feedback with inline suggestions:
 
 ### Summary Comment
 
-```markdown
+````markdown
 ## 🤖 AI Code Review
 
 ### 📊 Summary
@@ -139,11 +139,11 @@ Found 2 issues and 1 good practice.
 
 ---
 ⏱️ 1.2s | 🪙 1,540 tokens | 💰 ~$0.002
-```
+````
 
 ### Inline Comment with "Apply" Button
 
-```markdown
+````markdown
 ⚠️ **SQL Injection Risk**
 
 User input is concatenated directly into SQL query.
@@ -160,7 +160,7 @@ Always use parameterized queries.
 
 📚 [Learn more](https://owasp.org/www-community/attacks/SQL_Injection)
 </details>
-```
+````
 
 ## 🛠️ Development
 
