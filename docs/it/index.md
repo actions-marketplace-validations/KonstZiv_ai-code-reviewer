@@ -171,7 +171,7 @@ graph TD
 === "PyPI"
 
     ```bash
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
     ```
 
 === "Sorgente"

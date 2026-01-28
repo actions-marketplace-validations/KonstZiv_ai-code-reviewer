@@ -158,7 +158,7 @@ Installation as a Python package.
 === "pip"
 
     ```bash
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
     ```
 
 === "uv"

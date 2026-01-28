@@ -158,7 +158,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
 === "pip"
 
     ```bash
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
     ```
 
 === "uv"

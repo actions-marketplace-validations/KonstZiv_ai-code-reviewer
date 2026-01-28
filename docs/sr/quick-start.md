@@ -104,7 +104,7 @@ Za lokalno testiranje trebate:
 
     ```bash
     # Instalirajte
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
 
     # Konfigurišite
     export GOOGLE_API_KEY=your_key
@@ -118,7 +118,7 @@ Za lokalno testiranje trebate:
 
     ```bash
     # Instalirajte
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
 
     # Konfigurišite
     export GOOGLE_API_KEY=your_key

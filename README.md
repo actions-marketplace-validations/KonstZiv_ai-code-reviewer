@@ -1,6 +1,6 @@
 # AI Code Reviewer
 
-[![PyPI version](https://img.shields.io/pypi/v/ai-code-reviewer)](https://pypi.org/project/ai-code-reviewer/)
+[![PyPI version](https://img.shields.io/pypi/v/ai-reviewbot)](https://pypi.org/project/ai-reviewbot/)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Tests](https://github.com/KonstZiv/ai-code-reviewer/actions/workflows/tests.yml/badge.svg)](https://github.com/KonstZiv/ai-code-reviewer/actions/workflows/tests.yml)
@@ -70,7 +70,7 @@ ai-review:
 ### PyPI
 
 ```bash
-pip install ai-code-reviewer
+pip install ai-reviewbot
 
 # Set environment variables
 export GOOGLE_API_KEY="your-key"
@@ -189,7 +189,7 @@ uv run mkdocs serve
 |--------|---------|----------|
 | **GitHub Action** | `uses: KonstZiv/ai-code-reviewer@v1` | GitHub projects |
 | **Docker** | `docker pull konstziv/ai-code-reviewer` | GitLab CI |
-| **PyPI** | `pip install ai-code-reviewer` | Local testing |
+| **PyPI** | `pip install ai-reviewbot` | Local testing |
 
 ## 💰 Cost Estimate
 

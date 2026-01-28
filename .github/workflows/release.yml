@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/ai-code-reviewer
+      url: https://pypi.org/p/ai-reviewbot
 
     steps:
       - name: Download distribution packages

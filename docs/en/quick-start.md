@@ -104,7 +104,7 @@ For local testing you need:
 
     ```bash
     # Install
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
 
     # Configure
     export GOOGLE_API_KEY=your_key
@@ -118,7 +118,7 @@ For local testing you need:
 
     ```bash
     # Install
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
 
     # Configure
     export GOOGLE_API_KEY=your_key

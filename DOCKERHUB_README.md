@@ -65,7 +65,7 @@ docker run --rm \
 - 📚 [Full Documentation](https://konstziv.github.io/ai-code-reviewer/)
 - 🐙 [GitHub Repository](https://github.com/KonstZiv/ai-code-reviewer)
 - 🚀 [GitHub Action](https://github.com/marketplace/actions/ai-code-reviewer)
-- 📦 [PyPI Package](https://pypi.org/project/ai-code-reviewer/)
+- 📦 [PyPI Package](https://pypi.org/project/ai-reviewbot/)
 
 ## License
 

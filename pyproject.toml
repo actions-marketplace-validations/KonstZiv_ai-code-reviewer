@@ -1,5 +1,5 @@
 [project]
-name = "ai-code-reviewer"
+name = "ai-reviewbot"
 version = "1.0.0a1"
 description = "AI-powered code review agent for CI/CD pipelines"
 readme = "README.md"

@@ -60,7 +60,7 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/KonstZiv/ai-code-reviewer
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/ai-code-reviewer/
+      link: https://pypi.org/project/ai-reviewbot/
     - icon: fontawesome/brands/docker
       link: https://ghcr.io/konstziv/ai-code-reviewer
 

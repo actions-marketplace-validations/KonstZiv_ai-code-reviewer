@@ -513,7 +513,7 @@ runs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.13'
-    - run: pip install ai-code-reviewer
+    - run: pip install ai-reviewbot
       shell: bash
     - run: ai-review
       shell: bash
@@ -686,7 +686,7 @@ plugins:
 | Артефакт | Платформа | Опис |
 |----------|-----------|------|
 | README.md | GitHub | Якісний опис з badges, quick start, посиланнями |
-| PyPI package | pypi.org | `pip install ai-code-reviewer` |
+| PyPI package | pypi.org | `pip install ai-reviewbot` |
 | Docker image | DockerHub | `konstziv/ai-code-reviewer` |
 | Docker image | GHCR | `ghcr.io/konstziv/ai-code-reviewer` |
 | GitHub Action | Marketplace | `uses: KonstZiv/ai-code-reviewer@v1` |
@@ -936,7 +936,7 @@ runs:
 
 **Критерії прийняття:**
 - ✅ Всі workflows зелені
-- ✅ PyPI: `pip install ai-code-reviewer` працює
+- ✅ PyPI: `pip install ai-reviewbot` працює
 - ✅ DockerHub: `docker pull konstziv/ai-code-reviewer` працює
 - ✅ GHCR: `docker pull ghcr.io/konstziv/ai-code-reviewer` працює
 - ✅ Marketplace: `uses: KonstZiv/ai-code-reviewer@v1` працює
@@ -1000,7 +1000,7 @@ runs:
 7. Анонсувати реліз
 
 **Критерії прийняття:**
-- ✅ `pip install ai-code-reviewer` працює
+- ✅ `pip install ai-reviewbot` працює
 - ✅ Docker image доступний
 - ✅ GitHub Action доступний через `uses:`
 - ✅ Документація задеплоєна
