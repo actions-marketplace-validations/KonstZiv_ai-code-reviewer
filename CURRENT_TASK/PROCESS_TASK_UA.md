@@ -599,8 +599,8 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 |----------|-----------|--------|
 | README.md | GitHub | ⏳ |
 | PyPI package | pypi.org | ⏳ |
-| Docker image | DockerHub (`konstziv/ai-code-reviewer`) | ⏳ |
-| Docker image | GHCR (`ghcr.io/konstziv/ai-code-reviewer`) | ⏳ |
+| Docker image | DockerHub (`konstziv/ai-reviewbot`) | ⏳ |
+| Docker image | GHCR (`ghcr.io/konstziv/ai-reviewbot`) | ⏳ |
 | GitHub Action | Marketplace | ⏳ |
 | Documentation | GitHub Pages (6 мов) | ✅ Готово |
 
@@ -640,7 +640,7 @@ tag v1.0.0a1 → release.yml (PyPI + GitHub Release)
   - docker-publish.yml: GHCR + DockerHub, multi-arch (amd64+arm64)
   - docker-publish.yml: DockerHub description auto-update
   - docker-publish.yml: smart tagging (no 'latest' for alpha/beta)
-  - action.yml: pre-built image (ghcr.io/konstziv/ai-code-reviewer:1)
+  - action.yml: pre-built image (ghcr.io/konstziv/ai-reviewbot:1)
   - DOCKERHUB_README.md: quick start, env vars, links
   - README.md: повністю переписано з актуальними features
   - 343 тести ✅, 92% coverage, pre-commit all passed
@@ -927,7 +927,7 @@ tag v1.0.0a1 → release.yml (PyPI + GitHub Release)
 **Вплив:**
 - release.yml: видалено deploy-docs, додано виклик docker-publish
 - docker-publish.yml: новий workflow з workflow_call trigger
-- action.yml: image змінено на `docker://ghcr.io/konstziv/ai-code-reviewer:1`
+- action.yml: image змінено на `docker://ghcr.io/konstziv/ai-reviewbot:1`
 
 ### Рішення 16: 2026-01-28 — Версія релізу
 **Питання:** Яку версію використовувати для першого релізу?

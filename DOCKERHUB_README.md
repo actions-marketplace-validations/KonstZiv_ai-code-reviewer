@@ -1,7 +1,7 @@
 # AI ReviewBot
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/konstziv/ai-code-reviewer)](https://hub.docker.com/r/konstziv/ai-code-reviewer)
-[![Docker Image Size](https://img.shields.io/docker/image-size/konstziv/ai-code-reviewer/latest)](https://hub.docker.com/r/konstziv/ai-code-reviewer)
+[![Docker Pulls](https://img.shields.io/docker/pulls/konstziv/ai-reviewbot)](https://hub.docker.com/r/konstziv/ai-reviewbot)
+[![Docker Image Size](https://img.shields.io/docker/image-size/konstziv/ai-reviewbot/latest)](https://hub.docker.com/r/konstziv/ai-reviewbot)
 [![GitHub](https://img.shields.io/github/license/KonstZiv/ai-code-reviewer)](https://github.com/KonstZiv/ai-code-reviewer)
 
 AI-powered code review tool for GitHub and GitLab with **inline suggestions** and "Apply" button support.
@@ -21,7 +21,7 @@ AI-powered code review tool for GitHub and GitLab with **inline suggestions** an
 
 ```yaml
 ai-review:
-  image: konstziv/ai-code-reviewer:latest
+  image: konstziv/ai-reviewbot:latest
   script:
     - ai-review
   rules:
@@ -39,7 +39,7 @@ docker run --rm \
   -e GITHUB_TOKEN="your-token" \
   -e GITHUB_REPOSITORY="owner/repo" \
   -e GITHUB_EVENT_NUMBER="123" \
-  konstziv/ai-code-reviewer:latest
+  konstziv/ai-reviewbot:latest
 ```
 
 ## Environment Variables

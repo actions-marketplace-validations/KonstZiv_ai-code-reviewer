@@ -537,7 +537,7 @@ runs:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   script:
     - ai-review
   rules:
@@ -687,8 +687,8 @@ plugins:
 |----------|-----------|------|
 | README.md | GitHub | Якісний опис з badges, quick start, посиланнями |
 | PyPI package | pypi.org | `pip install ai-reviewbot` |
-| Docker image | DockerHub | `konstziv/ai-code-reviewer` |
-| Docker image | GHCR | `ghcr.io/konstziv/ai-code-reviewer` |
+| Docker image | DockerHub | `konstziv/ai-reviewbot` |
+| Docker image | GHCR | `ghcr.io/konstziv/ai-reviewbot` |
 | GitHub Action | Marketplace | `uses: KonstZiv/ai-code-reviewer@v1` |
 | Documentation | GitHub Pages | 6 мов, детальна документація |
 
@@ -793,7 +793,7 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
-            ${{ env.REGISTRY_DOCKER }}/konstziv/ai-code-reviewer
+            ${{ env.REGISTRY_DOCKER }}/konstziv/ai-reviewbot
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -868,7 +868,7 @@ inputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/konstziv/ai-code-reviewer:1'  # Pre-built для швидкості
+  image: 'docker://ghcr.io/konstziv/ai-reviewbot:1'  # Pre-built для швидкості
   env:
     GITHUB_TOKEN: ${{ inputs.github_token }}
     GOOGLE_API_KEY: ${{ inputs.google_api_key }}
@@ -937,8 +937,8 @@ runs:
 **Критерії прийняття:**
 - ✅ Всі workflows зелені
 - ✅ PyPI: `pip install ai-reviewbot` працює
-- ✅ DockerHub: `docker pull konstziv/ai-code-reviewer` працює
-- ✅ GHCR: `docker pull ghcr.io/konstziv/ai-code-reviewer` працює
+- ✅ DockerHub: `docker pull konstziv/ai-reviewbot` працює
+- ✅ GHCR: `docker pull ghcr.io/konstziv/ai-reviewbot` працює
 - ✅ Marketplace: `uses: KonstZiv/ai-code-reviewer@v1` працює
 - ✅ GitHub Pages: документація доступна на 6 мовах
 - ✅ README.md: якісний опис з badges

@@ -51,7 +51,7 @@ Para GitLab, usa la imagen Docker en `.gitlab-ci.yml`:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   stage: test
   script:
     - ai-review
@@ -116,7 +116,7 @@ No se requiere instalación de Python — todo está en el contenedor.
 **Paso 1: Descargar la imagen**
 
 ```bash
-docker pull ghcr.io/konstziv/ai-code-reviewer:latest
+docker pull ghcr.io/konstziv/ai-reviewbot:latest
 ```
 
 **Paso 2: Ejecutar la revisión**
@@ -127,7 +127,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
     docker run --rm \
       -e GOOGLE_API_KEY=your_api_key \
       -e GITHUB_TOKEN=your_token \
-      ghcr.io/konstziv/ai-code-reviewer:latest \
+      ghcr.io/konstziv/ai-reviewbot:latest \
       --repo owner/repo --pr-number 123
     ```
 
@@ -137,15 +137,15 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
     docker run --rm \
       -e GOOGLE_API_KEY=your_api_key \
       -e GITLAB_TOKEN=your_token \
-      ghcr.io/konstziv/ai-code-reviewer:latest \
+      ghcr.io/konstziv/ai-reviewbot:latest \
       --provider gitlab --project owner/repo --mr-iid 123
     ```
 
 !!! tip "Imágenes Docker"
     Disponibles en dos registros:
 
-    - `ghcr.io/konstziv/ai-code-reviewer:latest` — GitHub Container Registry
-    - `konstziv/ai-code-reviewer:latest` — DockerHub
+    - `ghcr.io/konstziv/ai-reviewbot:latest` — GitHub Container Registry
+    - `konstziv/ai-reviewbot:latest` — DockerHub
 
 ---
 
@@ -233,10 +233,10 @@ Para entornos con acceso limitado a internet.
 
 ```bash
 # Descargar la imagen
-docker pull ghcr.io/konstziv/ai-code-reviewer:latest
+docker pull ghcr.io/konstziv/ai-reviewbot:latest
 
 # Guardar en archivo
-docker save ghcr.io/konstziv/ai-code-reviewer:latest > ai-code-reviewer.tar
+docker save ghcr.io/konstziv/ai-reviewbot:latest > ai-code-reviewer.tar
 ```
 
 **Paso 2: Transferir el archivo al entorno cerrado**
@@ -248,7 +248,7 @@ docker save ghcr.io/konstziv/ai-code-reviewer:latest > ai-code-reviewer.tar
 docker load < ai-code-reviewer.tar
 
 # Re-etiquetar para el registro interno
-docker tag ghcr.io/konstziv/ai-code-reviewer:latest \
+docker tag ghcr.io/konstziv/ai-reviewbot:latest \
     registry.internal.company.com/devops/ai-code-reviewer:latest
 
 # Subir

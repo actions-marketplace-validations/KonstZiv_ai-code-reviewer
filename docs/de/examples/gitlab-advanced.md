@@ -40,7 +40,7 @@ stages:
 
 ai-review:
   stage: review
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
 
   script:
     - ai-review
@@ -184,7 +184,7 @@ test:
 
 ai-review:
   stage: review
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   script:
     - ai-review
   rules:

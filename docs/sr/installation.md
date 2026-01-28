@@ -51,7 +51,7 @@ Za GitLab, koristite Docker image u `.gitlab-ci.yml`:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   stage: test
   script:
     - ai-review
@@ -116,7 +116,7 @@ Nije potrebna instalacija Python-a — sve je u kontejneru.
 **Korak 1: Preuzmite image**
 
 ```bash
-docker pull ghcr.io/konstziv/ai-code-reviewer:latest
+docker pull ghcr.io/konstziv/ai-reviewbot:latest
 ```
 
 **Korak 2: Pokrenite reviziju**
@@ -127,7 +127,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
     docker run --rm \
       -e GOOGLE_API_KEY=your_api_key \
       -e GITHUB_TOKEN=your_token \
-      ghcr.io/konstziv/ai-code-reviewer:latest \
+      ghcr.io/konstziv/ai-reviewbot:latest \
       --repo owner/repo --pr-number 123
     ```
 
@@ -137,15 +137,15 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
     docker run --rm \
       -e GOOGLE_API_KEY=your_api_key \
       -e GITLAB_TOKEN=your_token \
-      ghcr.io/konstziv/ai-code-reviewer:latest \
+      ghcr.io/konstziv/ai-reviewbot:latest \
       --provider gitlab --project owner/repo --mr-iid 123
     ```
 
 !!! tip "Docker images"
     Dostupni iz dva registra:
 
-    - `ghcr.io/konstziv/ai-code-reviewer:latest` — GitHub Container Registry
-    - `konstziv/ai-code-reviewer:latest` — DockerHub
+    - `ghcr.io/konstziv/ai-reviewbot:latest` — GitHub Container Registry
+    - `konstziv/ai-reviewbot:latest` — DockerHub
 
 ---
 
@@ -233,10 +233,10 @@ Za okruženja sa ograničenim pristupom internetu.
 
 ```bash
 # Preuzmite image
-docker pull ghcr.io/konstziv/ai-code-reviewer:latest
+docker pull ghcr.io/konstziv/ai-reviewbot:latest
 
 # Sačuvajte u fajl
-docker save ghcr.io/konstziv/ai-code-reviewer:latest > ai-code-reviewer.tar
+docker save ghcr.io/konstziv/ai-reviewbot:latest > ai-code-reviewer.tar
 ```
 
 **Korak 2: Prenesite fajl u zatvoreno okruženje**
@@ -248,7 +248,7 @@ docker save ghcr.io/konstziv/ai-code-reviewer:latest > ai-code-reviewer.tar
 docker load < ai-code-reviewer.tar
 
 # Ponovo tagirajte za interni registar
-docker tag ghcr.io/konstziv/ai-code-reviewer:latest \
+docker tag ghcr.io/konstziv/ai-reviewbot:latest \
     registry.internal.company.com/devops/ai-code-reviewer:latest
 
 # Push

@@ -94,7 +94,7 @@ only:
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   script:
     - ai-review
   rules:
@@ -107,7 +107,7 @@ ai-review:
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   stage: test
   script:
     - ai-review
@@ -139,7 +139,7 @@ stages:
 
 ai-review:
   stage: review
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   script:
     - ai-review
   rules:
@@ -166,8 +166,8 @@ Se il tuo GitLab non ha accesso a `ghcr.io`, crea un mirror:
 
 ```bash
 # Su una macchina con accesso
-docker pull ghcr.io/konstziv/ai-code-reviewer:latest
-docker tag ghcr.io/konstziv/ai-code-reviewer:latest \
+docker pull ghcr.io/konstziv/ai-reviewbot:latest
+docker tag ghcr.io/konstziv/ai-reviewbot:latest \
     gitlab.mycompany.com:5050/devops/ai-code-reviewer:latest
 docker push gitlab.mycompany.com:5050/devops/ai-code-reviewer:latest
 ```
