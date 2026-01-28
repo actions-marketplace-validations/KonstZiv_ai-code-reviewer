@@ -131,4 +131,6 @@ jobs:
     name: Publish Docker Images
     needs: github-release
     uses: ./.github/workflows/docker-publish.yml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
