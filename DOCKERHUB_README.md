@@ -1,4 +1,4 @@
-# AI Code Reviewer
+# AI ReviewBot
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/konstziv/ai-code-reviewer)](https://hub.docker.com/r/konstziv/ai-code-reviewer)
 [![Docker Image Size](https://img.shields.io/docker/image-size/konstziv/ai-code-reviewer/latest)](https://hub.docker.com/r/konstziv/ai-code-reviewer)

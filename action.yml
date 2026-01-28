@@ -1,5 +1,5 @@
-name: 'AI Code Review'
-description: 'AI-powered code review for pull requests using Google Gemini'
+name: 'AI ReviewBot'
+description: 'AI-powered code review for pull requests with inline suggestions'
 author: 'Kostyantin Zivenko'
 
 branding:

@@ -1,4 +1,4 @@
-# AI Code Reviewer
+# AI ReviewBot
 
 **AI-powered assistant for automated code review in your CI/CD pipeline.**
 

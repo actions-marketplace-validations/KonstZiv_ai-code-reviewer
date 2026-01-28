@@ -1,4 +1,4 @@
-# AI Code Reviewer
+# AI ReviewBot
 
 [![PyPI version](https://img.shields.io/pypi/v/ai-reviewbot)](https://pypi.org/project/ai-reviewbot/)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)

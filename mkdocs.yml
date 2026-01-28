@@ -1,4 +1,4 @@
-site_name: AI Code Reviewer
+site_name: AI ReviewBot
 site_description: AI-powered code review tool with inline suggestions for GitHub and GitLab
 site_author: Kostyantin Zivenko
 # NOTE: For local development, use empty string or comment out.
