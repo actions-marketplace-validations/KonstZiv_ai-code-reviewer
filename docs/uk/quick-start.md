@@ -76,7 +76,7 @@ jobs:
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   stage: test
   script:
     - ai-review
@@ -106,7 +106,7 @@ ai-review:
 
     ```bash
     # Встановити
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
 
     # Налаштувати
     export GOOGLE_API_KEY=your_key
@@ -120,7 +120,7 @@ ai-review:
 
     ```bash
     # Встановити
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
 
     # Налаштувати
     export GOOGLE_API_KEY=your_key

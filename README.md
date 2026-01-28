@@ -1,44 +1,34 @@
-# 🤖 AI Code Reviewer
+# AI ReviewBot
 
-**Autonomous AI agent for intelligent code review in CI/CD pipelines**
-
+[![PyPI version](https://img.shields.io/pypi/v/ai-reviewbot)](https://pypi.org/project/ai-reviewbot/)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Tests](https://github.com/KonstZiv/ai-code-reviewer/actions/workflows/tests.yml/badge.svg)](https://github.com/KonstZiv/ai-code-reviewer/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/KonstZiv/ai-code-reviewer/branch/main/graph/badge.svg)](https://codecov.io/gh/KonstZiv/ai-code-reviewer)
+
+AI-powered code review tool for **GitHub** and **GitLab** that provides intelligent feedback with **inline suggestions** and one-click "Apply" button.
+
+<p align="center">
+  <a href="https://konstziv.github.io/ai-code-reviewer/">📚 Documentation</a> •
+  <a href="https://konstziv.github.io/ai-code-reviewer/quick-start/">🚀 Quick Start</a> •
+  <a href="https://github.com/marketplace/actions/ai-code-reviewer">🛒 GitHub Marketplace</a>
+</p>
 
 ---
 
 ## ✨ Features
 
-- 🚀 **1-Minute Setup** — Start reviewing code in under a minute
-- 🧠 **Multi-LLM Support** — Claude, GPT, Gemini, DeepSeek, Ollama
-- 💰 **Cost Optimized** — Hybrid approach: local + cloud LLMs
-- 🔍 **Smart Analysis** — Security, architecture, QA agents
-- 🎯 **Context Aware** — Learns from your codebase
-- 🛡️ **Production Ready** — Error handling, metrics, observability
-- 🔧 **Highly Configurable** — 3 deployment scenarios out-of-the-box
+- 🤖 **AI-Powered Analysis** — Uses Google Gemini for deep code understanding
+- 💡 **Inline Suggestions** — Comments directly on code lines with GitHub's "Apply suggestion" button
+- 🔒 **Security Focus** — Identifies vulnerabilities with severity levels (Critical, Warning, Info)
+- 🌍 **Multi-Language** — Responds in your PR/MR language (adaptive mode)
+- ✨ **Good Practices** — Highlights what you're doing right, not just issues
+- 📊 **Transparent Metrics** — Shows tokens, latency, and estimated cost
+- 🦊 **GitHub & GitLab** — Native support for both platforms
 
----
+## 🚀 Quick Start
 
-## 🚀 Usage
-
-### Local Run
-You can run the reviewer locally to test it on a specific PR.
-
-```bash
-# 1. Install
-pip install ai-code-reviewer
-
-# 2. Set environment variables
-export GITHUB_TOKEN=your_github_token
-export GOOGLE_API_KEY=your_gemini_key
-
-# 3. Run review
-ai-review github --repo owner/repo --pr 123
-```
-
-### GitHub Actions
-Add this workflow to your repository to run AI reviews on every Pull Request.
+### GitHub Actions (Recommended)
 
 ```yaml
 # .github/workflows/ai-review.yml
@@ -46,407 +36,186 @@ name: AI Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
+    types: [opened, synchronize]
 
 jobs:
   review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: KonstZiv/ai-code-reviewer@v1
         with:
-          python-version: "3.13"
-
-      - name: Install AI Reviewer
-        run: pip install ai-code-reviewer
-
-      - name: Run Review
-        run: ai-review
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
 ```
 
----
-
-## 🎯 Quick Start (1 Minute)
-
-```bash
-# 1. Install
-pip install ai-code-reviewer
-
-# 2. Configure (get free API key from Google AI Studio)
-export GOOGLE_API_KEY=your_key_here
-
-# 3. Review!
-ai-review github --pr 123 --repo owner/repo
-```
-
-That's it! 🎉
-
-See [Quick Start Guide](https://konstziv.github.io/ai-code-reviewer/getting-started/quick-start/) for details.
-
----
-
-## 📦 Installation
-
-### From PyPI (when published)
-```bash
-pip install ai-code-reviewer
-```
-
-### From Source
-```bash
-git clone https://github.com/KonstZiv/ai-code-reviewer.git
-cd ai-code-reviewer
-
-# Using uv (recommended - 10-100x faster)
-uv venv
-source .venv/bin/activate  # Linux/Mac
-uv sync --all-groups       # Install all dependencies (PEP 735)
-uv run pre-commit install
-
-# Or using pip (if you must)
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-pre-commit install
-```
-
----
-
-## 🚀 Deployment Scenarios
-
-### 1. Solo Developer (FREE)
-**Perfect for:** Personal projects, testing
-**Cost:** $0 (uses free tiers)
-**Setup:** 1 minute
+### GitLab CI
 
 ```yaml
-# .github/workflows/ai-code-review.yml
-name: AI Code Review
-on:
-  pull_request:
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - run: pip install ai-code-reviewer
-      - run: ai-review
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+# .gitlab-ci.yml
+ai-review:
+  image: konstziv/ai-reviewbot:latest
+  script:
+    - ai-review
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $CI_JOB_TOKEN
 ```
 
-[Full Guide →](https://konstziv.github.io/ai-code-reviewer/guides/github-actions/)
+### PyPI
 
----
+```bash
+pip install ai-reviewbot
 
-### 2. Small Team ($10-30/month)
-**Perfect for:** Startups, small teams (2-10 devs)
-**Cost:** ~$10-30/month
-**Features:** Multiple agents, hybrid LLM routing
+# Set environment variables
+export GOOGLE_API_KEY="your-key"
+export GITHUB_TOKEN="your-token"
 
-```yaml
-llm:
-  providers:
-    - anthropic  # Quality
-    - google     # Cost
-  strategy: balanced
+# Run review
+ai-review --repo owner/repo --pr 123
 ```
 
-[Full Guide →](https://konstziv.github.io/ai-code-reviewer/deployment/small-team/)
+### Docker
 
----
+```bash
+# DockerHub
+docker pull konstziv/ai-reviewbot:latest
 
-### 3. Enterprise (Self-Hosted)
-**Perfect for:** Large teams, companies
-**Cost:** Infrastructure + modest API costs
-**Features:** Local LLMs, webhooks, full observability
-
-```yaml
-llm:
-  providers:
-    - local      # Ollama (free)
-    - anthropic  # Complex tasks
-
-webhook:
-  enabled: true
-
-metrics:
-  backend: prometheus
+# GitHub Container Registry
+docker pull ghcr.io/konstziv/ai-reviewbot:latest
 ```
 
-[Full Guide →](https://konstziv.github.io/ai-code-reviewer/deployment/enterprise/)
+## 📖 Documentation
+
+Full documentation available in **6 languages**:
+
+| Language | Link |
+|----------|------|
+| 🇬🇧 English | [Documentation](https://konstziv.github.io/ai-code-reviewer/) |
+| 🇺🇦 Українська | [Документація](https://konstziv.github.io/ai-code-reviewer/uk/) |
+| 🇩🇪 Deutsch | [Dokumentation](https://konstziv.github.io/ai-code-reviewer/de/) |
+| 🇪🇸 Español | [Documentación](https://konstziv.github.io/ai-code-reviewer/es/) |
+| 🇲🇪 Crnogorski | [Dokumentacija](https://konstziv.github.io/ai-code-reviewer/sr/) |
+| 🇮🇹 Italiano | [Documentazione](https://konstziv.github.io/ai-code-reviewer/it/) |
+
+## ⚙️ Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GOOGLE_API_KEY` | — | **Required.** Google Gemini API key |
+| `GITHUB_TOKEN` | — | GitHub token (for GitHub) |
+| `GITLAB_TOKEN` | — | GitLab token (for GitLab) |
+| `LANGUAGE` | `en` | Response language (ISO 639 code) |
+| `LANGUAGE_MODE` | `adaptive` | `adaptive` (detect from PR) or `fixed` |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model to use |
+| `LOG_LEVEL` | `INFO` | Logging level |
+
+See [Configuration Guide](https://konstziv.github.io/ai-code-reviewer/configuration/) for all options.
+
+## 🎯 Example Output
+
+The reviewer provides structured feedback with inline suggestions:
+
+### Summary Comment
+
+```markdown
+## 🤖 AI Code Review
+
+### 📊 Summary
+Found 2 issues and 1 good practice.
+
+| Category | Critical | Warning | Info |
+|----------|----------|---------|------|
+| Security | 1 | 0 | 0 |
+| Code Quality | 0 | 1 | 0 |
+
+### ✨ Good Practices
+✅ Excellent error handling in `api/handlers.py`
 
 ---
-
-## 🧠 How It Works
-
-```mermaid
-graph LR
-    A[MR Created] --> B[Parse Event]
-    B --> C[Build Context]
-    C --> D[Run Agents]
-    D --> E[Security Agent]
-    D --> F[Architecture Agent]
-    D --> G[QA Agent]
-    E --> H[Synthesize]
-    F --> H
-    G --> H
-    H --> I[Post Review]
+⏱️ 1.2s | 🪙 1,540 tokens | 💰 ~$0.002
 ```
 
-1. **Parse Event** — Detect MR/PR creation or update
-2. **Build Context** — Gather code, history, dependencies
-3. **Run Agents** — Parallel analysis by specialized agents
-4. **Synthesize** — Combine findings into coherent feedback
-5. **Post Review** — Constructive comments in MR/PR
+### Inline Comment with "Apply" Button
 
-[Architecture Deep Dive →](https://konstziv.github.io/ai-code-reviewer/guides/architecture/)
+```markdown
+⚠️ **SQL Injection Risk**
 
----
+User input is concatenated directly into SQL query.
 
-## 🎨 Example Review
+```suggestion
+cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+```
 
 <details>
-<summary>Security Agent finds hardcoded secret</summary>
+<summary>💡 Why this matters</summary>
 
-```python
-# ❌ Issue Found
-API_KEY = "sk-1234567890abcdef"  # Line 15
+SQL injection allows attackers to execute arbitrary SQL commands.
+Always use parameterized queries.
 
-# 💬 Comment Posted
-🚨 **Hardcoded Secret Detected**
-
-Found what appears to be an API key on line 15.
-
-**Risk:** High - Credentials in code can be exposed in version control
-
-**Recommendation:**
-Use environment variables or a secrets manager:
-
-```python
-import os
-API_KEY = os.getenv("API_KEY")
-if not API_KEY:
-    raise ValueError("API_KEY environment variable not set")
-```
-
-See: [OWASP Secrets Management](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)
-```
+📚 [Learn more](https://owasp.org/www-community/attacks/SQL_Injection)
 </details>
-
----
-
-## 🛠️ Configuration
-
-### Basic (.env file)
-```bash
-# At least one LLM provider
-ANTHROPIC_API_KEY=sk-ant-...
-GOOGLE_API_KEY=...
-OPENAI_API_KEY=sk-...
-
-# Git platform
-GITHUB_TOKEN=ghp_...
 ```
 
-### Advanced (config.yml)
-```yaml
-llm:
-  providers: [anthropic, google]
-  strategy: balanced
-  cost_budget_per_review: 0.15
+## 🛠️ Development
 
-review:
-  analysis_depth: normal
-  enabled_agents:
-    - security
-    - architecture
-    - qa
-```
-
-[Full Configuration Guide →](https://konstziv.github.io/ai-code-reviewer/configuration/)
-
----
-
-## 🧪 Development
-
-### Setup
 ```bash
-# Clone
+# Clone repository
 git clone https://github.com/KonstZiv/ai-code-reviewer.git
 cd ai-code-reviewer
 
-# Install uv (fast package manager)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Setup environment
-uv venv
-source .venv/bin/activate
+# Install dependencies with uv
 uv sync --all-groups
 
-# Setup pre-commit hooks
-uv run pre-commit install
-
-# Configure
-cp .env.example .env
-# Edit .env with your API keys
-
-# Test
-uv run pytest
-uv run ruff check .
-uv run mypy src/
-```
-
-### Quick Commands
-
-```bash
 # Run tests
 uv run pytest
 
-# Check code quality
+# Run linters
 uv run ruff check .
-uv run ruff format .
 uv run mypy src/
 
-# Run pre-commit manually
-uv run pre-commit run --all-files
-
-# Build docs
+# Build documentation
 uv run mkdocs serve
 ```
 
-Or use Makefile:
-```bash
-make setup    # Complete setup
-make test     # Run tests
-make lint     # Check code quality
-make format   # Format code
-make docs     # Serve documentation
-```
+## 📦 Installation Options
 
-### Project Structure
-```
-ai-code-reviewer/
-├── GENERAL_PROJECT_DESCRIPTION/  # Project docs
-├── CURRENT_TASK/                 # Active work
-├── src/ai_reviewer/              # Source code
-│   ├── core/                     # Models, orchestrator
-│   ├── agents/                   # Review agents
-│   ├── llm/                      # LLM router
-│   └── integrations/             # Git platforms
-├── tests/                        # Tests
-├── docs/                         # MkDocs documentation
-└── config/                       # Deployment configs
-```
+| Method | Command | Best For |
+|--------|---------|----------|
+| **GitHub Action** | `uses: KonstZiv/ai-code-reviewer@v1` | GitHub projects |
+| **Docker** | `docker pull konstziv/ai-reviewbot` | GitLab CI |
+| **PyPI** | `pip install ai-reviewbot` | Local testing |
 
-[Contributing Guide →](GENERAL_PROJECT_DESCRIPTION/CONTRIBUTING.md)
+## 💰 Cost Estimate
 
----
+Using Gemini 2.5 Flash:
+- **Input:** $0.075 / 1M tokens
+- **Output:** $0.30 / 1M tokens
+- **Average review:** ~$0.002 (1,500 tokens)
 
-## 📚 Documentation
+100 reviews/month ≈ **$0.20**
 
-Full documentation: [https://konstziv.github.io/ai-code-reviewer](https://konstziv.github.io/ai-code-reviewer)
+## 📄 License
 
-- [Quick Start](https://konstziv.github.io/ai-code-reviewer/getting-started/quick-start/)
-- [Deployment Guides](https://konstziv.github.io/ai-code-reviewer/deployment/)
-- [Configuration](https://konstziv.github.io/ai-code-reviewer/configuration/)
-- [API Reference](https://konstziv.github.io/ai-code-reviewer/api/)
-- [Development](https://konstziv.github.io/ai-code-reviewer/development/)
-
----
+Apache 2.0 — See [LICENSE](LICENSE) for details.
 
 ## 🤝 Contributing
 
-We welcome contributions! This project is designed for **human-AI pair programming**.
+Contributions are welcome! See [Contributing Guide](CONTRIBUTING.md).
 
-1. Read [CONTRIBUTING.md](GENERAL_PROJECT_DESCRIPTION/CONTRIBUTING.md)
-2. Check [CURRENT_TASK](CURRENT_TASK/) for active work
-3. Review [PROJECT_CANVAS](GENERAL_PROJECT_DESCRIPTION/PROJECT_CANVAS.md)
+## 📬 Support
 
----
-
-## 📊 Roadmap
-
-### Phase 1: MVP (Current)
-- [x] Project structure
-- [ ] Multi-LLM router
-- [ ] First agent (Security)
-- [ ] GitHub integration
-- [ ] Quick-start deployment
-
-### Phase 2: Core Features
-- [ ] 3 agents (Security, Architecture, QA)
-- [ ] Repository context
-- [ ] Small-team deployment
-
-### Phase 3: Advanced
-- [ ] Local LLM (Ollama)
-- [ ] Webhook mode
-- [ ] Enterprise deployment
-- [ ] Metrics dashboard
-
-[Full Roadmap →](GENERAL_PROJECT_DESCRIPTION/PROJECT_CANVAS.md)
+- 🐛 [Report a Bug](https://github.com/KonstZiv/ai-code-reviewer/issues/new?template=bug_report.md)
+- 💡 [Request a Feature](https://github.com/KonstZiv/ai-code-reviewer/issues/new?template=feature_request.md)
+- 📚 [Documentation](https://konstziv.github.io/ai-code-reviewer/)
 
 ---
 
-## 💰 Cost Estimates
-
-| Scenario | Reviews/Month | Cost |
-|----------|---------------|------|
-| Solo Dev (Gemini free) | ~100 | $0 |
-| Small Team (hybrid) | ~500 | $10-30 |
-| Enterprise (local + cloud) | ~2000 | $50-100 |
-
-[Cost Optimization Guide →](https://konstziv.github.io/ai-code-reviewer/guides/cost-optimization/)
-
----
-
-## 📜 License
-
-Apache License 2.0 – see LICENSE file for details.
-
----
-
-## 👤 Author
-
-**Kostyantin Zivenko**
-- Email: kos.zivenko@gmail.com
-- GitHub: [@KonstZiv](https://github.com/KonstZiv)
-
----
-
-## 🙏 Acknowledgments
-
-Built with:
-- [LangChain](https://github.com/langchain-ai/langchain) & [LangGraph](https://github.com/langchain-ai/langgraph) — LLM orchestration
-- [Anthropic](https://www.anthropic.com/) — Claude API
-- [OpenAI](https://openai.com/) — GPT API
-- [Google](https://ai.google.dev/) — Gemini API
-- [DeepSeek](https://www.deepseek.com/) — DeepSeek API
-- [Ruff](https://github.com/astral-sh/ruff) — Python linting & formatting
-- [uv](https://github.com/astral-sh/uv) — Fast Python package manager
-
----
-
-## 💬 Support
-
-- 📖 [Documentation](https://konstziv.github.io/ai-code-reviewer)
-- 🐛 [Issues](https://github.com/KonstZiv/ai-code-reviewer/issues)
-- 💬 [Discussions](https://github.com/KonstZiv/ai-code-reviewer/discussions)
-
----
-
-Made with ❤️ for developers who want better code reviews
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/KonstZiv">Kostyantin Zivenko</a>
+</p>

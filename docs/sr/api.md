@@ -227,7 +227,7 @@ Pokretanje putem Docker-a:
 docker run --rm \
   -e GOOGLE_API_KEY=your_key \
   -e GITHUB_TOKEN=your_token \
-  ghcr.io/konstziv/ai-code-reviewer:latest \
+  ghcr.io/konstziv/ai-reviewbot:latest \
   --provider github \
   --repo owner/repo \
   --pr 123

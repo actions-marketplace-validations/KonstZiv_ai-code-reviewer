@@ -1,4 +1,4 @@
-name: Release & Deploy
+name: Release
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  packages: write
 
 jobs:
   test:
@@ -67,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/ai-code-reviewer
+      url: https://pypi.org/p/ai-reviewbot
 
     steps:
       - name: Download distribution packages
@@ -93,14 +94,27 @@ jobs:
           name: python-package-distributions
           path: dist/
 
+      - name: Check if prerelease
+        id: check-prerelease
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ "$VERSION" =~ (alpha|beta|rc|a|b) ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Extract release notes
         id: extract-release-notes
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION=${{ steps.check-prerelease.outputs.version }}
 
           if [ -f CHANGELOG.md ]; then
             awk "/## \[$VERSION\]/,/## \[/{if (/## \[/ && NR!=1) exit; print}" CHANGELOG.md > release_notes.md
+            if [ ! -s release_notes.md ]; then
+              echo "Release $VERSION" > release_notes.md
+            fi
           else
             echo "Release $VERSION" > release_notes.md
           fi
@@ -111,28 +125,10 @@ jobs:
           body_path: release_notes.md
           files: dist/*
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.check-prerelease.outputs.prerelease }}
 
-  deploy-docs:
-    name: Deploy Documentation
+  publish-docker:
+    name: Publish Docker Images
     needs: github-release
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install dependencies
-        run: uv sync --group dev
-
-      - name: Deploy to GitHub Pages
-        run: uv run mkdocs gh-deploy --force
+    uses: ./.github/workflows/docker-publish.yml
+    secrets: inherit

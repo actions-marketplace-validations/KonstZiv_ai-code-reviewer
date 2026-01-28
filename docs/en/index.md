@@ -1,4 +1,4 @@
-# AI Code Reviewer
+# AI ReviewBot
 
 **AI-powered assistant for automated code review in your CI/CD pipeline.**
 
@@ -77,7 +77,7 @@ In your repository, create:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   script:
     - ai-review
   rules:
@@ -165,13 +165,13 @@ graph TD
 === "Docker (recommended)"
 
     ```bash
-    docker pull ghcr.io/konstziv/ai-code-reviewer:latest
+    docker pull ghcr.io/konstziv/ai-reviewbot:latest
     ```
 
 === "PyPI"
 
     ```bash
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
     ```
 
 === "Source"

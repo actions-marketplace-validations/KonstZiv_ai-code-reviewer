@@ -74,7 +74,7 @@ En la raíz de tu proyecto, crea el archivo `.gitlab-ci.yml`
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   stage: test
   script:
     - ai-review
@@ -104,7 +104,7 @@ Para pruebas locales necesitas:
 
     ```bash
     # Instalar
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
 
     # Configurar
     export GOOGLE_API_KEY=your_key
@@ -118,7 +118,7 @@ Para pruebas locales necesitas:
 
     ```bash
     # Instalar
-    pip install ai-code-reviewer
+    pip install ai-reviewbot
 
     # Configurar
     export GOOGLE_API_KEY=your_key
