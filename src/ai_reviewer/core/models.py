@@ -223,36 +223,93 @@ class ReviewContext(BaseModel):
         return self.task is not None
 
 
-class VulnerabilitySeverity(str, Enum):
-    """Severity level of a detected vulnerability."""
+class IssueSeverity(str, Enum):
+    """Severity level of a code issue.
+
+    CRITICAL: Must fix - security vulnerabilities, breaking changes.
+    WARNING: Should fix - code quality, potential bugs.
+    INFO: Suggestion - educational, minor improvements.
+    """
 
     CRITICAL = "critical"
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
+    WARNING = "warning"
     INFO = "info"
 
 
-class Vulnerability(BaseModel):
-    """A detected vulnerability in the code.
+class IssueCategory(str, Enum):
+    """Category of a code issue."""
+
+    SECURITY = "security"
+    CODE_QUALITY = "code_quality"
+    ARCHITECTURE = "architecture"
+    PERFORMANCE = "performance"
+    TESTING = "testing"
+
+
+class CodeIssue(BaseModel):
+    """A code issue found during review.
+
+    Unified model for all types of issues (security, quality, etc.)
+    with support for inline suggestions and educational content.
 
     Attributes:
-        title: Short title of the vulnerability.
-        description: Detailed description of the vulnerability.
-        severity: Severity level.
-        file: File where the vulnerability was found (optional).
-        line: Line number where the vulnerability was found (optional).
-        recommendation: Suggested fix for the vulnerability.
+        category: The category of the issue.
+        severity: How critical the issue is.
+        title: Short title of the issue.
+        description: Detailed description of the issue.
+        file_path: File where the issue was found.
+        line_number: Line number where the issue was found.
+        existing_code: The problematic code snippet (for Before/After).
+        proposed_code: Suggested replacement code (for Apply Suggestion).
+        why_matters: Educational explanation of why this matters.
+        learn_more_url: URL to documentation or resources.
     """
 
     model_config = ConfigDict(frozen=True)
 
-    title: str = Field(..., min_length=1, description="Short title of the vulnerability")
+    category: IssueCategory = Field(..., description="Category of the issue")
+    severity: IssueSeverity = Field(..., description="Severity level")
+    title: str = Field(..., min_length=1, description="Short title of the issue")
     description: str = Field(..., min_length=1, description="Detailed description")
-    severity: VulnerabilitySeverity = Field(..., description="Severity level")
-    file: str | None = Field(default=None, description="File where found")
-    line: int | None = Field(default=None, ge=1, description="Line number")
-    recommendation: str = Field(default="", description="Suggested fix")
+    file_path: str | None = Field(default=None, description="File where found")
+    line_number: int | None = Field(default=None, ge=1, description="Line number")
+    existing_code: str | None = Field(default=None, description="Problematic code snippet")
+    proposed_code: str | None = Field(default=None, description="Suggested replacement code")
+    why_matters: str | None = Field(default=None, description="Educational explanation")
+    learn_more_url: str | None = Field(default=None, description="URL to learn more")
+
+    @property
+    def has_suggestion(self) -> bool:
+        """Check if this issue has a code suggestion."""
+        return self.proposed_code is not None
+
+    @property
+    def is_critical(self) -> bool:
+        """Check if this is a critical issue."""
+        return self.severity == IssueSeverity.CRITICAL
+
+    @property
+    def is_security(self) -> bool:
+        """Check if this is a security issue."""
+        return self.category == IssueCategory.SECURITY
+
+
+class GoodPractice(BaseModel):
+    """A good practice noticed during review.
+
+    Used to provide positive feedback and motivation to developers.
+
+    Attributes:
+        description: What was done well.
+        file_path: File where the good practice was found.
+        line_number: Line number (optional).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    description: str = Field(..., min_length=1, description="What was done well")
+    file_path: str | None = Field(default=None, description="File where found")
+    line_number: int | None = Field(default=None, ge=1, description="Line number")
 
 
 class TaskAlignmentStatus(str, Enum):
@@ -263,21 +320,69 @@ class TaskAlignmentStatus(str, Enum):
     INSUFFICIENT_DATA = "insufficient_data"
 
 
-class ReviewResult(BaseModel):
-    """Result of an AI code review.
+# Formatting thresholds for metrics display
+_COST_PRECISION_THRESHOLD = 0.01  # Below this, show 4 decimal places
+_LATENCY_MS_THRESHOLD = 1000  # Above this, show in seconds
+
+
+class ReviewMetrics(BaseModel):
+    """Metrics collected during the review process.
+
+    Captures token usage, timing, and cost estimation for observability.
 
     Attributes:
-        vulnerabilities: List of detected vulnerabilities.
-        task_alignment: Whether code changes align with the linked task.
-        task_alignment_reasoning: Explanation of task alignment assessment.
-        summary: Brief summary of the review.
-        reviewed_at: When the review was performed (must be timezone-aware).
+        model_name: The AI model used for the review.
+        prompt_tokens: Number of tokens in the prompt.
+        completion_tokens: Number of tokens in the completion.
+        total_tokens: Total tokens used (prompt + completion).
+        api_latency_ms: API call latency in milliseconds.
+        estimated_cost_usd: Estimated cost in USD based on current pricing.
     """
 
     model_config = ConfigDict(frozen=True)
 
-    vulnerabilities: tuple[Vulnerability, ...] = Field(
-        default=(), description="Detected vulnerabilities"
+    model_name: str = Field(..., min_length=1, description="AI model used")
+    prompt_tokens: int = Field(default=0, ge=0, description="Tokens in prompt")
+    completion_tokens: int = Field(default=0, ge=0, description="Tokens in completion")
+    total_tokens: int = Field(default=0, ge=0, description="Total tokens used")
+    api_latency_ms: int = Field(default=0, ge=0, description="API latency in milliseconds")
+    estimated_cost_usd: float = Field(default=0.0, ge=0.0, description="Estimated cost in USD")
+
+    @property
+    def cost_formatted(self) -> str:
+        """Format cost as a human-readable string."""
+        if self.estimated_cost_usd < _COST_PRECISION_THRESHOLD:
+            return f"${self.estimated_cost_usd:.4f}"
+        return f"${self.estimated_cost_usd:.2f}"
+
+    @property
+    def latency_formatted(self) -> str:
+        """Format latency as a human-readable string."""
+        if self.api_latency_ms < _LATENCY_MS_THRESHOLD:
+            return f"{self.api_latency_ms}ms"
+        seconds = self.api_latency_ms / _LATENCY_MS_THRESHOLD
+        return f"{seconds:.1f}s"
+
+
+class ReviewResult(BaseModel):
+    """Result of an AI code review.
+
+    Attributes:
+        issues: List of code issues found during review.
+        good_practices: List of good practices noticed.
+        task_alignment: Whether code changes align with the linked task.
+        task_alignment_reasoning: Explanation of task alignment assessment.
+        summary: Brief summary of the review.
+        detected_language: ISO 639 language code detected/used for the review.
+        reviewed_at: When the review was performed (must be timezone-aware).
+        metrics: Performance metrics from the review process.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    issues: tuple[CodeIssue, ...] = Field(default=(), description="Code issues found")
+    good_practices: tuple[GoodPractice, ...] = Field(
+        default=(), description="Good practices noticed"
     )
     task_alignment: TaskAlignmentStatus = Field(
         default=TaskAlignmentStatus.INSUFFICIENT_DATA,
@@ -287,7 +392,13 @@ class ReviewResult(BaseModel):
         default="", description="Explanation of task alignment assessment"
     )
     summary: str = Field(default="", description="Brief summary of the review")
+    detected_language: str = Field(
+        default="en", description="ISO 639 language code used for the review"
+    )
     reviewed_at: datetime | None = Field(default=None, description="When the review was performed")
+    metrics: ReviewMetrics | None = Field(
+        default=None, description="Performance metrics from the review"
+    )
 
     @field_validator("reviewed_at")
     @classmethod
@@ -296,22 +407,39 @@ class ReviewResult(BaseModel):
         return _validate_timezone_aware(v, "reviewed_at")
 
     @property
-    def has_critical_vulnerabilities(self) -> bool:
-        """Check if any critical vulnerabilities were found."""
-        return any(v.severity == VulnerabilitySeverity.CRITICAL for v in self.vulnerabilities)
+    def has_critical_issues(self) -> bool:
+        """Check if any critical issues were found."""
+        return any(issue.is_critical for issue in self.issues)
 
     @property
-    def has_high_or_critical_vulnerabilities(self) -> bool:
-        """Check if any high or critical vulnerabilities were found."""
-        return any(
-            v.severity in (VulnerabilitySeverity.CRITICAL, VulnerabilitySeverity.HIGH)
-            for v in self.vulnerabilities
-        )
+    def has_security_issues(self) -> bool:
+        """Check if any security issues were found."""
+        return any(issue.is_security for issue in self.issues)
 
     @property
-    def vulnerability_count(self) -> int:
-        """Get total number of vulnerabilities."""
-        return len(self.vulnerabilities)
+    def critical_count(self) -> int:
+        """Get number of critical issues."""
+        return sum(1 for issue in self.issues if issue.severity == IssueSeverity.CRITICAL)
+
+    @property
+    def warning_count(self) -> int:
+        """Get number of warning issues."""
+        return sum(1 for issue in self.issues if issue.severity == IssueSeverity.WARNING)
+
+    @property
+    def info_count(self) -> int:
+        """Get number of info/suggestion issues."""
+        return sum(1 for issue in self.issues if issue.severity == IssueSeverity.INFO)
+
+    @property
+    def issue_count(self) -> int:
+        """Get total number of issues."""
+        return len(self.issues)
+
+    @property
+    def good_practice_count(self) -> int:
+        """Get total number of good practices."""
+        return len(self.good_practices)
 
     @property
     def matches_task(self) -> bool | None:
@@ -334,16 +462,19 @@ class ReviewResult(BaseModel):
 
 # Public API - explicitly define what should be imported from this module
 __all__ = [
+    "CodeIssue",
     "Comment",
     "CommentAuthorType",
     "CommentType",
     "FileChange",
     "FileChangeType",
+    "GoodPractice",
+    "IssueCategory",
+    "IssueSeverity",
     "LinkedTask",
     "MergeRequest",
     "ReviewContext",
+    "ReviewMetrics",
     "ReviewResult",
     "TaskAlignmentStatus",
-    "Vulnerability",
-    "VulnerabilitySeverity",
 ]

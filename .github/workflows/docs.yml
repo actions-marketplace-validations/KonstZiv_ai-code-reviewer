@@ -25,7 +25,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --group docs
 
       - name: Build documentation
         run: uv run mkdocs build --strict
@@ -48,7 +48,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --group docs
 
       - name: Deploy to GitHub Pages
         run: uv run mkdocs gh-deploy --force

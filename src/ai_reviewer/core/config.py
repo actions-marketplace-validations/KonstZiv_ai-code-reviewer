@@ -19,10 +19,26 @@ Example:
 
 from __future__ import annotations
 
+from enum import Enum
+from functools import lru_cache
 from typing import Annotated
 
+import iso639
 from pydantic import AfterValidator, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class LanguageMode(str, Enum):
+    """Language detection mode for review responses.
+
+    Attributes:
+        ADAPTIVE: Automatically detect language from PR context (description, comments).
+        FIXED: Always use the language specified in LANGUAGE setting.
+    """
+
+    ADAPTIVE = "adaptive"
+    FIXED = "fixed"
+
 
 # Minimum length for API tokens/keys validation
 MIN_SECRET_LENGTH = 10
@@ -67,10 +83,45 @@ def _validate_log_level(v: str) -> str:
     return normalized
 
 
+def _validate_language_code(v: str) -> str:
+    """Validate and normalize ISO 639 language code.
+
+    Accepts any valid ISO 639 code (639-1, 639-2, 639-3) or language name.
+    Normalizes to ISO 639-1 (2-letter) if available, otherwise keeps the original.
+
+    Args:
+        v: Language code or name (e.g., "en", "ukr", "Ukrainian", "fra").
+
+    Returns:
+        Normalized language code (preferably ISO 639-1).
+
+    Raises:
+        ValueError: If the language code is not valid.
+
+    Examples:
+        >>> _validate_language_code("en")
+        'en'
+        >>> _validate_language_code("ukr")
+        'uk'
+        >>> _validate_language_code("Ukrainian")
+        'uk'
+    """
+    try:
+        lang = iso639.Language.match(v)
+    except iso639.LanguageNotFoundError as e:
+        msg = f"Invalid language code '{v}'. Must be a valid ISO 639 code or language name."
+        raise ValueError(msg) from e
+    else:
+        # Prefer ISO 639-1 (2-letter) if available, otherwise use part3 (3-letter)
+        result: str = lang.part1 if lang.part1 else lang.part3
+        return result
+
+
 # Type aliases with validation
 GitHubToken = Annotated[SecretStr, _create_secret_validator("GITHUB_TOKEN")]
 GoogleApiKey = Annotated[SecretStr, _create_secret_validator("GOOGLE_API_KEY")]
 LogLevel = Annotated[str, AfterValidator(_validate_log_level)]
+LanguageCode = Annotated[str, AfterValidator(_validate_language_code)]
 
 
 class Settings(BaseSettings):
@@ -90,6 +141,10 @@ class Settings(BaseSettings):
     Attributes:
         github_token: GitHub personal access token for API access.
             Required for fetching PR data and posting review comments.
+        gitlab_token: GitLab personal access token for API access.
+            Required when using GitLab as the provider.
+        gitlab_url: GitLab server URL (for self-hosted instances).
+            Defaults to https://gitlab.com for GitLab.com.
         google_api_key: Google API key for Gemini access.
             Required for AI-powered code analysis.
         gemini_model: Gemini model to use for analysis.
@@ -100,14 +155,25 @@ class Settings(BaseSettings):
             Limits context size to avoid token limits.
         review_max_diff_lines: Maximum diff lines per file to include.
             Limits context size for large changes.
+        api_timeout: API request timeout in seconds.
+            Limits how long to wait for API responses.
+        language: Default language for review responses.
+            Uses ISO 639-1 codes (en, uk, de, es, etc.).
+        language_mode: Language detection mode.
+            ADAPTIVE auto-detects from context, FIXED uses the language setting.
 
     Environment Variables:
-        GITHUB_TOKEN: GitHub personal access token (required)
+        GITHUB_TOKEN: GitHub personal access token (required for GitHub)
+        GITLAB_TOKEN: GitLab personal access token (required for GitLab)
+        GITLAB_URL: GitLab server URL (default: https://gitlab.com)
         GOOGLE_API_KEY: Google Gemini API key (required)
         GEMINI_MODEL: Model name (default: gemini-2.5-flash)
         LOG_LEVEL: Logging level (default: INFO)
         REVIEW_MAX_FILES: Max files in context (default: 20)
         REVIEW_MAX_DIFF_LINES: Max diff lines per file (default: 500)
+        API_TIMEOUT: Request timeout in seconds (default: 60)
+        LANGUAGE: Default response language (default: en)
+        LANGUAGE_MODE: Detection mode - adaptive or fixed (default: adaptive)
     """
 
     model_config = SettingsConfigDict(
@@ -125,6 +191,18 @@ class Settings(BaseSettings):
     google_api_key: GoogleApiKey = Field(
         ...,
         description="Google API key for Gemini access",
+    )
+
+    # GitLab credentials (optional - only required when using GitLab provider)
+    # Note: We use SecretStr without validator since it's optional.
+    # Validation is done at CLI level when GitLab provider is selected.
+    gitlab_token: SecretStr | None = Field(
+        default=None,
+        description="GitLab personal access token for API access",
+    )
+    gitlab_url: str = Field(
+        default="https://gitlab.com",
+        description="GitLab server URL (for self-hosted instances)",
     )
 
     # Optional configuration with defaults
@@ -149,12 +227,32 @@ class Settings(BaseSettings):
         description="Maximum diff lines per file to include",
     )
 
+    # API timeout configuration
+    api_timeout: int = Field(
+        default=60,
+        gt=0,
+        le=300,
+        description="API request timeout in seconds",
+    )
 
+    # Language configuration
+    language: LanguageCode = Field(
+        default="en",
+        description="Default language for review responses (ISO 639 code or language name)",
+    )
+    language_mode: LanguageMode = Field(
+        default=LanguageMode.ADAPTIVE,
+        description="Language detection mode: adaptive (auto-detect) or fixed (use LANGUAGE)",
+    )
+
+
+@lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Get application settings from environment.
 
-    This function creates a new Settings instance each time it's called.
-    For caching, use functools.lru_cache or store the result.
+    This function is cached using lru_cache, so it returns the same
+    Settings instance on subsequent calls. Use clear_settings_cache()
+    if you need to reload settings (e.g., in tests).
 
     Returns:
         Settings instance loaded from environment variables.
@@ -172,9 +270,24 @@ def get_settings() -> Settings:
     return Settings()
 
 
+def clear_settings_cache() -> None:
+    """Clear the settings cache.
+
+    Call this function when you need to reload settings from environment,
+    typically in tests after modifying environment variables.
+
+    Example:
+        >>> clear_settings_cache()
+        >>> # Now get_settings() will create a new instance
+    """
+    get_settings.cache_clear()
+
+
 __all__ = [
     "MIN_SECRET_LENGTH",
     "VALID_LOG_LEVELS",
+    "LanguageMode",
     "Settings",
+    "clear_settings_cache",
     "get_settings",
 ]

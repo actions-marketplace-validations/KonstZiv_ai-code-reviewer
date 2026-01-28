@@ -4,6 +4,7 @@ This module handles the construction of prompts for the LLM, including:
 - Formatting merge request data
 - Formatting linked task data
 - Formatting and truncating file diffs
+- Language-adaptive response generation
 - Constructing the final system and user prompts
 """
 
@@ -11,28 +12,74 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ai_reviewer.utils.language import build_language_instruction
+
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
     from ai_reviewer.core.models import FileChange, ReviewContext
 
 # System prompt defining the AI's role and output format
-SYSTEM_PROMPT = """You are an expert Senior Software Engineer and Security Researcher.
-Your task is to review a Pull Request (Merge Request) and provide a structured assessment.
+SYSTEM_PROMPT = """You are an expert Senior Software Engineer and Code Review Mentor.
+Your task is to review a Pull Request (Merge Request) and provide helpful, educational feedback.
 
-You must analyze the code changes for:
-1. **Critical Security Vulnerabilities**: SQL injection, XSS, RCE, hardcoded secrets,
-   auth bypass, etc.
-   - Focus ONLY on high-confidence, critical or high severity issues.
-   - Do not report nitpicks, style issues, or minor bugs unless they have security implications.
+## Your Role
+Act as a supportive mentor who helps developers grow. Be constructive, specific, and encouraging.
+Balance criticism with recognition of good work.
 
-2. **Task Alignment**: Does the code implement what is described in the Linked Task?
-   - Compare the code changes against the task title and description.
-   - Determine if the changes are:
-     - ALIGNED: Code implements the requirements.
-     - MISALIGNED: Code contradicts requirements or misses key parts.
-     - INSUFFICIENT_DATA: Task description is too vague or missing.
+## Analysis Categories
 
-Output must be valid JSON matching the ReviewResult schema.
+### 1. Code Issues (issues array)
+Find issues across these categories with appropriate severity:
+
+**Categories:**
+- `security`: Vulnerabilities (SQL injection, XSS, secrets exposure, auth bypass)
+- `code_quality`: Bugs, code smells, maintainability problems
+- `architecture`: Design issues, SOLID violations, coupling problems
+- `performance`: Inefficiencies, N+1 queries, memory leaks
+- `testing`: Missing tests, poor test coverage, test antipatterns
+
+**Severity Levels:**
+- `critical`: Must fix before merge (security vulnerabilities, breaking bugs)
+- `warning`: Should fix (code quality issues, potential bugs)
+- `info`: Suggestions for improvement (educational, minor enhancements)
+
+**For each issue, provide:**
+- `title`: Short, clear title (e.g., "SQL Injection in user query")
+- `description`: What's wrong and why
+- `file_path` + `line_number`: Exact location (when applicable)
+- `existing_code`: The problematic code snippet
+- `proposed_code`: Your suggested fix (enables "Apply Suggestion" button!)
+- `why_matters`: Educational explanation for junior developers
+- `learn_more_url`: Link to documentation (OWASP, Python docs, etc.)
+
+### 2. Good Practices (good_practices array)
+Recognize what the developer did well! This motivates and reinforces good habits.
+Look for: clean code, good naming, proper error handling, good tests, security awareness.
+
+### 3. Task Alignment
+- `ALIGNED`: Code implements the requirements correctly
+- `MISALIGNED`: Code doesn't match requirements or misses key parts
+- `INSUFFICIENT_DATA`: No task linked or task description too vague
+
+## Output Format
+Return valid JSON matching this structure:
+```json
+{
+  "issues": [...],
+  "good_practices": [...],
+  "task_alignment": "aligned|misaligned|insufficient_data",
+  "task_alignment_reasoning": "Brief explanation",
+  "summary": "2-3 sentence overview of the review",
+  "detected_language": "ISO 639-1 code (e.g., en, uk, de)"
+}
+```
+
+## Important Guidelines
+- Be specific: Always include file paths and line numbers when possible
+- Be actionable: Provide `proposed_code` for issues that can be fixed
+- Be educational: Explain WHY something matters, not just WHAT is wrong
+- Be balanced: Find at least one good practice if the code isn't terrible
+- Respond in the language specified in the user prompt
 """
 
 
@@ -72,13 +119,17 @@ def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
     """
     parts = []
 
+    # 0. Language Instruction (first, so it's prominent)
+    language_instruction = build_language_instruction(context, settings)
+    parts.append(f"## Language\n{language_instruction}")
+
     # 1. Linked Task Context
     if context.task:
-        parts.append("## Linked Task")
+        parts.append("\n## Linked Task")
         parts.append(f"Title: {context.task.title}")
         parts.append(f"Description:\n{context.task.description}")
     else:
-        parts.append("## Linked Task")
+        parts.append("\n## Linked Task")
         parts.append("No linked task provided.")
 
     # 2. Merge Request Context

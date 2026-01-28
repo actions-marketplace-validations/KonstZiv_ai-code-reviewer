@@ -290,10 +290,10 @@ GITLAB_TOKEN              # Access token
 ---
 
 ### Завдання 4a: Мовна адаптивність 🌍
-**Мета:** Автоматичне визначення мови відповіді
+**Мета:** Автоматичне визначення мови відповіді з валідацією ISO 639
 
-**Статус:** ⏳ Очікує
-**Оцінка часу:** 2 години
+**Статус:** ✅ Завершено
+**Оцінка часу:** 3 години
 
 **Алгоритм "Proximity Rule":**
 1. Зібрати тексти: `[Task.desc, MR.desc, Comments...]`
@@ -301,27 +301,69 @@ GITLAB_TOKEN              # Access token
 3. Взяти останній достатньо довгий текст
 4. Включити в prompt інструкцію для LLM визначити мову
 
+**Валідація мовного коду (ISO 639):**
+Використовуємо бібліотеку `python-iso639` для валідації параметра `LANGUAGE`:
+- Приймаються всі валідні ISO 639 коди (639-1, 639-2, 639-3)
+- Приймаються назви мов (English, Ukrainian, Deutsch...)
+- Автоматична нормалізація до ISO 639-1 (дволітерний код)
+- Для мов без ISO 639-1 зберігається ISO 639-3
+
+```python
+# Приклади нормалізації:
+"en" → "en"           # ISO 639-1 залишається
+"ukr" → "uk"          # ISO 639-3 → ISO 639-1
+"Ukrainian" → "uk"    # Назва → ISO 639-1
+"yue" → "yue"         # Cantonese (немає 639-1, залишається 639-3)
+"invalid" → ValidationError  # Невалідний код
+```
+
 **Кроки:**
-1. Створити `src/ai_reviewer/utils/language.py`
-2. Реалізувати `detect_context_language(context: ReviewContext) -> str | None`
-3. Оновити system prompt для адаптивності
-4. Додати `detected_language` в `ReviewResult`
+1. ✅ Додати залежність `python-iso639` в `pyproject.toml`
+2. ✅ Створити валідатор `_validate_language_code()` в `config.py`
+3. ✅ Застосувати валідатор до поля `language` в Settings
+4. ✅ Написати тести для валідації мови
+5. ✅ Створити `src/ai_reviewer/utils/language.py`
+6. ✅ Реалізувати `collect_text_samples()`, `build_language_instruction()`
+7. ✅ Оновити system prompt для адаптивності
+8. ✅ Додати `detected_language` в `ReviewResult`
+9. ✅ Інтегрувати в `reviewer.py`
+10. ✅ Написати тести (15 нових тестів)
 
 **Конфігурація:**
 ```bash
-LANGUAGE=uk              # Мова за замовчуванням
+LANGUAGE=uk              # Мова за замовчуванням (ISO 639 код або назва)
 LANGUAGE_MODE=adaptive   # adaptive | fixed
 ```
 
 **Критерії прийняття:**
+- ✅ Валідація мовного коду за ISO 639 (всі частини стандарту)
+- ✅ Нормалізація до ISO 639-1 де можливо
+- ✅ Чіткі повідомлення про помилки для невалідних кодів
 - ✅ Бот відповідає українською, якщо PR description українською
 - ✅ `LANGUAGE_MODE=fixed` примусово використовує `LANGUAGE`
 - ✅ Fallback на англійську якщо не вдалося визначити
 
+**🇺🇦 Спеціальне повідомлення для російської мови:**
+
+При виборі російської мови (`ru`, `rus`, `Russian`) до кожного issue review додається footer:
+
+```markdown
+<sub>каждый россиянин, имеющий честь, должен делать все для возвращения
+украденного/уничтоженного его страной в других странах и учить этому своих детей.
+Слава Украине!</sub>
+```
+
+Це реалізується в `formatter.py` при форматуванні inline comments та summary.
+
 **Файли:**
-- `src/ai_reviewer/utils/language.py` (новий)
-- `src/ai_reviewer/integrations/prompts.py` (оновлення)
-- `src/ai_reviewer/core/models.py` (оновлення)
+- `pyproject.toml` (залежність python-iso639) ✅
+- `src/ai_reviewer/core/config.py` (валідатор ISO 639) ✅
+- `src/ai_reviewer/utils/language.py` (новий) ✅
+- `src/ai_reviewer/integrations/prompts.py` (оновлення) ✅
+- `src/ai_reviewer/core/models.py` (detected_language) ✅
+- `src/ai_reviewer/core/formatter.py` (footer для російської) ✅
+- `src/ai_reviewer/reviewer.py` (інтеграція) ✅
+- `tests/unit/test_language.py` (новий, 15 тестів) ✅
 
 ---
 
@@ -418,17 +460,17 @@ GEMINI_FLASH_PRICING = {
 
 ---
 
-### Завдання 5: Контейнеризація та дистрибуція 🐳
-**Мета:** Zero-setup для користувачів
+### Завдання 5: Контейнеризація та локальна підготовка 🐳
+**Мета:** Підготувати Docker image та GitHub Action для подальшої публікації
 
 **Статус:** ⏳ Очікує
 **Оцінка часу:** 3 години
 
 **Кроки:**
 1. Створити multi-stage `Dockerfile`
-2. Створити `action.yml` для GitHub Marketplace
+2. Створити `action.yml` для GitHub Action
 3. Створити приклади CI конфігурацій
-4. Налаштувати GitHub Container Registry
+4. Створити `.dockerignore` для оптимізації збірки
 
 **Dockerfile:**
 ```dockerfile
@@ -471,7 +513,7 @@ runs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.13'
-    - run: pip install ai-code-reviewer
+    - run: pip install ai-reviewbot
       shell: bash
     - run: ai-review
       shell: bash
@@ -495,7 +537,7 @@ runs:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-reviewbot:latest
   script:
     - ai-review
   rules:
@@ -506,16 +548,19 @@ ai-review:
 ```
 
 **Критерії прийняття:**
-- ✅ Docker image збирається та працює
-- ✅ GitHub Action доступний через `uses:`
-- ✅ GitLab template працює з `image:`
+- ✅ Docker image збирається локально та працює
+- ✅ `action.yml` створено та валідний
+- ✅ Приклади CI конфігурацій готові
 
 **Файли:**
 - `Dockerfile` (новий)
+- `.dockerignore` (новий)
 - `action.yml` (новий)
 - `examples/github-workflow.yml` (новий)
 - `examples/gitlab-ci.yml` (новий)
-- `.github/workflows/docker-publish.yml` (новий)
+- `examples/README.md` (новий)
+
+> **Примітка:** Публікація Docker image на GHCR/DockerHub та GitHub Marketplace винесена в Завдання 8 (CI/CD Pipeline)
 
 ---
 
@@ -627,33 +672,284 @@ plugins:
 
 ---
 
-### Завдання 8: CI/CD Pipeline 🔄
-**Мета:** Повна автоматизація release процесу
+### Завдання 8: CI/CD Pipeline та публікація 🔄
+**Мета:** Повна автоматизація release процесу + публікація на всіх платформах
 
-**Статус:** ⏳ Очікує
-**Оцінка часу:** 2 години
+**Статус:** 🚧 В роботі
+**Оцінка часу:** 4 години
+**Версія релізу:** `1.0.0a1`
 
-**Workflows:**
-1. `tests.yml` — якість + тести на push/PR
-2. `ai-review.yml` — self-review на PR
-3. `release.yml` — PyPI + Docker + Docs на тег
-4. `docker-publish.yml` — GHCR publish
+---
 
-**Кроки:**
-1. Оновити `tests.yml` для CLI tests
-2. Оновити `release.yml` для Docker publish
-3. Створити `docker-publish.yml`
-4. Налаштувати PyPI trusted publishing
+#### Очікувані артефакти релізу
+
+| Артефакт | Платформа | Опис |
+|----------|-----------|------|
+| README.md | GitHub | Якісний опис з badges, quick start, посиланнями |
+| PyPI package | pypi.org | `pip install ai-reviewbot` |
+| Docker image | DockerHub | `konstziv/ai-reviewbot` |
+| Docker image | GHCR | `ghcr.io/konstziv/ai-reviewbot` |
+| GitHub Action | Marketplace | `uses: KonstZiv/ai-code-reviewer@v1` |
+| Documentation | GitHub Pages | 6 мов, детальна документація |
+
+---
+
+#### Архітектура workflows
+
+**Структура файлів:**
+```
+.github/workflows/
+├── tests.yml           # PR/push → тести + quality checks
+├── docs.yml            # push to main → GitHub Pages
+├── release.yml         # tag v*.*.* → PyPI + GitHub Release
+├── docker-publish.yml  # після release → GHCR + DockerHub
+└── ai-review.yml       # PR → self-review (dogfooding)
+```
+
+**Послідовність при релізі:**
+```
+git push --tags (v1.0.0a1)
+    │
+    ▼
+┌─────────────────────────────────────┐
+│  release.yml                        │
+│  ├─ test (quality + pytest)         │
+│  ├─ build (uv build → dist/)        │
+│  ├─ publish-to-pypi                 │
+│  └─ github-release                  │
+└─────────────────────────────────────┘
+    │ workflow_call (on success)
+    ▼
+┌─────────────────────────────────────┐
+│  docker-publish.yml                 │
+│  ├─ build multi-arch (amd64+arm64)  │
+│  ├─ push to GHCR                    │
+│  └─ push to DockerHub               │
+└─────────────────────────────────────┘
+
+push to main (окремо)
+    │
+    ▼
+┌─────────────────────────────────────┐
+│  docs.yml                           │
+│  └─ deploy to GitHub Pages          │
+└─────────────────────────────────────┘
+```
+
+**Рішення:**
+- Docs deploy: тільки на push to main (завжди актуальна документація)
+- Docker publish: **послідовно після PyPI** (консистентність артефактів)
+- action.yml: **pre-built image** (швидкість для користувачів)
+
+---
+
+#### 8.1 Docker публікація (GHCR + DockerHub)
+
+**docker-publish.yml:**
+```yaml
+name: Docker Publish
+
+on:
+  workflow_call:  # Викликається з release.yml після успіху
+  workflow_dispatch:  # Ручний запуск для тестування
+
+env:
+  REGISTRY_GHCR: ghcr.io
+  REGISTRY_DOCKER: docker.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
+            ${{ env.REGISTRY_DOCKER }}/konstziv/ai-reviewbot
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ !contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc') }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+**DOCKERHUB_README.md:**
+- Короткий опис проєкту
+- Quick start з `docker run`
+- Посилання на повну документацію
+- Badges (version, pulls, size)
+
+**Secrets потрібні:**
+- `DOCKERHUB_USERNAME` — username на DockerHub
+- `DOCKERHUB_TOKEN` — Access Token (не пароль!)
+
+---
+
+#### 8.2 GitHub Marketplace публікація
+
+**Вимоги для Marketplace:**
+1. Репозиторій має бути **публічним** ✅
+2. `action.yml` в корені репозиторію ✅
+3. Створити **Release** з semantic version tag
+4. Детальний **README.md** з прикладами використання
+
+**action.yml з pre-built image:**
+```yaml
+name: 'AI Code Reviewer'
+description: 'AI-powered code review with inline suggestions and Apply button'
+author: 'Kostyantin Zivenko'
+
+branding:
+  icon: 'code'
+  color: 'blue'
+
+inputs:
+  github_token:
+    description: 'GitHub token for API access (usually secrets.GITHUB_TOKEN)'
+    required: true
+  google_api_key:
+    description: 'Google API key for Gemini'
+    required: true
+  language:
+    description: 'Response language (ISO 639 code, e.g., en, uk, de)'
+    required: false
+    default: 'en'
+  language_mode:
+    description: 'Language mode: adaptive (detect from PR) or fixed'
+    required: false
+    default: 'adaptive'
+  gemini_model:
+    description: 'Gemini model to use'
+    required: false
+    default: 'gemini-2.5-flash'
+  log_level:
+    description: 'Log level (DEBUG, INFO, WARNING, ERROR)'
+    required: false
+    default: 'INFO'
+
+runs:
+  using: 'docker'
+  image: 'docker://ghcr.io/konstziv/ai-reviewbot:1'  # Pre-built для швидкості
+  env:
+    GITHUB_TOKEN: ${{ inputs.github_token }}
+    GOOGLE_API_KEY: ${{ inputs.google_api_key }}
+    LANGUAGE: ${{ inputs.language }}
+    LANGUAGE_MODE: ${{ inputs.language_mode }}
+    GEMINI_MODEL: ${{ inputs.gemini_model }}
+    LOG_LEVEL: ${{ inputs.log_level }}
+    GITHUB_ACTIONS: 'true'
+```
+
+**Кроки публікації на Marketplace:**
+1. Створити Release з тегом `v1.0.0a1`
+2. Поставити галочку "Publish this Action to the GitHub Marketplace"
+3. Обрати категорії: `Code quality`, `Code review`
+
+---
+
+#### 8.3 PyPI публікація
+
+**Trusted Publishing (без API token):**
+1. pypi.org → Settings → Publishing → Add trusted publisher
+2. Налаштування:
+   - Owner: `KonstZiv`
+   - Repository: `ai-code-reviewer`
+   - Workflow: `release.yml`
+   - Environment: `pypi`
+
+**release.yml (вже існує, потрібні зміни):**
+- Видалити `deploy-docs` job (переноситься в docs.yml)
+- Додати виклик `docker-publish.yml` після успішного релізу
+
+---
+
+#### План виконання
+
+**Фаза 1: Підготовка файлів (Claude)**
+
+| # | Файл | Дія |
+|---|------|-----|
+| 1.1 | `pyproject.toml` | Версія `0.1.0` → `1.0.0a1` |
+| 1.2 | `release.yml` | Видалити `deploy-docs`, додати виклик docker-publish |
+| 1.3 | `docker-publish.yml` | Створити (GHCR + DockerHub, multi-arch) |
+| 1.4 | `action.yml` | Pre-built image замість Dockerfile |
+| 1.5 | `DOCKERHUB_README.md` | Створити |
+| 1.6 | `README.md` | Створити (фінальний крок документації) |
+
+**Фаза 2: Налаштування (Human)**
+
+| # | Платформа | Дія |
+|---|-----------|-----|
+| 2.1 | PyPI | Trusted Publisher |
+| 2.2 | GitHub | Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` |
+| 2.3 | GitHub | Settings → Pages → gh-pages branch |
+
+**Фаза 3: Реліз (Human)**
+
+| # | Дія |
+|---|-----|
+| 3.1 | Merge to main |
+| 3.2 | `git tag v1.0.0a1 && git push --tags` |
+| 3.3 | GitHub Release + ✅ "Publish to Marketplace" |
+| 3.4 | Верифікація всіх артефактів |
+
+---
 
 **Критерії прийняття:**
 - ✅ Всі workflows зелені
-- ✅ Docker image публікується в GHCR
-- ✅ PyPI publish працює на тег
+- ✅ PyPI: `pip install ai-reviewbot` працює
+- ✅ DockerHub: `docker pull konstziv/ai-reviewbot` працює
+- ✅ GHCR: `docker pull ghcr.io/konstziv/ai-reviewbot` працює
+- ✅ Marketplace: `uses: KonstZiv/ai-code-reviewer@v1` працює
+- ✅ GitHub Pages: документація доступна на 6 мовах
+- ✅ README.md: якісний опис з badges
 
 **Файли:**
-- `.github/workflows/tests.yml` (оновлення)
+- `pyproject.toml` (версія)
 - `.github/workflows/release.yml` (оновлення)
 - `.github/workflows/docker-publish.yml` (новий)
+- `action.yml` (pre-built image)
+- `DOCKERHUB_README.md` (новий)
+- `README.md` (новий)
 
 ---
 
@@ -704,7 +1000,7 @@ plugins:
 7. Анонсувати реліз
 
 **Критерії прийняття:**
-- ✅ `pip install ai-code-reviewer` працює
+- ✅ `pip install ai-reviewbot` працює
 - ✅ Docker image доступний
 - ✅ GitHub Action доступний через `uses:`
 - ✅ Документація задеплоєна

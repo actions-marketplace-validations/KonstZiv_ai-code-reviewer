@@ -6,18 +6,21 @@ import pytest
 from pydantic import ValidationError
 
 from ai_reviewer.core.models import (
+    CodeIssue,
     Comment,
     CommentAuthorType,
     CommentType,
     FileChange,
     FileChangeType,
+    GoodPractice,
+    IssueCategory,
+    IssueSeverity,
     LinkedTask,
     MergeRequest,
     ReviewContext,
+    ReviewMetrics,
     ReviewResult,
     TaskAlignmentStatus,
-    Vulnerability,
-    VulnerabilitySeverity,
 )
 
 
@@ -75,7 +78,7 @@ class TestComment:
 
     def test_comment_created_at_must_be_timezone_aware(self) -> None:
         """Test that created_at rejects naive datetime."""
-        naive_dt = datetime(2026, 1, 20, 12, 0, 0)  # noqa: DTZ001 - intentionally naive
+        naive_dt = datetime(2026, 1, 20, 12, 0, 0)
         with pytest.raises(ValidationError) as exc_info:
             Comment(author="user", body="test", type=CommentType.ISSUE, created_at=naive_dt)
         assert "timezone-aware" in str(exc_info.value)
@@ -259,7 +262,7 @@ class TestMergeRequest:
 
     def test_mr_datetime_must_be_timezone_aware(self) -> None:
         """Test that created_at and updated_at reject naive datetime."""
-        naive_dt = datetime(2026, 1, 20, 12, 0, 0)  # noqa: DTZ001 - intentionally naive
+        naive_dt = datetime(2026, 1, 20, 12, 0, 0)
 
         with pytest.raises(ValidationError) as exc_info:
             MergeRequest(
@@ -380,140 +383,215 @@ class TestReviewContext:
             ReviewContext(mr=sample_mr, repository="owner/repo/extra")
 
 
-class TestVulnerability:
-    """Tests for Vulnerability model."""
+class TestCodeIssue:
+    """Tests for CodeIssue model."""
 
-    def test_create_minimal_vulnerability(self) -> None:
-        """Test creating a vulnerability with minimal fields."""
-        vuln = Vulnerability(
+    def test_create_minimal_issue(self) -> None:
+        """Test creating an issue with minimal fields."""
+        issue = CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
             title="SQL Injection",
             description="User input not sanitized",
-            severity=VulnerabilitySeverity.CRITICAL,
         )
-        assert vuln.title == "SQL Injection"
-        assert vuln.severity == VulnerabilitySeverity.CRITICAL
-        assert vuln.file is None
-        assert vuln.line is None
-        assert vuln.recommendation == ""
+        assert issue.title == "SQL Injection"
+        assert issue.severity == IssueSeverity.CRITICAL
+        assert issue.category == IssueCategory.SECURITY
+        assert issue.file_path is None
+        assert issue.line_number is None
+        assert issue.has_suggestion is False
+        assert issue.is_critical is True
+        assert issue.is_security is True
 
-    def test_create_full_vulnerability(self) -> None:
-        """Test creating a vulnerability with all fields."""
-        vuln = Vulnerability(
-            title="XSS Vulnerability",
-            description="Output not escaped in template",
-            severity=VulnerabilitySeverity.HIGH,
-            file="src/templates/user.html",
-            line=42,
-            recommendation="Use escape filter",
+    def test_create_full_issue(self) -> None:
+        """Test creating an issue with all fields."""
+        issue = CodeIssue(
+            category=IssueCategory.CODE_QUALITY,
+            severity=IssueSeverity.WARNING,
+            title="Unused variable",
+            description="Variable 'x' is declared but never used",
+            file_path="src/utils.py",
+            line_number=42,
+            existing_code="x = 5",
+            proposed_code="# removed unused variable",
+            why_matters="Unused variables clutter the code and can indicate bugs",
+            learn_more_url="https://pylint.pycqa.org/en/latest/user_guide/messages/warning/unused-variable.html",
         )
-        assert vuln.file == "src/templates/user.html"
-        assert vuln.line == 42
-        assert vuln.recommendation == "Use escape filter"
+        assert issue.file_path == "src/utils.py"
+        assert issue.line_number == 42
+        assert issue.has_suggestion is True
+        assert issue.is_critical is False
+        assert issue.is_security is False
 
-    def test_vulnerability_line_must_be_positive(self) -> None:
+    def test_issue_line_must_be_positive(self) -> None:
         """Test that line number must be positive."""
         with pytest.raises(ValidationError):
-            Vulnerability(
+            CodeIssue(
+                category=IssueCategory.SECURITY,
+                severity=IssueSeverity.CRITICAL,
                 title="Test",
                 description="Test",
-                severity=VulnerabilitySeverity.LOW,
-                line=0,
+                line_number=0,
             )
 
     def test_all_severity_levels(self) -> None:
-        """Test all vulnerability severity levels."""
-        for severity in VulnerabilitySeverity:
-            vuln = Vulnerability(
+        """Test all issue severity levels."""
+        for severity in IssueSeverity:
+            issue = CodeIssue(
+                category=IssueCategory.CODE_QUALITY,
+                severity=severity,
                 title="Test",
                 description="Test",
-                severity=severity,
             )
-            assert vuln.severity == severity
+            assert issue.severity == severity
+
+    def test_all_categories(self) -> None:
+        """Test all issue categories."""
+        for category in IssueCategory:
+            issue = CodeIssue(
+                category=category,
+                severity=IssueSeverity.INFO,
+                title="Test",
+                description="Test",
+            )
+            assert issue.category == category
+
+
+class TestGoodPractice:
+    """Tests for GoodPractice model."""
+
+    def test_create_minimal_good_practice(self) -> None:
+        """Test creating a good practice with minimal fields."""
+        practice = GoodPractice(description="Good use of type hints")
+        assert practice.description == "Good use of type hints"
+        assert practice.file_path is None
+        assert practice.line_number is None
+
+    def test_create_full_good_practice(self) -> None:
+        """Test creating a good practice with all fields."""
+        practice = GoodPractice(
+            description="Excellent error handling",
+            file_path="src/api.py",
+            line_number=100,
+        )
+        assert practice.file_path == "src/api.py"
+        assert practice.line_number == 100
+
+    def test_good_practice_description_required(self) -> None:
+        """Test that description is required."""
+        with pytest.raises(ValidationError):
+            GoodPractice()  # type: ignore[call-arg]
+
+    def test_good_practice_description_not_empty(self) -> None:
+        """Test that description cannot be empty."""
+        with pytest.raises(ValidationError):
+            GoodPractice(description="")
 
 
 class TestReviewResult:
     """Tests for ReviewResult model."""
 
     @pytest.fixture
-    def critical_vuln(self) -> Vulnerability:
-        """Create a critical vulnerability."""
-        return Vulnerability(
+    def critical_issue(self) -> CodeIssue:
+        """Create a critical issue."""
+        return CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
             title="Critical issue",
             description="Critical description",
-            severity=VulnerabilitySeverity.CRITICAL,
         )
 
     @pytest.fixture
-    def high_vuln(self) -> Vulnerability:
-        """Create a high severity vulnerability."""
-        return Vulnerability(
-            title="High issue",
-            description="High description",
-            severity=VulnerabilitySeverity.HIGH,
+    def warning_issue(self) -> CodeIssue:
+        """Create a warning issue."""
+        return CodeIssue(
+            category=IssueCategory.CODE_QUALITY,
+            severity=IssueSeverity.WARNING,
+            title="Warning issue",
+            description="Warning description",
         )
 
     @pytest.fixture
-    def low_vuln(self) -> Vulnerability:
-        """Create a low severity vulnerability."""
-        return Vulnerability(
-            title="Low issue",
-            description="Low description",
-            severity=VulnerabilitySeverity.LOW,
+    def info_issue(self) -> CodeIssue:
+        """Create an info issue."""
+        return CodeIssue(
+            category=IssueCategory.PERFORMANCE,
+            severity=IssueSeverity.INFO,
+            title="Info issue",
+            description="Info description",
         )
+
+    @pytest.fixture
+    def good_practice(self) -> GoodPractice:
+        """Create a good practice."""
+        return GoodPractice(description="Good type hints")
 
     def test_create_empty_result(self) -> None:
         """Test creating an empty review result."""
         result = ReviewResult()
-        assert result.vulnerabilities == ()
+        assert result.issues == ()
+        assert result.good_practices == ()
         assert result.task_alignment == TaskAlignmentStatus.INSUFFICIENT_DATA
         assert result.summary == ""
-        assert result.has_critical_vulnerabilities is False
-        assert result.vulnerability_count == 0
+        assert result.has_critical_issues is False
+        assert result.has_security_issues is False
+        assert result.issue_count == 0
+        assert result.good_practice_count == 0
         assert result.matches_task is None
 
-    def test_create_full_result(self, critical_vuln: Vulnerability) -> None:
+    def test_create_full_result(
+        self, critical_issue: CodeIssue, good_practice: GoodPractice
+    ) -> None:
         """Test creating a full review result."""
         now = datetime.now(tz=UTC)
         result = ReviewResult(
-            vulnerabilities=(critical_vuln,),
+            issues=(critical_issue,),
+            good_practices=(good_practice,),
             task_alignment=TaskAlignmentStatus.ALIGNED,
             task_alignment_reasoning="Changes match task requirements",
-            summary="Found 1 critical vulnerability",
+            summary="Found 1 critical issue",
             reviewed_at=now,
         )
-        assert len(result.vulnerabilities) == 1
+        assert len(result.issues) == 1
+        assert len(result.good_practices) == 1
         assert result.task_alignment == TaskAlignmentStatus.ALIGNED
         assert result.reviewed_at == now
 
-    def test_has_critical_vulnerabilities(
-        self, critical_vuln: Vulnerability, low_vuln: Vulnerability
+    def test_has_critical_issues(self, critical_issue: CodeIssue, info_issue: CodeIssue) -> None:
+        """Test has_critical_issues property."""
+        result_with_critical = ReviewResult(issues=(critical_issue,))
+        assert result_with_critical.has_critical_issues is True
+
+        result_without_critical = ReviewResult(issues=(info_issue,))
+        assert result_without_critical.has_critical_issues is False
+
+    def test_has_security_issues(self, critical_issue: CodeIssue, warning_issue: CodeIssue) -> None:
+        """Test has_security_issues property."""
+        # critical_issue has SECURITY category
+        result_with_security = ReviewResult(issues=(critical_issue,))
+        assert result_with_security.has_security_issues is True
+
+        # warning_issue has CODE_QUALITY category
+        result_without_security = ReviewResult(issues=(warning_issue,))
+        assert result_without_security.has_security_issues is False
+
+    def test_issue_counts(
+        self,
+        critical_issue: CodeIssue,
+        warning_issue: CodeIssue,
+        info_issue: CodeIssue,
     ) -> None:
-        """Test has_critical_vulnerabilities property."""
-        result_with_critical = ReviewResult(vulnerabilities=(critical_vuln,))
-        assert result_with_critical.has_critical_vulnerabilities is True
+        """Test issue count properties."""
+        result = ReviewResult(issues=(critical_issue, warning_issue, info_issue))
+        assert result.critical_count == 1
+        assert result.warning_count == 1
+        assert result.info_count == 1
+        assert result.issue_count == 3
 
-        result_without_critical = ReviewResult(vulnerabilities=(low_vuln,))
-        assert result_without_critical.has_critical_vulnerabilities is False
-
-    def test_has_high_or_critical_vulnerabilities(
-        self, critical_vuln: Vulnerability, high_vuln: Vulnerability, low_vuln: Vulnerability
-    ) -> None:
-        """Test has_high_or_critical_vulnerabilities property."""
-        result_critical = ReviewResult(vulnerabilities=(critical_vuln,))
-        assert result_critical.has_high_or_critical_vulnerabilities is True
-
-        result_high = ReviewResult(vulnerabilities=(high_vuln,))
-        assert result_high.has_high_or_critical_vulnerabilities is True
-
-        result_low = ReviewResult(vulnerabilities=(low_vuln,))
-        assert result_low.has_high_or_critical_vulnerabilities is False
-
-    def test_vulnerability_count(
-        self, critical_vuln: Vulnerability, low_vuln: Vulnerability
-    ) -> None:
-        """Test vulnerability_count property."""
-        result = ReviewResult(vulnerabilities=(critical_vuln, low_vuln))
-        assert result.vulnerability_count == 2
+    def test_good_practice_count(self, good_practice: GoodPractice) -> None:
+        """Test good_practice_count property."""
+        result = ReviewResult(good_practices=(good_practice, good_practice))
+        assert result.good_practice_count == 2
 
     def test_matches_task_aligned(self) -> None:
         """Test matches_task property when aligned."""
@@ -538,7 +616,7 @@ class TestReviewResult:
 
     def test_result_reviewed_at_must_be_timezone_aware(self) -> None:
         """Test that reviewed_at rejects naive datetime."""
-        naive_dt = datetime(2026, 1, 20, 12, 0, 0)  # noqa: DTZ001 - intentionally naive
+        naive_dt = datetime(2026, 1, 20, 12, 0, 0)
         with pytest.raises(ValidationError) as exc_info:
             ReviewResult(reviewed_at=naive_dt)
         assert "timezone-aware" in str(exc_info.value)
@@ -564,16 +642,149 @@ class TestEnums:
         assert FileChangeType.DELETED.value == "deleted"
         assert FileChangeType.RENAMED.value == "renamed"
 
-    def test_vulnerability_severity_values(self) -> None:
-        """Test VulnerabilitySeverity enum values."""
-        assert VulnerabilitySeverity.CRITICAL.value == "critical"
-        assert VulnerabilitySeverity.HIGH.value == "high"
-        assert VulnerabilitySeverity.MEDIUM.value == "medium"
-        assert VulnerabilitySeverity.LOW.value == "low"
-        assert VulnerabilitySeverity.INFO.value == "info"
+    def test_issue_severity_values(self) -> None:
+        """Test IssueSeverity enum values."""
+        assert IssueSeverity.CRITICAL.value == "critical"
+        assert IssueSeverity.WARNING.value == "warning"
+        assert IssueSeverity.INFO.value == "info"
+
+    def test_issue_category_values(self) -> None:
+        """Test IssueCategory enum values."""
+        assert IssueCategory.SECURITY.value == "security"
+        assert IssueCategory.CODE_QUALITY.value == "code_quality"
+        assert IssueCategory.ARCHITECTURE.value == "architecture"
+        assert IssueCategory.PERFORMANCE.value == "performance"
+        assert IssueCategory.TESTING.value == "testing"
 
     def test_task_alignment_status_values(self) -> None:
         """Test TaskAlignmentStatus enum values."""
         assert TaskAlignmentStatus.ALIGNED.value == "aligned"
         assert TaskAlignmentStatus.MISALIGNED.value == "misaligned"
         assert TaskAlignmentStatus.INSUFFICIENT_DATA.value == "insufficient_data"
+
+
+class TestReviewMetrics:
+    """Tests for ReviewMetrics model."""
+
+    def test_create_minimal_metrics(self) -> None:
+        """Test creating metrics with minimal fields."""
+        metrics = ReviewMetrics(model_name="gemini-2.5-flash")
+        assert metrics.model_name == "gemini-2.5-flash"
+        assert metrics.prompt_tokens == 0
+        assert metrics.completion_tokens == 0
+        assert metrics.total_tokens == 0
+        assert metrics.api_latency_ms == 0
+        assert metrics.estimated_cost_usd == 0.0
+
+    def test_create_full_metrics(self) -> None:
+        """Test creating metrics with all fields."""
+        metrics = ReviewMetrics(
+            model_name="gemini-1.5-pro",
+            prompt_tokens=1000,
+            completion_tokens=500,
+            total_tokens=1500,
+            api_latency_ms=2500,
+            estimated_cost_usd=0.0037,
+        )
+        assert metrics.model_name == "gemini-1.5-pro"
+        assert metrics.prompt_tokens == 1000
+        assert metrics.completion_tokens == 500
+        assert metrics.total_tokens == 1500
+        assert metrics.api_latency_ms == 2500
+        assert metrics.estimated_cost_usd == 0.0037
+
+    def test_cost_formatted_small_cost(self) -> None:
+        """Test cost_formatted for small costs (< $0.01)."""
+        metrics = ReviewMetrics(
+            model_name="gemini-2.5-flash",
+            estimated_cost_usd=0.0003,
+        )
+        assert metrics.cost_formatted == "$0.0003"
+
+    def test_cost_formatted_larger_cost(self) -> None:
+        """Test cost_formatted for larger costs (>= $0.01)."""
+        metrics = ReviewMetrics(
+            model_name="gemini-1.5-pro",
+            estimated_cost_usd=0.05,
+        )
+        assert metrics.cost_formatted == "$0.05"
+
+    def test_latency_formatted_milliseconds(self) -> None:
+        """Test latency_formatted for sub-second latency."""
+        metrics = ReviewMetrics(
+            model_name="gemini-2.5-flash",
+            api_latency_ms=750,
+        )
+        assert metrics.latency_formatted == "750ms"
+
+    def test_latency_formatted_seconds(self) -> None:
+        """Test latency_formatted for multi-second latency."""
+        metrics = ReviewMetrics(
+            model_name="gemini-2.5-flash",
+            api_latency_ms=2500,
+        )
+        assert metrics.latency_formatted == "2.5s"
+
+    def test_metrics_is_frozen(self) -> None:
+        """Test that metrics model is immutable."""
+        metrics = ReviewMetrics(model_name="gemini-2.5-flash")
+        with pytest.raises(ValidationError):
+            metrics.model_name = "other-model"  # type: ignore[misc]
+
+    def test_tokens_must_be_non_negative(self) -> None:
+        """Test that token counts must be non-negative."""
+        with pytest.raises(ValidationError):
+            ReviewMetrics(model_name="gemini-2.5-flash", prompt_tokens=-1)
+
+        with pytest.raises(ValidationError):
+            ReviewMetrics(model_name="gemini-2.5-flash", completion_tokens=-1)
+
+        with pytest.raises(ValidationError):
+            ReviewMetrics(model_name="gemini-2.5-flash", total_tokens=-1)
+
+    def test_latency_must_be_non_negative(self) -> None:
+        """Test that latency must be non-negative."""
+        with pytest.raises(ValidationError):
+            ReviewMetrics(model_name="gemini-2.5-flash", api_latency_ms=-1)
+
+    def test_cost_must_be_non_negative(self) -> None:
+        """Test that cost must be non-negative."""
+        with pytest.raises(ValidationError):
+            ReviewMetrics(model_name="gemini-2.5-flash", estimated_cost_usd=-0.01)
+
+    def test_model_name_required(self) -> None:
+        """Test that model_name is required."""
+        with pytest.raises(ValidationError):
+            ReviewMetrics()  # type: ignore[call-arg]
+
+    def test_model_name_not_empty(self) -> None:
+        """Test that model_name cannot be empty."""
+        with pytest.raises(ValidationError):
+            ReviewMetrics(model_name="")
+
+
+class TestReviewResultWithMetrics:
+    """Tests for ReviewResult with metrics."""
+
+    def test_result_with_metrics(self) -> None:
+        """Test creating result with metrics."""
+        metrics = ReviewMetrics(
+            model_name="gemini-2.5-flash",
+            prompt_tokens=1000,
+            completion_tokens=500,
+            total_tokens=1500,
+            api_latency_ms=1500,
+            estimated_cost_usd=0.0002,
+        )
+        result = ReviewResult(
+            summary="LGTM",
+            metrics=metrics,
+        )
+        assert result.metrics is not None
+        assert result.metrics.model_name == "gemini-2.5-flash"
+        assert result.metrics.total_tokens == 1500
+
+    def test_result_without_metrics(self) -> None:
+        """Test that metrics is optional."""
+        result = ReviewResult(summary="LGTM")
+        assert result.metrics is None

@@ -6,7 +6,12 @@ from unittest.mock import patch
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from ai_reviewer.core.config import Settings, get_settings
+from ai_reviewer.core.config import (
+    LanguageMode,
+    Settings,
+    clear_settings_cache,
+    get_settings,
+)
 
 
 class TestSettings:
@@ -196,25 +201,273 @@ class TestGetSettings:
             "GITHUB_TOKEN": "ghp_test_token_12345",
             "GOOGLE_API_KEY": "AIza_test_key_12345",
         }
+        clear_settings_cache()
         with patch.dict(os.environ, env, clear=True):
             settings = get_settings()
             assert isinstance(settings, Settings)
 
-    def test_get_settings_creates_new_instance_each_call(self) -> None:
-        """Test that get_settings creates a new instance each call."""
+    def test_get_settings_returns_same_cached_instance(self) -> None:
+        """Test that get_settings returns the same cached instance."""
         env = {
             "GITHUB_TOKEN": "ghp_test_token_12345",
             "GOOGLE_API_KEY": "AIza_test_key_12345",
         }
+        clear_settings_cache()
         with patch.dict(os.environ, env, clear=True):
             settings1 = get_settings()
             settings2 = get_settings()
-            # Different objects
-            assert settings1 is not settings2
-            # But same values
+            # Same object due to lru_cache
+            assert settings1 is settings2
+            # And same values
             assert settings1.gemini_model == settings2.gemini_model
 
     def test_get_settings_raises_on_missing_env(self) -> None:
         """Test that get_settings raises when env vars are missing."""
+        clear_settings_cache()
         with patch.dict(os.environ, {}, clear=True), pytest.raises(ValidationError):
             get_settings()
+
+    def test_clear_settings_cache_allows_new_instance(self) -> None:
+        """Test that clear_settings_cache allows creating new instance."""
+        env = {
+            "GITHUB_TOKEN": "ghp_test_token_12345",
+            "GOOGLE_API_KEY": "AIza_test_key_12345",
+        }
+        clear_settings_cache()
+        with patch.dict(os.environ, env, clear=True):
+            settings1 = get_settings()
+            clear_settings_cache()
+            settings2 = get_settings()
+            # Different objects after cache clear
+            assert settings1 is not settings2
+            # But same values
+            assert settings1.gemini_model == settings2.gemini_model
+
+
+class TestLanguageMode:
+    """Tests for LanguageMode enum."""
+
+    def test_language_mode_values(self) -> None:
+        """Test LanguageMode enum values."""
+        assert LanguageMode.ADAPTIVE.value == "adaptive"
+        assert LanguageMode.FIXED.value == "fixed"
+
+    def test_language_mode_is_string_enum(self) -> None:
+        """Test that LanguageMode is a string enum."""
+        assert isinstance(LanguageMode.ADAPTIVE, str)
+        assert LanguageMode.ADAPTIVE == "adaptive"
+
+
+class TestNewSettings:
+    """Tests for new Settings fields."""
+
+    @pytest.fixture
+    def minimal_env(self) -> dict[str, str]:
+        """Return minimal required environment variables."""
+        return {
+            "GITHUB_TOKEN": "ghp_test_token_12345",
+            "GOOGLE_API_KEY": "AIza_test_key_12345",
+        }
+
+    def test_api_timeout_default(self, minimal_env: dict[str, str]) -> None:
+        """Test api_timeout has default value of 60."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.api_timeout == 60
+
+    def test_api_timeout_from_env(self, minimal_env: dict[str, str]) -> None:
+        """Test api_timeout can be set from environment."""
+        env = {**minimal_env, "API_TIMEOUT": "120"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.api_timeout == 120
+
+    def test_api_timeout_validation_min(self, minimal_env: dict[str, str]) -> None:
+        """Test api_timeout must be greater than 0."""
+        env = {**minimal_env, "API_TIMEOUT": "0"}
+        with patch.dict(os.environ, env, clear=True), pytest.raises(ValidationError):
+            Settings()
+
+    def test_api_timeout_validation_max(self, minimal_env: dict[str, str]) -> None:
+        """Test api_timeout must be <= 300."""
+        env = {**minimal_env, "API_TIMEOUT": "301"}
+        with patch.dict(os.environ, env, clear=True), pytest.raises(ValidationError):
+            Settings()
+
+    def test_api_timeout_boundary_values(self, minimal_env: dict[str, str]) -> None:
+        """Test api_timeout boundary values are accepted."""
+        # Minimum valid value
+        env = {**minimal_env, "API_TIMEOUT": "1"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.api_timeout == 1
+
+        # Maximum valid value
+        env = {**minimal_env, "API_TIMEOUT": "300"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.api_timeout == 300
+
+    def test_language_default(self, minimal_env: dict[str, str]) -> None:
+        """Test language has default value of 'en'."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.language == "en"
+
+    def test_language_from_env(self, minimal_env: dict[str, str]) -> None:
+        """Test language can be set from environment."""
+        env = {**minimal_env, "LANGUAGE": "uk"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.language == "uk"
+
+    def test_language_mode_default(self, minimal_env: dict[str, str]) -> None:
+        """Test language_mode has default value of ADAPTIVE."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.language_mode == LanguageMode.ADAPTIVE
+
+    def test_language_mode_from_env_adaptive(self, minimal_env: dict[str, str]) -> None:
+        """Test language_mode can be set to adaptive from environment."""
+        env = {**minimal_env, "LANGUAGE_MODE": "adaptive"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.language_mode == LanguageMode.ADAPTIVE
+
+    def test_language_mode_from_env_fixed(self, minimal_env: dict[str, str]) -> None:
+        """Test language_mode can be set to fixed from environment."""
+        env = {**minimal_env, "LANGUAGE_MODE": "fixed"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.language_mode == LanguageMode.FIXED
+
+    def test_language_mode_invalid_raises_error(self, minimal_env: dict[str, str]) -> None:
+        """Test that invalid language_mode raises ValidationError."""
+        env = {**minimal_env, "LANGUAGE_MODE": "invalid"}
+        with patch.dict(os.environ, env, clear=True), pytest.raises(ValidationError):
+            Settings()
+
+    def test_gitlab_token_default_none(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_token is None by default."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_token is None
+
+    def test_gitlab_token_from_env(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_token can be set from environment."""
+        env = {**minimal_env, "GITLAB_TOKEN": "glpat-test_token_12345"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_token is not None
+            assert settings.gitlab_token.get_secret_value() == "glpat-test_token_12345"
+
+    def test_gitlab_token_is_secret(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_token is a SecretStr when set."""
+        env = {**minimal_env, "GITLAB_TOKEN": "glpat-test_token_12345"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert isinstance(settings.gitlab_token, SecretStr)
+            # Secret should not appear in string representation
+            settings_str = str(settings)
+            assert "glpat-test_token_12345" not in settings_str
+
+    def test_gitlab_url_default(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_url has default value of 'https://gitlab.com'."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_url == "https://gitlab.com"
+
+    def test_gitlab_url_from_env(self, minimal_env: dict[str, str]) -> None:
+        """Test gitlab_url can be set from environment."""
+        env = {**minimal_env, "GITLAB_URL": "https://gitlab.example.com"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_url == "https://gitlab.example.com"
+
+
+class TestLanguageValidation:
+    """Tests for ISO 639 language code validation."""
+
+    @pytest.fixture
+    def minimal_env(self) -> dict[str, str]:
+        """Return minimal required environment variables."""
+        return {
+            "GITHUB_TOKEN": "ghp_test_token_12345",
+            "GOOGLE_API_KEY": "AIza_test_key_12345",
+        }
+
+    def test_language_default_en(self, minimal_env: dict[str, str]) -> None:
+        """Test language has default value of 'en'."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.language == "en"
+
+    def test_language_iso639_1_code(self, minimal_env: dict[str, str]) -> None:
+        """Test ISO 639-1 (2-letter) codes are accepted."""
+        for code in ["en", "uk", "de", "fr", "es", "ja", "zh"]:
+            env = {**minimal_env, "LANGUAGE": code}
+            with patch.dict(os.environ, env, clear=True):
+                settings = Settings()
+                assert settings.language == code
+
+    def test_language_iso639_3_code_normalized(self, minimal_env: dict[str, str]) -> None:
+        """Test ISO 639-3 (3-letter) codes are normalized to ISO 639-1."""
+        # ukr -> uk, deu -> de, fra -> fr
+        test_cases = [
+            ("ukr", "uk"),
+            ("deu", "de"),
+            ("fra", "fr"),
+            ("eng", "en"),
+            ("spa", "es"),
+        ]
+        for input_code, expected in test_cases:
+            env = {**minimal_env, "LANGUAGE": input_code}
+            with patch.dict(os.environ, env, clear=True):
+                settings = Settings()
+                assert settings.language == expected
+
+    def test_language_name_normalized(self, minimal_env: dict[str, str]) -> None:
+        """Test language names are normalized to ISO 639-1 codes."""
+        test_cases = [
+            ("Ukrainian", "uk"),
+            ("English", "en"),
+            ("German", "de"),
+            ("French", "fr"),
+            ("Spanish", "es"),
+        ]
+        for input_name, expected in test_cases:
+            env = {**minimal_env, "LANGUAGE": input_name}
+            with patch.dict(os.environ, env, clear=True):
+                settings = Settings()
+                assert settings.language == expected
+
+    def test_language_invalid_code_raises_error(self, minimal_env: dict[str, str]) -> None:
+        """Test that invalid language code raises ValidationError."""
+        env = {**minimal_env, "LANGUAGE": "invalid"}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError) as exc_info:
+                Settings()
+            assert "language" in str(exc_info.value).lower()
+
+    def test_language_empty_string_raises_error(self, minimal_env: dict[str, str]) -> None:
+        """Test that empty language code raises ValidationError."""
+        env = {**minimal_env, "LANGUAGE": ""}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_language_gibberish_raises_error(self, minimal_env: dict[str, str]) -> None:
+        """Test that gibberish language code raises ValidationError."""
+        env = {**minimal_env, "LANGUAGE": "xyz123"}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_language_iso639_3_no_part1_kept(self, minimal_env: dict[str, str]) -> None:
+        """Test ISO 639-3 codes without ISO 639-1 equivalent are kept as-is."""
+        # 'yue' is Cantonese - has ISO 639-3 but no ISO 639-1
+        env = {**minimal_env, "LANGUAGE": "yue"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            # Cantonese doesn't have ISO 639-1, so keep ISO 639-3
+            assert settings.language == "yue"
