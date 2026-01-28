@@ -32,7 +32,7 @@ inputs:
 
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  image: 'docker://ghcr.io/konstziv/ai-code-reviewer:1'
   env:
     GITHUB_TOKEN: ${{ inputs.github_token }}
     GOOGLE_API_KEY: ${{ inputs.google_api_key }}
@@ -40,5 +40,4 @@ runs:
     LANGUAGE_MODE: ${{ inputs.language_mode }}
     GEMINI_MODEL: ${{ inputs.gemini_model }}
     LOG_LEVEL: ${{ inputs.log_level }}
-    # GitHub Actions environment variables are automatically available
     GITHUB_ACTIONS: 'true'

@@ -556,51 +556,96 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 ---
 
 ### 🔄 Завдання 8: CI/CD Pipeline та публікація
-**Статус:** ⏳ Готово до виконання
+**Статус:** 🚧 В роботі
 **Призначено:** Claude Code (AI) + Human (secrets)
 **Оцінка часу:** 4 години
+**Версія релізу:** `1.0.0a1`
 
-**Чеклист — Workflows:**
-- [ ] `tests.yml` оновлено для CLI tests
-- [ ] `release.yml` оновлено для повного pipeline
-- [ ] `docker-publish.yml` створено
+---
 
-**Чеклист — Docker публікація:**
-- [ ] GHCR публікація працює (`ghcr.io/konstziv/ai-code-reviewer`)
-- [ ] DockerHub публікація працює (`konstziv/ai-code-reviewer`)
-- [ ] Multi-platform build (linux/amd64, linux/arm64)
-- [ ] `DOCKERHUB_README.md` створено
-- [ ] DockerHub secrets налаштовано (DOCKERHUB_USERNAME, DOCKERHUB_TOKEN)
+**Фаза 1: Підготовка файлів (Claude)**
 
-**Чеклист — GitHub Marketplace:**
-- [ ] `action.yml` оновлено для Marketplace
-- [ ] README.md містить документацію Action
-- [ ] Release створено з тегом v1.0.0
-- [ ] Action опублікований на Marketplace
+| # | Файл | Дія | Статус |
+|---|------|-----|--------|
+| 1.1 | `pyproject.toml` | Версія `0.1.0` → `1.0.0a1` | ✅ |
+| 1.2 | `release.yml` | Видалити `deploy-docs`, додати виклик docker-publish | ✅ |
+| 1.3 | `docker-publish.yml` | Створити (GHCR + DockerHub, multi-arch) | ✅ |
+| 1.4 | `action.yml` | Pre-built image замість Dockerfile | ✅ |
+| 1.5 | `DOCKERHUB_README.md` | Створити | ✅ |
+| 1.6 | `README.md` | Створити (фінальний крок документації) | ✅ |
 
-**Чеклист — PyPI:**
-- [ ] Trusted Publisher налаштовано на PyPI
-- [ ] `release.yml` публікує на PyPI
-- [ ] `pip install ai-code-reviewer` працює
+**Фаза 2: Налаштування (Human)**
 
-**Workflows:**
-| Workflow | Файл | Статус |
-|----------|------|--------|
-| Tests | `tests.yml` | ✅ Існує |
-| AI Review | `ai-review.yml` | ✅ Існує |
-| Release | `release.yml` | ✅ Існує, потрібно оновити |
-| Docker | `docker-publish.yml` | ⏳ Потрібно створити |
+| # | Платформа | Дія | Статус |
+|---|-----------|-----|--------|
+| 2.1 | PyPI | Trusted Publisher | ⏳ |
+| 2.2 | GitHub | Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | ⏳ |
+| 2.3 | GitHub | Settings → Pages → gh-pages branch | ⏳ |
 
-**Secrets потрібні (Human task):**
-| Secret | Де налаштувати | Статус |
-|--------|----------------|--------|
-| `DOCKERHUB_USERNAME` | GitHub Repo Settings | ⏳ |
-| `DOCKERHUB_TOKEN` | GitHub Repo Settings | ⏳ |
-| PyPI Trusted Publisher | pypi.org Settings | ⏳ |
+**Фаза 3: Реліз (Human)**
+
+| # | Дія | Статус |
+|---|-----|--------|
+| 3.1 | Merge to main | ⏳ |
+| 3.2 | `git tag v1.0.0a1 && git push --tags` | ⏳ |
+| 3.3 | GitHub Release + ✅ "Publish to Marketplace" | ⏳ |
+| 3.4 | Верифікація всіх артефактів | ⏳ |
+
+---
+
+**Очікувані артефакти:**
+
+| Артефакт | Платформа | Статус |
+|----------|-----------|--------|
+| README.md | GitHub | ⏳ |
+| PyPI package | pypi.org | ⏳ |
+| Docker image | DockerHub (`konstziv/ai-code-reviewer`) | ⏳ |
+| Docker image | GHCR (`ghcr.io/konstziv/ai-code-reviewer`) | ⏳ |
+| GitHub Action | Marketplace | ⏳ |
+| Documentation | GitHub Pages (6 мов) | ✅ Готово |
+
+---
+
+**Workflows після змін:**
+
+| Workflow | Файл | Тригер | Статус |
+|----------|------|--------|--------|
+| Tests | `tests.yml` | PR/push | ✅ Існує |
+| Docs | `docs.yml` | push to main | ✅ Існує |
+| AI Review | `ai-review.yml` | PR | ✅ Існує |
+| Release | `release.yml` | tag v*.*.* | 🔄 Потрібно оновити |
+| Docker | `docker-publish.yml` | після release | ⏳ Потрібно створити |
+
+**Послідовність при релізі:**
+```
+tag v1.0.0a1 → release.yml (PyPI + GitHub Release)
+                    ↓ on success
+              docker-publish.yml (GHCR + DockerHub)
+```
+
+---
+
+**Рішення прийняті:**
+- Docs deploy: тільки на push to main (docs.yml)
+- Docker publish: послідовно після PyPI (консистентність)
+- action.yml: pre-built image (швидкість для користувачів)
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+2026-01-28: План узгоджено, починаємо виконання Фази 1
+2026-01-28: Фаза 1 ЗАВЕРШЕНА ✅
+  - pyproject.toml: версія 1.0.0a1
+  - release.yml: видалено deploy-docs, додано publish-docker (workflow_call)
+  - release.yml: додано prerelease detection (alpha/beta/rc)
+  - docker-publish.yml: GHCR + DockerHub, multi-arch (amd64+arm64)
+  - docker-publish.yml: DockerHub description auto-update
+  - docker-publish.yml: smart tagging (no 'latest' for alpha/beta)
+  - action.yml: pre-built image (ghcr.io/konstziv/ai-code-reviewer:1)
+  - DOCKERHUB_README.md: quick start, env vars, links
+  - README.md: повністю переписано з актуальними features
+  - 343 тести ✅, 92% coverage, pre-commit all passed
+
+Далі: Фаза 2 (Human) — PyPI, DockerHub secrets, GitHub Pages
 ```
 
 ---
@@ -695,7 +740,7 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
     ↓
 Завдання 7 (Docs)           ██████████  ✅ Завершено
     ↓
-Завдання 8 (CI/CD)          ░░░░░░░░░░
+Завдання 8 (CI/CD)          ██░░░░░░░░  🚧 В роботі
     ↓
 Завдання 9 (QA)             ░░░░░░░░░░
     ↓
@@ -708,28 +753,37 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 
 ### Фокус на сьогодні
 ```
-Завдання 8: CI/CD Pipeline та публікація
-- Оновити tests.yml, release.yml
-- Створити docker-publish.yml
-- Налаштувати GHCR, DockerHub, PyPI публікацію
+Завдання 8: CI/CD Pipeline та публікація (Фаза 1)
+- [x] План узгоджено
+- [ ] pyproject.toml → версія 1.0.0a1
+- [ ] release.yml → видалити deploy-docs, додати workflow_call
+- [ ] docker-publish.yml → створити (GHCR + DockerHub)
+- [ ] action.yml → pre-built image
+- [ ] DOCKERHUB_README.md → створити
+- [ ] README.md → створити
 ```
 
 ### Прогрес з останнього оновлення
 ```
-✅ Завдання 7 Фаза 3 (Переклад) - ЗАВЕРШЕНО (2026-01-27)
-  52 файли перекладено на 4 мови:
-  ✅ English (en/) — 13 файлів
-  ✅ Deutsch (de/) — 13 файлів
-  ✅ Español (es/) — 13 файлів
-  ✅ Crnogorski (sr/) — 13 файлів
-  ✅ Italiano (it/) — 13 файлів
+2026-01-28: Завдання 8 розпочато
+  ✅ План Завдання 8 узгоджено:
+    - Версія релізу: 1.0.0a1
+    - Docs deploy: тільки на push to main
+    - Docker publish: послідовно після PyPI
+    - action.yml: pre-built image для швидкості
+    - Потрібні обидва registry: GHCR + DockerHub
 
-  UI покращення:
-  ✅ Прапорці країн додано до назв мов (🇬🇧 🇺🇦 🇩🇪 🇪🇸 🇲🇪 🇮🇹)
-  ✅ Іконка перемикача мов змінена на 🌐
-  ✅ Створено docs/stylesheets/extra.css для кастомних стилів
-  ✅ Виправлено 404 при переключенні мов (видалено extra.alternate)
-  ✅ site_url тепер через ENV змінну для локальної розробки
+  ✅ Виправлено mypy помилку:
+    - gitlab.py: видалено зайвий type: ignore
+    - .pre-commit-config.yaml: додано missing dependencies
+
+  📋 Наступні кроки (Фаза 1):
+    - pyproject.toml → версія 1.0.0a1
+    - release.yml → оновити
+    - docker-publish.yml → створити
+    - action.yml → pre-built image
+    - DOCKERHUB_README.md → створити
+    - README.md → створити
 ```
 
 ### Блокери
@@ -739,7 +793,7 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 
 ### Питання
 ```
-Немає — готові до Завдання 8
+Всі питання вирішено — виконуємо Фазу 1
 ```
 
 ---
@@ -859,6 +913,32 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 - mkdocs.yml: видалено extra.alternate секцію
 - site_url: !ENV [SITE_URL, ""] для гнучкості локальної розробки
 - Перемикач мов працює коректно
+
+### Рішення 15: 2026-01-28 — CI/CD архітектура
+**Питання:** Як організувати workflows для релізу?
+**Рішення:**
+- Docs deploy: тільки на push to main (`docs.yml`)
+- Docker publish: послідовно після PyPI (`workflow_call`)
+- action.yml: pre-built image замість Dockerfile
+**Обґрунтування:**
+- Docs на main: документація завжди актуальна, не залежить від релізу
+- Послідовний Docker: консистентність артефактів (якщо PyPI fail — Docker не публікується)
+- Pre-built image: швидший запуск для користувачів Action
+**Вплив:**
+- release.yml: видалено deploy-docs, додано виклик docker-publish
+- docker-publish.yml: новий workflow з workflow_call trigger
+- action.yml: image змінено на `docker://ghcr.io/konstziv/ai-code-reviewer:1`
+
+### Рішення 16: 2026-01-28 — Версія релізу
+**Питання:** Яку версію використовувати для першого релізу?
+**Рішення:** `1.0.0a1` замість `0.1.0`
+**Обґрунтування:**
+- Alpha версія чітко показує стадію розробки
+- Семантична версія 1.x готує до production release
+- Дозволяє ітерації (a2, a3, beta, rc) перед стабільним релізом
+**Вплив:**
+- pyproject.toml: version = "1.0.0a1"
+- Docker tags: 1.0.0a1, 1.0, 1 (без latest для alpha)
 
 ---
 
