@@ -17,9 +17,9 @@
 | **Inline Comments** | ✅ Apply button | ✅ WOW-форматування готове | ✅ |
 | **Мовна адаптивність** | ✅ Працює | ✅ ISO 639 + Proximity Rule | ✅ |
 | **Метрики** | ✅ В footer | ✅ Tokens, latency, cost | ✅ |
-| **Docker image** | ✅ Опубліковано | ✅ Локально 325MB | 🏗️ Публікація в Task 8 |
-| **GitHub Action** | ✅ Marketplace | ✅ action.yml готовий | 🏗️ Публікація в Task 8 |
-| **PyPI package** | ✅ v0.1.0 | ⏳ Не опубліковано | ⏳ Task 8 |
+| **Docker image** | ✅ Опубліковано | ✅ DockerHub + GHCR | ✅ |
+| **GitHub Action** | ✅ Marketplace | ✅ Опубліковано | ✅ |
+| **PyPI package** | ✅ v1.0.0a1 | ✅ Опубліковано | ✅ |
 
 ---
 
@@ -556,14 +556,14 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 ---
 
 ### 🔄 Завдання 8: CI/CD Pipeline та публікація
-**Статус:** 🚧 В роботі
+**Статус:** ✅ **ЗАВЕРШЕНО** (2026-01-28)
 **Призначено:** Claude Code (AI) + Human (secrets)
 **Оцінка часу:** 4 години
 **Версія релізу:** `1.0.0a1`
 
 ---
 
-**Фаза 1: Підготовка файлів (Claude)**
+**Фаза 1: Підготовка файлів (Claude)** ✅
 
 | # | Файл | Дія | Статус |
 |---|------|-----|--------|
@@ -574,124 +574,172 @@ Ref: CURRENT_TASK/ai_reviewer_documentation_structure.md
 | 1.5 | `DOCKERHUB_README.md` | Створити | ✅ |
 | 1.6 | `README.md` | Створити (фінальний крок документації) | ✅ |
 
-**Фаза 2: Налаштування (Human)**
+**Фаза 2: Налаштування (Human)** ✅
 
 | # | Платформа | Дія | Статус |
 |---|-----------|-----|--------|
-| 2.1 | PyPI | Trusted Publisher | ⏳ |
-| 2.2 | GitHub | Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | ⏳ |
-| 2.3 | GitHub | Settings → Pages → gh-pages branch | ⏳ |
+| 2.1 | PyPI | Trusted Publisher (ai-reviewbot) | ✅ |
+| 2.2 | GitHub | Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | ✅ |
+| 2.3 | GitHub | Settings → Pages → gh-pages branch | ✅ |
 
-**Фаза 3: Реліз (Human)**
+**Фаза 3: Реліз (Human)** ✅
 
 | # | Дія | Статус |
 |---|-----|--------|
-| 3.1 | Merge to main | ⏳ |
-| 3.2 | `git tag v1.0.0a1 && git push --tags` | ⏳ |
-| 3.3 | GitHub Release + ✅ "Publish to Marketplace" | ⏳ |
-| 3.4 | Верифікація всіх артефактів | ⏳ |
+| 3.1 | Merge dev to main | ✅ |
+| 3.2 | GitHub Release v1.0.0a1 + "Publish to Marketplace" | ✅ |
+| 3.3 | Верифікація всіх артефактів | ✅ |
 
 ---
 
-**Очікувані артефакти:**
+**Опубліковані артефакти:**
 
-| Артефакт | Платформа | Статус |
-|----------|-----------|--------|
-| README.md | GitHub | ⏳ |
-| PyPI package | pypi.org | ⏳ |
-| Docker image | DockerHub (`konstziv/ai-reviewbot`) | ⏳ |
-| Docker image | GHCR (`ghcr.io/konstziv/ai-reviewbot`) | ⏳ |
-| GitHub Action | Marketplace | ⏳ |
-| Documentation | GitHub Pages (6 мов) | ✅ Готово |
+| Артефакт | Платформа | URL | Статус |
+|----------|-----------|-----|--------|
+| README.md | GitHub | repo root | ✅ |
+| PyPI package | pypi.org | https://pypi.org/project/ai-reviewbot/1.0.0a1/ | ✅ |
+| Docker image | DockerHub | https://hub.docker.com/r/konstziv/ai-reviewbot | ✅ |
+| Docker image | GHCR | https://github.com/KonstZiv/ai-code-reviewer/pkgs/container/ai-code-reviewer | ✅ |
+| GitHub Action | Marketplace | https://github.com/marketplace/actions/ai-reviewbot | ✅ |
+| Documentation | GitHub Pages | https://konstziv.github.io/ai-code-reviewer/ | ✅ |
 
 ---
 
-**Workflows після змін:**
+**Workflows (фінальна конфігурація):**
 
 | Workflow | Файл | Тригер | Статус |
 |----------|------|--------|--------|
-| Tests | `tests.yml` | PR/push | ✅ Існує |
-| Docs | `docs.yml` | push to main | ✅ Існує |
-| AI Review | `ai-review.yml` | PR | ✅ Існує |
-| Release | `release.yml` | tag v*.*.* | 🔄 Потрібно оновити |
-| Docker | `docker-publish.yml` | після release | ⏳ Потрібно створити |
+| Tests | `tests.yml` | PR to main, push to main | ✅ |
+| Docs | `docs.yml` | push to main | ✅ |
+| AI Review | `ai-review.yml` | PR | ✅ |
+| Release | `release.yml` | tag v*.*.* | ✅ |
+| Docker | `docker-publish.yml` | workflow_call від release | ✅ |
 
 **Послідовність при релізі:**
 ```
-tag v1.0.0a1 → release.yml (PyPI + GitHub Release)
+tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
                     ↓ on success
               docker-publish.yml (GHCR + DockerHub)
 ```
 
 ---
 
-**Рішення прийняті:**
-- Docs deploy: тільки на push to main (docs.yml)
-- Docker publish: послідовно після PyPI (консистентність)
-- action.yml: pre-built image (швидкість для користувачів)
+**Виправлення під час релізу:**
+- `tests.yml`: видалено dev з push triggers (уникнення дублювання тестів)
+- `docs.yml`: `--group docs` замість `--group dev` (i18n plugin)
+- `release.yml`: explicit secrets замість `secrets: inherit`
+- DockerHub token: оновлено з Read/Write/Delete правами
 
 **Нотатки:**
 ```
 2026-01-28: План узгоджено, починаємо виконання Фази 1
 2026-01-28: Фаза 1 ЗАВЕРШЕНА ✅
-  - pyproject.toml: версія 1.0.0a1
-  - release.yml: видалено deploy-docs, додано publish-docker (workflow_call)
-  - release.yml: додано prerelease detection (alpha/beta/rc)
-  - docker-publish.yml: GHCR + DockerHub, multi-arch (amd64+arm64)
-  - docker-publish.yml: DockerHub description auto-update
-  - docker-publish.yml: smart tagging (no 'latest' for alpha/beta)
-  - action.yml: pre-built image (ghcr.io/konstziv/ai-reviewbot:1)
-  - DOCKERHUB_README.md: quick start, env vars, links
-  - README.md: повністю переписано з актуальними features
-  - 343 тести ✅, 92% coverage, pre-commit all passed
+2026-01-28: Фаза 2 ЗАВЕРШЕНА ✅
+2026-01-28: Фаза 3 ЗАВЕРШЕНА ✅
+  - Реліз v1.0.0a1 опубліковано
+  - Всі артефакти доступні (PyPI, DockerHub, GHCR, Marketplace, Pages)
+  - DockerHub description workflow виправлено (token permissions)
 
-Далі: Фаза 2 (Human) — PyPI, DockerHub secrets, GitHub Pages
+Далі: Завдання 9 — Ручне тестування та QA
 ```
 
 ---
 
-### 🔍 Завдання 9: Фінальна інтеграція та QA
-**Статус:** ⏳ Очікує всі попередні
-**Призначено:** Human + AI
-**Оцінка часу:** 3 години
+### 🔍 Завдання 9: Ручне тестування та QA
+**Статус:** 🚧 В роботі
+**Призначено:** Human (5 студентів) + AI (підготовка плану)
+**Оцінка часу:** 8 годин (паралельно 5 груп)
 
-**Test Scenarios:**
-- [ ] PR з security issue → Critical inline comment
-- [ ] PR з code quality issues → Suggestions with Apply
-- [ ] PR з хорошим кодом → Good practices
-- [ ] PR українською → Відповідь українською
-- [ ] PR англійською → Відповідь англійською
-- [ ] PR без linked task → Appropriate messaging
-- [ ] Network timeout → Retry та успіх
-- [ ] Invalid token → Clear error message
-- [ ] GitLab MR → Full workflow works
+---
+
+**Концепція тестування:**
+Кожна група тестує конкретний сценарій використання + паралельно верифікує відповідну українську документацію.
+
+**5 груп тестування:**
+
+| # | Група | Сценарій | Документація |
+|---|-------|----------|--------------|
+| 1 | **GitHub: Швидкий старт** | Новий користувач додає AI ReviewBot через Marketplace Action | docs/uk/github.md, quick-start.md |
+| 2 | **GitLab: Швидкий старт** | Новий користувач налаштовує в GitLab CI через Docker | docs/uk/gitlab.md, quick-start.md |
+| 3 | **Конфігурація** | Налаштування мови, language_mode, вибір моделі | docs/uk/configuration.md |
+| 4 | **Docker: Локальний запуск** | Pull образу, запуск з env vars напряму | docs/uk/installation.md (Docker) |
+| 5 | **PyPI: Python пакет** | pip install, використання як бібліотеки | docs/uk/installation.md (PyPI) |
+
+---
+
+**Формат звіту тестувальника (для кожного кроку):**
+```
+Крок #: [назва]
+✅/❌ Функціональність: [працює / не працює / частково]
+✅/❌ Документація: [точна / неточна / відсутня]
+📝 Коментар: [що не так, що покращити]
+🔗 Скріншот: [якщо потрібно]
+```
+
+---
+
+**Детальний план Групи 1: GitHub — Швидкий старт**
+
+| # | Крок | Що перевіряємо | Документація |
+|---|------|----------------|--------------|
+| 1 | Передумови | GitHub repo, Google API key. Як отримати Gemini API key? | docs/uk — "Вимоги" |
+| 2 | Знайти Action | GitHub Marketplace → "AI ReviewBot". Посилання актуальне? | docs/uk — посилання |
+| 3 | Створити workflow | `.github/workflows/ai-review.yml` за прикладом. Copy-paste працює? | docs/uk — YAML приклад |
+| 4 | Додати секрети | Settings → Secrets → `GOOGLE_API_KEY`. Процес описано? | docs/uk — секрети |
+| 5 | Створити PR | PR з кодом (Python/JS). Рекомендації є? | docs/uk — тестування |
+| 6 | Перевірити результат | Workflow завершився, коментарі з'явились. Що очікувати? | docs/uk — результат |
+| 7 | Оцінити якість | Коментарі релевантні? Мова правильна? | Загальна оцінка |
+
+**Очікуваний результат:**
+- PR з AI-коментарями
+- Звіт з 7 пунктів
+
+---
+
+**Статус груп:**
+| Група | План | Виконання | Звіт |
+|-------|------|-----------|------|
+| 1. GitHub Quick Start | ✅ | ⏳ | ⏳ |
+| 2. GitLab Quick Start | ⏳ | ⏳ | ⏳ |
+| 3. Configuration | ⏳ | ⏳ | ⏳ |
+| 4. Docker | ⏳ | ⏳ | ⏳ |
+| 5. PyPI | ⏳ | ⏳ | ⏳ |
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+2026-01-28: План тестування розпочато
+- Визначено 5 груп з різними сценаріями
+- Концепція: функціональність + документація паралельно
+- Детальний план Групи 1 готовий
+- Плани груп 2-5 потрібно деталізувати
+
+Далі: Деталізувати плани груп 2-5, роздати студентам
 ```
 
 ---
 
-### 🚀 Завдання 10: Реліз v0.1.0
-**Статус:** ⏳ Очікує Завдання 9
+### 🚀 Завдання 10: Стабільний реліз v1.0.0
+**Статус:** ⏳ Очікує Завдання 9 (QA)
 **Призначено:** Human
 **Оцінка часу:** 1 година
 
+> **Примітка:** Alpha реліз v1.0.0a1 вже опубліковано в Task 8.
+> Це завдання — фінальний стабільний реліз після QA.
+
 **Чеклист:**
-- [ ] Версія оновлена в `pyproject.toml`
+- [ ] Всі баги з ручного тестування виправлено
+- [ ] Документація оновлена за результатами тестування
+- [ ] Версія оновлена в `pyproject.toml` (1.0.0a1 → 1.0.0)
 - [ ] CHANGELOG.md написано
-- [ ] Тег `v0.1.0` створено
-- [ ] PyPI publish перевірено
-- [ ] Docker image в GHCR
-- [ ] GitHub Release створено
-- [ ] Документація задеплоєна
-- [ ] **Верифікація документації:** перевірити всі посилання, команди, назви пакетів відповідають реальному стану
+- [ ] Тег `v1.0.0` створено
+- [ ] GitHub Release (стабільний, не pre-release)
 - [ ] Анонс опубліковано
 
 **Нотатки:**
 ```
-[Додавай нотатки під час роботи]
+2026-01-28: Alpha реліз v1.0.0a1 опубліковано в Task 8
+- Всі артефакти доступні
+- Потрібно пройти QA перед стабільним релізом
 ```
 
 ---
@@ -740,9 +788,9 @@ tag v1.0.0a1 → release.yml (PyPI + GitHub Release)
     ↓
 Завдання 7 (Docs)           ██████████  ✅ Завершено
     ↓
-Завдання 8 (CI/CD)          ██░░░░░░░░  🚧 В роботі
+Завдання 8 (CI/CD)          ██████████  ✅ Завершено
     ↓
-Завдання 9 (QA)             ░░░░░░░░░░
+Завдання 9 (QA)             ██░░░░░░░░  🚧 Ручне тестування
     ↓
 Завдання 10 (Release)       ░░░░░░░░░░
 ```
@@ -753,37 +801,34 @@ tag v1.0.0a1 → release.yml (PyPI + GitHub Release)
 
 ### Фокус на сьогодні
 ```
-Завдання 8: CI/CD Pipeline та публікація (Фаза 1)
-- [x] План узгоджено
-- [ ] pyproject.toml → версія 1.0.0a1
-- [ ] release.yml → видалити deploy-docs, додати workflow_call
-- [ ] docker-publish.yml → створити (GHCR + DockerHub)
-- [ ] action.yml → pre-built image
-- [ ] DOCKERHUB_README.md → створити
-- [ ] README.md → створити
+Завдання 9: Ручне тестування та QA
+- [x] План тестування створено (5 груп)
+- [x] Детальний план Групи 1 готовий
+- [ ] Деталізувати плани груп 2-5
+- [ ] Роздати завдання студентам
+- [ ] Зібрати звіти та виправити баги
 ```
 
 ### Прогрес з останнього оновлення
 ```
-2026-01-28: Завдання 8 розпочато
-  ✅ План Завдання 8 узгоджено:
-    - Версія релізу: 1.0.0a1
-    - Docs deploy: тільки на push to main
-    - Docker publish: послідовно після PyPI
-    - action.yml: pre-built image для швидкості
-    - Потрібні обидва registry: GHCR + DockerHub
+2026-01-28: Завдання 8 ЗАВЕРШЕНО ✅
+  ✅ Реліз v1.0.0a1 опубліковано:
+    - PyPI: ai-reviewbot 1.0.0a1
+    - DockerHub: konstziv/ai-reviewbot:1.0.0a1
+    - GHCR: ghcr.io/konstziv/ai-code-reviewer:1.0.0a1
+    - GitHub Marketplace: AI ReviewBot
+    - GitHub Pages: 6 мов документації
 
-  ✅ Виправлено mypy помилку:
-    - gitlab.py: видалено зайвий type: ignore
-    - .pre-commit-config.yaml: додано missing dependencies
+  ✅ Виправлення під час релізу:
+    - tests.yml: уникнення дублювання тестів
+    - docs.yml: правильна група залежностей
+    - DockerHub token: оновлено права доступу
 
-  📋 Наступні кроки (Фаза 1):
-    - pyproject.toml → версія 1.0.0a1
-    - release.yml → оновити
-    - docker-publish.yml → створити
-    - action.yml → pre-built image
-    - DOCKERHUB_README.md → створити
-    - README.md → створити
+2026-01-28: Завдання 9 розпочато
+  📋 План ручного тестування:
+    - 5 груп студентів
+    - Кожна група: сценарій + верифікація docs
+    - Детальний план Групи 1 готовий
 ```
 
 ### Блокери
@@ -793,7 +838,7 @@ tag v1.0.0a1 → release.yml (PyPI + GitHub Release)
 
 ### Питання
 ```
-Всі питання вирішено — виконуємо Фазу 1
+Виявлені баги потребують виправлення — чекаємо конкретний опис
 ```
 
 ---
@@ -996,36 +1041,44 @@ tag v1.0.0a1 → release.yml (PyPI + GitHub Release)
 ## ✅ Чеклист завершення спрінту
 
 ### Функціональність
-- [ ] GitHub інтеграція з Inline Comments
-- [ ] GitLab інтеграція з Discussions
-- [ ] Мовна адаптивність працює
-- [ ] WOW-форматування виглядає добре
-- [ ] Метрики відображаються
-- [ ] Retry logic працює
-- [ ] Error messages зрозумілі
+- [x] GitHub інтеграція з Inline Comments
+- [x] GitLab інтеграція з Discussions
+- [x] Мовна адаптивність працює
+- [x] WOW-форматування виглядає добре
+- [x] Метрики відображаються
+- [x] Retry logic працює
+- [x] Error messages зрозумілі
 
 ### Якість коду
-- [ ] Всі тести проходять
-- [ ] Покриття ≥80%
-- [ ] Ruff check проходить
-- [ ] Mypy проходить
-- [ ] Pre-commit хуки працюють
+- [x] Всі тести проходять
+- [x] Покриття ≥80% (92%)
+- [x] Ruff check проходить
+- [x] Mypy проходить
+- [x] Pre-commit хуки працюють
 
 ### Дистрибуція
-- [ ] Docker image збирається
-- [ ] GitHub Action працює
-- [ ] GitLab template працює
-- [ ] PyPI package опубліковано
+- [x] Docker image опубліковано (DockerHub + GHCR)
+- [x] GitHub Action опубліковано (Marketplace)
+- [x] GitLab template працює
+- [x] PyPI package опубліковано (ai-reviewbot 1.0.0a1)
 
 ### Документація
 - [x] 6 мов документації
 - [x] Перемикач мов працює
-- [ ] Автодеплой працює
+- [x] Автодеплой працює (GitHub Pages)
 
-### Реліз
-- [ ] Тег v0.1.0 створено
-- [ ] GitHub Release опубліковано
+### Реліз (Alpha)
+- [x] Тег v1.0.0a1 створено
+- [x] GitHub Release опубліковано (pre-release)
 - [ ] CHANGELOG.md написано
+
+### Ручне тестування (QA)
+- [ ] GitHub Quick Start протестовано
+- [ ] GitLab Quick Start протестовано
+- [ ] Configuration протестовано
+- [ ] Docker протестовано
+- [ ] PyPI протестовано
+- [ ] Документація верифікована
 
 ---
 
