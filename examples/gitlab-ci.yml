@@ -17,7 +17,7 @@
 # AI Code Review job
 ai-review:
   stage: test
-  image: ghcr.io/konstziv/ai-reviewbot:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
 
   # Only run on merge requests
   rules:
@@ -55,7 +55,7 @@ ai-review:
 #
 # ai-review:
 #   stage: test
-#   image: ghcr.io/konstziv/ai-reviewbot:latest
+#   image: ghcr.io/konstziv/ai-code-reviewer:1
 #   rules:
 #     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 #   variables:

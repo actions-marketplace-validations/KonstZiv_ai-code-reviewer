@@ -227,7 +227,7 @@ Please specify --provider, --repo, and --pr manually.
 docker run --rm \
   -e GOOGLE_API_KEY=your_key \
   -e GITHUB_TOKEN=your_token \
-  ghcr.io/konstziv/ai-reviewbot:latest \
+  ghcr.io/konstziv/ai-code-reviewer:1 \
   --provider github \
   --repo owner/repo \
   --pr 123

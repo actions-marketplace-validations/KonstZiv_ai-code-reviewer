@@ -37,7 +37,7 @@ You can also run the reviewer directly with Docker:
 
 ```bash
 # Pull the image
-docker pull ghcr.io/konstziv/ai-reviewbot:latest
+docker pull ghcr.io/konstziv/ai-code-reviewer:1
 
 # Run with environment variables
 docker run --rm \
@@ -45,7 +45,7 @@ docker run --rm \
   -e GOOGLE_API_KEY="xxx" \
   -e GITHUB_REPOSITORY="owner/repo" \
   -e GITHUB_REF="refs/pull/123/merge" \
-  ghcr.io/konstziv/ai-reviewbot:latest
+  ghcr.io/konstziv/ai-code-reviewer:1
 ```
 
 ## Supported Platforms
