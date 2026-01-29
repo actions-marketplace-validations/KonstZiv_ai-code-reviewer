@@ -57,7 +57,7 @@ jobs:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: konstziv/ai-reviewbot:1
+  image: koszivdocker/ai-reviewbot:1
   script:
     - ai-review
   rules:
@@ -84,7 +84,7 @@ ai-review --repo owner/repo --pr 123
 
 ```bash
 # DockerHub
-docker pull konstziv/ai-reviewbot:1
+docker pull koszivdocker/ai-reviewbot:1
 
 # GitHub Container Registry
 docker pull ghcr.io/konstziv/ai-code-reviewer:1
@@ -177,7 +177,7 @@ uv run mkdocs serve
 | Method | Command | Best For |
 |--------|---------|----------|
 | **GitHub Action** | `uses: KonstZiv/ai-code-reviewer@v1` | GitHub projects |
-| **Docker** | `docker pull konstziv/ai-reviewbot` | GitLab CI |
+| **Docker** | `docker pull koszivdocker/ai-reviewbot` | GitLab CI |
 | **PyPI** | `pip install ai-reviewbot` | Local testing |
 
 ## 💰 Cost Estimate

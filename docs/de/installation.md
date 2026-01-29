@@ -145,7 +145,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
     Verfügbar von zwei Registries:
 
     - `ghcr.io/konstziv/ai-code-reviewer:1` — GitHub Container Registry
-    - `konstziv/ai-reviewbot:1` — DockerHub
+    - `koszivdocker/ai-reviewbot:1` — DockerHub
 
 ---
 
