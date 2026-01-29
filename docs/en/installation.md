@@ -51,7 +51,7 @@ For GitLab, use the Docker image in `.gitlab-ci.yml`:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:1
+  image: ghcr.io/konstziv/ai-code-reviewer:latest
   stage: test
   script:
     - ai-review
@@ -116,7 +116,7 @@ No Python installation required — everything is in the container.
 **Step 1: Pull the image**
 
 ```bash
-docker pull ghcr.io/konstziv/ai-code-reviewer:1
+docker pull ghcr.io/konstziv/ai-code-reviewer:latest
 ```
 
 **Step 2: Run the review**
@@ -127,7 +127,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
     docker run --rm \
       -e GOOGLE_API_KEY=your_api_key \
       -e GITHUB_TOKEN=your_token \
-      ghcr.io/konstziv/ai-code-reviewer:1 \
+      ghcr.io/konstziv/ai-code-reviewer:latest \
       --repo owner/repo --pr-number 123
     ```
 
@@ -137,15 +137,15 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
     docker run --rm \
       -e GOOGLE_API_KEY=your_api_key \
       -e GITLAB_TOKEN=your_token \
-      ghcr.io/konstziv/ai-code-reviewer:1 \
+      ghcr.io/konstziv/ai-code-reviewer:latest \
       --provider gitlab --project owner/repo --mr-iid 123
     ```
 
 !!! tip "Docker images"
     Available from two registries:
 
-    - `ghcr.io/konstziv/ai-code-reviewer:1` — GitHub Container Registry
-    - `koszivdocker/ai-reviewbot:1` — DockerHub
+    - `ghcr.io/konstziv/ai-code-reviewer:latest` — GitHub Container Registry
+    - `koszivdocker/ai-reviewbot:latest` — DockerHub
 
 ---
 
@@ -233,10 +233,10 @@ For environments with limited internet access.
 
 ```bash
 # Pull the image
-docker pull ghcr.io/konstziv/ai-code-reviewer:1
+docker pull ghcr.io/konstziv/ai-code-reviewer:latest
 
 # Save to file
-docker save ghcr.io/konstziv/ai-code-reviewer:1 > ai-code-reviewer.tar
+docker save ghcr.io/konstziv/ai-code-reviewer:latest > ai-code-reviewer.tar
 ```
 
 **Step 2: Transfer the file to the closed environment**
@@ -248,7 +248,7 @@ docker save ghcr.io/konstziv/ai-code-reviewer:1 > ai-code-reviewer.tar
 docker load < ai-code-reviewer.tar
 
 # Re-tag for internal registry
-docker tag ghcr.io/konstziv/ai-code-reviewer:1 \
+docker tag ghcr.io/konstziv/ai-code-reviewer:latest \
     registry.internal.company.com/devops/ai-code-reviewer:latest
 
 # Push

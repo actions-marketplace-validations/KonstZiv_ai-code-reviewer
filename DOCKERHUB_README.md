@@ -21,7 +21,7 @@ AI-powered code review tool for GitHub and GitLab with **inline suggestions** an
 
 ```yaml
 ai-review:
-  image: koszivdocker/ai-reviewbot:1
+  image: koszivdocker/ai-reviewbot:latest
   script:
     - ai-review
   rules:
@@ -39,7 +39,7 @@ docker run --rm \
   -e GITHUB_TOKEN="your-token" \
   -e GITHUB_REPOSITORY="owner/repo" \
   -e GITHUB_EVENT_NUMBER="123" \
-  koszivdocker/ai-reviewbot:1
+  koszivdocker/ai-reviewbot:latest
 ```
 
 ## Environment Variables

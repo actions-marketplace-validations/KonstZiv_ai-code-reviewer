@@ -57,7 +57,7 @@ jobs:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: koszivdocker/ai-reviewbot:1
+  image: koszivdocker/ai-reviewbot:latest
   script:
     - ai-review
   rules:
@@ -84,10 +84,10 @@ ai-review --repo owner/repo --pr 123
 
 ```bash
 # DockerHub
-docker pull koszivdocker/ai-reviewbot:1
+docker pull koszivdocker/ai-reviewbot:latest
 
 # GitHub Container Registry
-docker pull ghcr.io/konstziv/ai-code-reviewer:1
+docker pull ghcr.io/konstziv/ai-code-reviewer:latest
 ```
 
 ## 📖 Documentation

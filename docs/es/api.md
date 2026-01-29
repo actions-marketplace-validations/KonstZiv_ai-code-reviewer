@@ -227,7 +227,7 @@ Ejecutar via Docker:
 docker run --rm \
   -e GOOGLE_API_KEY=your_key \
   -e GITHUB_TOKEN=your_token \
-  ghcr.io/konstziv/ai-code-reviewer:1 \
+  ghcr.io/konstziv/ai-code-reviewer:latest \
   --provider github \
   --repo owner/repo \
   --pr 123
