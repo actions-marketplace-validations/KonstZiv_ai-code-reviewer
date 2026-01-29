@@ -75,7 +75,7 @@ Both GitHub and GitLab have API rate limits. The reviewer automatically handles 
 
 ```yaml
 # Respond in Ukrainian
-- uses: KonstZiv/ai-code-reviewer@v0.1.0
+- uses: KonstZiv/ai-code-reviewer@v1
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
     google_api_key: ${{ secrets.GOOGLE_API_KEY }}
@@ -87,7 +87,7 @@ Both GitHub and GitLab have API rate limits. The reviewer automatically handles 
 
 ```yaml
 # Use Gemini 1.5 Pro for more complex reviews
-- uses: KonstZiv/ai-code-reviewer@v0.1.0
+- uses: KonstZiv/ai-code-reviewer@v1
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
     google_api_key: ${{ secrets.GOOGLE_API_KEY }}
