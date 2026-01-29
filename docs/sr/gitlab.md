@@ -94,7 +94,7 @@ only:
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-reviewbot:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   script:
     - ai-review
   rules:
@@ -107,7 +107,7 @@ ai-review:
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-reviewbot:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   stage: test
   script:
     - ai-review
@@ -139,7 +139,7 @@ stages:
 
 ai-review:
   stage: review
-  image: ghcr.io/konstziv/ai-reviewbot:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   script:
     - ai-review
   rules:
@@ -166,8 +166,8 @@ Ako vaš GitLab nema pristup `ghcr.io`, kreirajte mirror:
 
 ```bash
 # Na mašini sa pristupom
-docker pull ghcr.io/konstziv/ai-reviewbot:latest
-docker tag ghcr.io/konstziv/ai-reviewbot:latest \
+docker pull ghcr.io/konstziv/ai-code-reviewer:1
+docker tag ghcr.io/konstziv/ai-code-reviewer:1 \
     gitlab.mycompany.com:5050/devops/ai-code-reviewer:latest
 docker push gitlab.mycompany.com:5050/devops/ai-code-reviewer:latest
 ```

@@ -20,7 +20,7 @@ Najjednostavnija konfiguracija za GitLab CI.
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-reviewbot:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   script:
     - ai-review
   rules:

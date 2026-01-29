@@ -77,7 +77,7 @@ Erstellen Sie in Ihrem Repository:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-reviewbot:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   script:
     - ai-review
   rules:
@@ -165,7 +165,7 @@ graph TD
 === "Docker (empfohlen)"
 
     ```bash
-    docker pull ghcr.io/konstziv/ai-reviewbot:latest
+    docker pull ghcr.io/konstziv/ai-code-reviewer:1
     ```
 
 === "PyPI"

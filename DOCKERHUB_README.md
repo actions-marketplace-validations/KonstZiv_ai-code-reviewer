@@ -1,7 +1,7 @@
 # AI ReviewBot
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/konstziv/ai-reviewbot)](https://hub.docker.com/r/konstziv/ai-reviewbot)
-[![Docker Image Size](https://img.shields.io/docker/image-size/konstziv/ai-reviewbot/latest)](https://hub.docker.com/r/konstziv/ai-reviewbot)
+[![Docker Image Size](https://img.shields.io/docker/image-size/konstziv/ai-reviewbot/1)](https://hub.docker.com/r/konstziv/ai-reviewbot)
 [![GitHub](https://img.shields.io/github/license/KonstZiv/ai-code-reviewer)](https://github.com/KonstZiv/ai-code-reviewer)
 
 AI-powered code review tool for GitHub and GitLab with **inline suggestions** and "Apply" button support.
@@ -21,7 +21,7 @@ AI-powered code review tool for GitHub and GitLab with **inline suggestions** an
 
 ```yaml
 ai-review:
-  image: konstziv/ai-reviewbot:latest
+  image: konstziv/ai-reviewbot:1
   script:
     - ai-review
   rules:
@@ -39,7 +39,7 @@ docker run --rm \
   -e GITHUB_TOKEN="your-token" \
   -e GITHUB_REPOSITORY="owner/repo" \
   -e GITHUB_EVENT_NUMBER="123" \
-  konstziv/ai-reviewbot:latest
+  konstziv/ai-reviewbot:1
 ```
 
 ## Environment Variables
@@ -56,9 +56,9 @@ docker run --rm \
 
 ## Tags
 
-- `latest` — Latest stable release
-- `1.0.0`, `1.0`, `1` — Specific versions
+- `1.0.0`, `1.0`, `1` — Specific versions (recommended)
 - `1.0.0a1` — Alpha/pre-release versions
+- `latest` — Latest stable release (available after v1.0.0)
 
 ## Links
 

@@ -57,7 +57,7 @@ jobs:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: konstziv/ai-reviewbot:latest
+  image: konstziv/ai-reviewbot:1
   script:
     - ai-review
   rules:
@@ -84,10 +84,10 @@ ai-review --repo owner/repo --pr 123
 
 ```bash
 # DockerHub
-docker pull konstziv/ai-reviewbot:latest
+docker pull konstziv/ai-reviewbot:1
 
 # GitHub Container Registry
-docker pull ghcr.io/konstziv/ai-reviewbot:latest
+docker pull ghcr.io/konstziv/ai-code-reviewer:1
 ```
 
 ## 📖 Documentation
@@ -123,44 +123,33 @@ The reviewer provides structured feedback with inline suggestions:
 
 ### Summary Comment
 
-````markdown
-## 🤖 AI Code Review
-
-### 📊 Summary
-Found 2 issues and 1 good practice.
-
-| Category | Critical | Warning | Info |
-|----------|----------|---------|------|
-| Security | 1 | 0 | 0 |
-| Code Quality | 0 | 1 | 0 |
-
-### ✨ Good Practices
-✅ Excellent error handling in `api/handlers.py`
-
----
-⏱️ 1.2s | 🪙 1,540 tokens | 💰 ~$0.002
-````
+> **🤖 AI Code Review**
+>
+> **📊 Summary** — Found 2 issues and 1 good practice.
+>
+> | Category | Critical | Warning | Info |
+> |----------|----------|---------|------|
+> | Security | 1 | 0 | 0 |
+> | Code Quality | 0 | 1 | 0 |
+>
+> **✨ Good Practices** — Excellent error handling in `api/handlers.py`
+>
+> ---
+> ⏱️ 1.2s | 🪙 1,540 tokens | 💰 ~$0.002
 
 ### Inline Comment with "Apply" Button
 
-````markdown
-⚠️ **SQL Injection Risk**
-
-User input is concatenated directly into SQL query.
-
-```suggestion
-cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-```
-
-<details>
-<summary>💡 Why this matters</summary>
-
-SQL injection allows attackers to execute arbitrary SQL commands.
-Always use parameterized queries.
-
-📚 [Learn more](https://owasp.org/www-community/attacks/SQL_Injection)
-</details>
-````
+> ⚠️ **SQL Injection Risk**
+>
+> User input is concatenated directly into SQL query.
+>
+> ```suggestion
+> cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+> ```
+>
+> 💡 **Why this matters:** SQL injection allows attackers to execute arbitrary SQL commands. Always use parameterized queries.
+>
+> 📚 [Learn more](https://owasp.org/www-community/attacks/SQL_Injection)
 
 ## 🛠️ Development
 

@@ -74,7 +74,7 @@ Erstellen Sie im Stammverzeichnis Ihres Projekts die Datei `.gitlab-ci.yml`
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-reviewbot:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   stage: test
   script:
     - ai-review
