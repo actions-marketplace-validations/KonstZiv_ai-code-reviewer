@@ -811,33 +811,35 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 
 ### Прогрес з останнього оновлення
 ```
-2026-01-28: Завдання 8 ЗАВЕРШЕНО ✅
-  ✅ Реліз v1.0.0a1 опубліковано:
-    - PyPI: ai-reviewbot 1.0.0a1
-    - DockerHub: konstziv/ai-reviewbot:1.0.0a1
-    - GHCR: ghcr.io/konstziv/ai-code-reviewer:1.0.0a1
-    - GitHub Marketplace: AI ReviewBot
-    - GitHub Pages: 6 мов документації
+2026-01-29: Критичні виправлення GitHub Action та Docker ✅
+  🐛 Issue від студентів: "Unable to resolve action @v1"
 
-  ✅ Виправлення під час релізу:
-    - tests.yml: уникнення дублювання тестів
-    - docs.yml: правильна група залежностей
-    - DockerHub token: оновлено права доступу
+  Виявлені проблеми:
+    1. Git тег v1 не існував (тільки v1.0.0a1)
+    2. Docker images не мали тегів :1, :1.0, :1.0.0a1 (тільки :latest)
+    3. docker-publish.yml: workflow_dispatch не передавав версію
+    4. docker-publish.yml: github.repository uppercase → Docker fail
+    5. examples/*.yml: застарілі посилання @v0.1.0
+
+  ✅ Виправлено:
+    - Створено тег v1 → d2918a9
+    - Оновлено docker-publish.yml з input для версії
+    - Додано lowercase конвертацію для Docker tags
+    - Перезапущено docker-publish з версією 1.0.0a1
+    - Оновлено examples/ на @v1
+    - Вся документація консистентна
+
+  📦 Docker images тепер доступні:
+    - ghcr.io/konstziv/ai-code-reviewer:1 ✅
+    - ghcr.io/konstziv/ai-code-reviewer:1.0 ✅
+    - ghcr.io/konstziv/ai-code-reviewer:1.0.0a1 ✅
+    - koszivdocker/ai-reviewbot:1 ✅
+
+2026-01-28: Завдання 8 ЗАВЕРШЕНО ✅
+  ✅ Реліз v1.0.0a1 опубліковано
 
 2026-01-28: Завдання 9 розпочато
-  📋 План ручного тестування:
-    - 5 груп студентів
-    - Кожна група: сценарій + верифікація docs
-    - Детальний план Групи 1 готовий
-
-2026-01-28: Bug-fix v1.0.0a1 ✅
-  ✅ Виправлено 3 баги після релізу:
-    1. docs.yml: додано SITE_URL для правильних посилань перемикача мов
-    2. tests.yml: додано CODECOV_TOKEN + активовано репо на codecov.io
-    3. README.md: 4 backticks для вкладених code blocks (таблиці)
-
-  ✅ Гілка bug-fix-v1.0.0a1 змержена в main
-  ✅ Всі badges працюють, документація з перемикачем мов працює
+  📋 План ручного тестування: 5 груп студентів
 ```
 
 ### Блокери
@@ -1014,6 +1016,24 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 **Рішення:** Додано `COPY --from=builder /app/src /app/src` в runtime stage
 **Статус:** ✅ Виправлено
 
+### Проблема 4: GitHub Action v1 not found — 2026-01-29
+**Проблема:** `Unable to resolve action konstziv/ai-code-reviewer@v1, unable to find version v1`
+**Причина:** Тег `v1` не був створений (тільки `v1.0.0a1`)
+**Рішення:** Створено тег `v1` що вказує на HEAD main
+**Статус:** ✅ Виправлено
+
+### Проблема 5: Docker images без semver тегів — 2026-01-29
+**Проблема:** Docker images мали тільки `:latest`, не було `:1`, `:1.0`, `:1.0.0a1`
+**Причина:** `workflow_dispatch` запускався без git tag ref, тому `docker/metadata-action` semver patterns не працювали
+**Рішення:** Додано `version` input в docker-publish.yml для ручних запусків
+**Статус:** ✅ Виправлено
+
+### Проблема 6: Docker tag uppercase error — 2026-01-29
+**Проблема:** `invalid tag: repository name must be lowercase`
+**Причина:** `github.repository` повертає `KonstZiv/ai-code-reviewer` з uppercase
+**Рішення:** Додано `${GITHUB_REPOSITORY,,}` bash lowercase конвертацію
+**Статус:** ✅ Виправлено
+
 ---
 
 ## 💡 Висновки та інсайти
@@ -1147,22 +1167,42 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 
 ## 🔄 Відновлення сесії (Session Recovery)
 
-**Останнє оновлення:** 2026-01-28
+**Останнє оновлення:** 2026-01-29
 
 ### Поточний стан
-- **Sprint 1:** майже завершено (8/10 завдань done, 9 — в роботі)
+- **Sprint 1:** майже завершено (9/10 завдань done, QA в роботі)
 - **Реліз:** v1.0.0a1 опубліковано (alpha)
-- **Баги:** всі виправлені після релізу
+- **Гілка:** main (всі виправлення змержені)
+- **Тег v1:** d2918a9 (актуальний)
 
 ### Опубліковані артефакти (всі працюють ✅)
-| Артефакт | URL |
-|----------|-----|
+| Артефакт | URL/Image |
+|----------|-----------|
 | PyPI | https://pypi.org/project/ai-reviewbot/1.0.0a1/ |
-| DockerHub | https://hub.docker.com/r/konstziv/ai-reviewbot |
-| GHCR | https://github.com/KonstZiv/ai-code-reviewer/pkgs/container/ai-code-reviewer |
+| DockerHub | `koszivdocker/ai-reviewbot:1` |
+| GHCR | `ghcr.io/konstziv/ai-code-reviewer:1` |
 | Marketplace | https://github.com/marketplace/actions/ai-reviewbot |
 | Documentation | https://konstziv.github.io/ai-code-reviewer/ |
 | Codecov | https://codecov.io/gh/KonstZiv/ai-code-reviewer |
+
+### ⚠️ Важливо: Правильні Docker URL
+```bash
+# GHCR (по імені репозиторію)
+ghcr.io/konstziv/ai-code-reviewer:1
+
+# DockerHub (DOCKERHUB_USERNAME = koszivdocker)
+koszivdocker/ai-reviewbot:1
+
+# GitHub Action
+uses: KonstZiv/ai-code-reviewer@v1
+```
+
+### Консистентність документації ✅
+| Елемент | Значення | Кількість посилань |
+|---------|----------|-------------------|
+| GitHub Action | `@v1` | 58 |
+| GHCR Docker | `:1` | 126 |
+| DockerHub | `:1` | 8 |
 
 ### Наступні кроки
 1. **Деталізувати плани груп 2-5** для ручного тестування
@@ -1187,12 +1227,14 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 ```bash
 cd /Users/kostyantynzivenko/Desktop/documents/REVIEW-AI/ai-code-reviewer
 git status
+git log --oneline -5
 uv run pytest  # перевірити що тести проходять
 uv run mkdocs serve  # локальний перегляд документації
 ```
 
 ### Важливі файли
 - `CURRENT_TASK/PROCESS_TASK_UA.md` — цей файл (прогрес спрінту)
+- `action.yml` — GitHub Action definition (image: ghcr.io/konstziv/ai-code-reviewer:1)
+- `.github/workflows/docker-publish.yml` — публікація Docker images
 - `mkdocs.yml` — конфігурація документації
-- `.github/workflows/` — CI/CD workflows
 - `docs/uk/` — українська документація (source of truth)
