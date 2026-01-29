@@ -62,7 +62,7 @@ extra:
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/ai-reviewbot/
     - icon: fontawesome/brands/docker
-      link: https://ghcr.io/konstziv/ai-reviewbot
+      link: https://github.com/KonstZiv/ai-code-reviewer/pkgs/container/ai-code-reviewer
 
   # Language switcher is auto-configured by i18n plugin with reconfigure_material: true
   # DO NOT add manual 'alternate' section - it conflicts with the plugin
