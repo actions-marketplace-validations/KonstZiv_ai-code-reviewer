@@ -18,7 +18,6 @@ on:
 
 env:
   REGISTRY_GHCR: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
   DOCKERHUB_IMAGE: ai-reviewbot
 
 jobs:
@@ -32,6 +31,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        id: repo
+        run: echo "image_name=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -79,7 +82,7 @@ jobs:
       - name: Build tags list
         id: tags
         run: |
-          GHCR_IMAGE="${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}"
+          GHCR_IMAGE="${{ env.REGISTRY_GHCR }}/${{ steps.repo.outputs.image_name }}"
           DOCKER_IMAGE="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_IMAGE }}"
           VERSION="${{ steps.version.outputs.version }}"
           MAJOR="${{ steps.version.outputs.major }}"
