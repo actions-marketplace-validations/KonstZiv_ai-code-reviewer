@@ -74,7 +74,7 @@ In the root of your project, create file `.gitlab-ci.yml`
 
 ```yaml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   stage: test
   script:
     - ai-review

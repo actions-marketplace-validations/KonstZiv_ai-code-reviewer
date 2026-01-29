@@ -537,7 +537,7 @@ runs:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-reviewbot:latest
+  image: ghcr.io/konstziv/ai-reviewbot:1
   script:
     - ai-review
   rules:
@@ -868,7 +868,7 @@ inputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/konstziv/ai-reviewbot:latest'  # Pre-built для швидкості
+  image: 'docker://ghcr.io/konstziv/ai-reviewbot:1'  # Pre-built для швидкості
   env:
     GITHUB_TOKEN: ${{ inputs.github_token }}
     GOOGLE_API_KEY: ${{ inputs.google_api_key }}

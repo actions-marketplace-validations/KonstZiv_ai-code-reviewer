@@ -10,6 +10,11 @@ on:
         required: true
         description: DockerHub access token
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., 1.0.0a1) - required for manual runs'
+        required: true
+        type: string
 
 env:
   REGISTRY_GHCR: ghcr.io
@@ -47,18 +52,56 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
-            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_IMAGE }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest,enable=${{ !contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc') }}
+      - name: Determine version and tags
+        id: version
+        run: |
+          # Get version from input or git tag
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Parse major.minor
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          echo "major_minor=${MAJOR}.${MINOR}" >> $GITHUB_OUTPUT
+
+          # Check if prerelease
+          if [[ "$VERSION" =~ (alpha|beta|rc|a[0-9]|b[0-9]) ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build tags list
+        id: tags
+        run: |
+          GHCR_IMAGE="${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}"
+          DOCKER_IMAGE="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_IMAGE }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          MAJOR="${{ steps.version.outputs.major }}"
+          MAJOR_MINOR="${{ steps.version.outputs.major_minor }}"
+          IS_PRERELEASE="${{ steps.version.outputs.is_prerelease }}"
+
+          # Build tags
+          TAGS="${GHCR_IMAGE}:${VERSION}"
+          TAGS="${TAGS},${GHCR_IMAGE}:${MAJOR_MINOR}"
+          TAGS="${TAGS},${GHCR_IMAGE}:${MAJOR}"
+          TAGS="${TAGS},${DOCKER_IMAGE}:${VERSION}"
+          TAGS="${TAGS},${DOCKER_IMAGE}:${MAJOR_MINOR}"
+          TAGS="${TAGS},${DOCKER_IMAGE}:${MAJOR}"
+
+          # Add latest tag only for stable releases
+          if [ "$IS_PRERELEASE" = "false" ]; then
+            TAGS="${TAGS},${GHCR_IMAGE}:latest"
+            TAGS="${TAGS},${DOCKER_IMAGE}:latest"
+          fi
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+          echo "Built tags: $TAGS"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -66,8 +109,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

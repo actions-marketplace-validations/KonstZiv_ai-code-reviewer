@@ -51,7 +51,7 @@ jobs:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:latest
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   stage: test
   script:
     - ai-review
@@ -116,7 +116,7 @@ ai-review:
 **Крок 1: Завантажте image**
 
 ```bash
-docker pull ghcr.io/konstziv/ai-code-reviewer:latest
+docker pull ghcr.io/konstziv/ai-code-reviewer:1
 ```
 
 **Крок 2: Запустіть review**
@@ -127,7 +127,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
     docker run --rm \
       -e GOOGLE_API_KEY=your_api_key \
       -e GITHUB_TOKEN=your_token \
-      ghcr.io/konstziv/ai-code-reviewer:latest \
+      ghcr.io/konstziv/ai-code-reviewer:1 \
       --repo owner/repo --pr-number 123
     ```
 
@@ -137,15 +137,15 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:latest
     docker run --rm \
       -e GOOGLE_API_KEY=your_api_key \
       -e GITLAB_TOKEN=your_token \
-      ghcr.io/konstziv/ai-code-reviewer:latest \
+      ghcr.io/konstziv/ai-code-reviewer:1 \
       --provider gitlab --project owner/repo --mr-iid 123
     ```
 
 !!! tip "Docker images"
     Доступні з двох реєстрів:
 
-    - `ghcr.io/konstziv/ai-code-reviewer:latest` — GitHub Container Registry
-    - `koszivdocker/ai-reviewbot:latest` — DockerHub
+    - `ghcr.io/konstziv/ai-code-reviewer:1` — GitHub Container Registry
+    - `koszivdocker/ai-reviewbot:1` — DockerHub
 
 ---
 
@@ -233,10 +233,10 @@ export GITHUB_TOKEN=your_token  # або GITLAB_TOKEN для GitLab
 
 ```bash
 # Завантажити image
-docker pull ghcr.io/konstziv/ai-code-reviewer:latest
+docker pull ghcr.io/konstziv/ai-code-reviewer:1
 
 # Зберегти в файл
-docker save ghcr.io/konstziv/ai-code-reviewer:latest > ai-code-reviewer.tar
+docker save ghcr.io/konstziv/ai-code-reviewer:1 > ai-code-reviewer.tar
 ```
 
 **Крок 2: Перенести файл у закрите середовище**
@@ -248,18 +248,18 @@ docker save ghcr.io/konstziv/ai-code-reviewer:latest > ai-code-reviewer.tar
 docker load < ai-code-reviewer.tar
 
 # Перетегувати для internal registry
-docker tag ghcr.io/konstziv/ai-code-reviewer:latest \
-    registry.internal.company.com/devops/ai-code-reviewer:latest
+docker tag ghcr.io/konstziv/ai-code-reviewer:1 \
+    registry.internal.company.com/devops/ai-code-reviewer:1
 
 # Опублікувати
-docker push registry.internal.company.com/devops/ai-code-reviewer:latest
+docker push registry.internal.company.com/devops/ai-code-reviewer:1
 ```
 
 **Крок 4: Використати в GitLab CI**
 
 ```yaml
 ai-review:
-  image: registry.internal.company.com/devops/ai-code-reviewer:latest
+  image: registry.internal.company.com/devops/ai-code-reviewer:1
   script:
     - ai-review
   variables:

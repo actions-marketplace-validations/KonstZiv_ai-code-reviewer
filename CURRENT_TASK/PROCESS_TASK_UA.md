@@ -814,8 +814,8 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 2026-01-28: Завдання 8 ЗАВЕРШЕНО ✅
   ✅ Реліз v1.0.0a1 опубліковано:
     - PyPI: ai-reviewbot 1.0.0a1
-    - DockerHub: konstziv/ai-reviewbot:latest.0.0a1
-    - GHCR: ghcr.io/konstziv/ai-code-reviewer:latest.0.0a1
+    - DockerHub: konstziv/ai-reviewbot:1.0.0a1
+    - GHCR: ghcr.io/konstziv/ai-code-reviewer:1.0.0a1
     - GitHub Marketplace: AI ReviewBot
     - GitHub Pages: 6 мов документації
 
@@ -981,7 +981,7 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 **Вплив:**
 - release.yml: видалено deploy-docs, додано виклик docker-publish
 - docker-publish.yml: новий workflow з workflow_call trigger
-- action.yml: image змінено на `docker://ghcr.io/konstziv/ai-reviewbot:latest`
+- action.yml: image змінено на `docker://ghcr.io/konstziv/ai-reviewbot:1`
 
 ### Рішення 16: 2026-01-28 — Версія релізу
 **Питання:** Яку версію використовувати для першого релізу?
