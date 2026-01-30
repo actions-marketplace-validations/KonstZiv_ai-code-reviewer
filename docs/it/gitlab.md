@@ -10,6 +10,11 @@ Guida dettagliata per l'integrazione con GitLab CI.
 
 Per funzionare, AI Reviewer necessita di un **Project Access Token** con permessi per creare commenti.
 
+!!! note "Ruolo Maintainer richiesto"
+    Per creare un Project Access Token, e necessario il ruolo **Maintainer** o **Owner** nel progetto.
+
+    :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
+
 **Creazione del token:**
 
 1. Apri il progetto → `Settings` → `Access Tokens`
@@ -90,6 +95,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Completo (consigliato)

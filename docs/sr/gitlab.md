@@ -10,6 +10,11 @@ Detaljan vodič za integraciju sa GitLab CI.
 
 Za rad AI Reviewer-a potreban je **Project Access Token** sa pravima za kreiranje komentara.
 
+!!! note "Potrebna je uloga Maintainer"
+    Za kreiranje Project Access Token-a potrebna vam je uloga **Maintainer** ili **Owner** u projektu.
+
+    :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
+
 **Kreiranje tokena:**
 
 1. Otvorite projekat → `Settings` → `Access Tokens`
@@ -90,6 +95,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Puni (preporučeno)

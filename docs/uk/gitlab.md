@@ -10,6 +10,11 @@
 
 Для роботи AI Reviewer потрібен **Project Access Token** з правами на створення коментарів.
 
+!!! note "Потрібні права Maintainer"
+    Для створення Project Access Token потрібна роль **Maintainer** або **Owner** у проєкті.
+
+    :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
+
 **Створення токена:**
 
 1. Відкрийте проєкт → `Settings` → `Access Tokens`
@@ -90,6 +95,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Повний (рекомендовано)

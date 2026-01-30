@@ -38,7 +38,7 @@ jobs:
 |---------------|-------------------|
 | `GOOGLE_API_KEY` | Repository → Settings → Secrets → Actions |
 
-:point_right: [Full example with concurrency and filtering →](quick-start.md#github-actions)
+:point_right: [Full example with concurrency and filtering →](quick-start.md#ci-setup)
 
 :point_right: [Detailed GitHub Guide →](github.md)
 
@@ -69,7 +69,7 @@ ai-review:
 | `GOOGLE_API_KEY` | Project → Settings → CI/CD → Variables (Masked) |
 | `GITLAB_TOKEN` | Optional, for inline comments ([details](gitlab.md#tokens)) |
 
-:point_right: [Full example →](quick-start.md#gitlab-ci)
+:point_right: [Full example →](quick-start.md#ci-setup)
 
 :point_right: [Detailed GitLab Guide →](gitlab.md)
 

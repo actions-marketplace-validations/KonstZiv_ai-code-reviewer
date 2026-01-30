@@ -38,7 +38,7 @@ jobs:
 |---------------|-------------------|
 | `GOOGLE_API_KEY` | Repository → Settings → Secrets → Actions |
 
-:point_right: [Puni primjer sa konkurentnošću i filterima →](quick-start.md#github-actions)
+:point_right: [Puni primjer sa konkurentnošću i filterima →](quick-start.md#ci-setup)
 
 :point_right: [Detaljan GitHub vodič →](github.md)
 
@@ -69,7 +69,7 @@ ai-review:
 | `GOOGLE_API_KEY` | Project → Settings → CI/CD → Variables (Masked) |
 | `GITLAB_TOKEN` | Opciono, za inline komentare ([detalji](gitlab.md#tokens)) |
 
-:point_right: [Puni primjer →](quick-start.md#gitlab-ci)
+:point_right: [Puni primjer →](quick-start.md#ci-setup)
 
 :point_right: [Detaljan GitLab vodič →](gitlab.md)
 
