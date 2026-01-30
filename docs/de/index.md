@@ -66,12 +66,18 @@ jobs:
 ### GitLab
 
 Erstellen Sie in Ihrem Repository:
-- unter `Settings` → `CI/CD` → `Variables` → `CI/CD Variables` → klicken Sie auf `Add variable`:
-    - `Type`: Variable (Standard)
-    - `Visibility`: Masked (damit es nicht in Logs angezeigt wird)
-    - `Key`: GOOGLE_API_KEY
-    - `Value`: Ihr Google API-Schlüssel
-- im Stammverzeichnis Ihres Projekt-Repositorys:
+
+1. **Project Access Token erstellen:** `Settings` → `Access Tokens` → `Add new token`:
+    - **Token name**: `ai-reviewer`
+    - **Role**: `Developer`
+    - **Scopes**: `api` ✓
+    - Klicken Sie auf **Create project access token** und kopieren Sie den Token
+
+2. **CI/CD-Variablen hinzufügen:** `Settings` → `CI/CD` → `Variables`:
+    - `GOOGLE_API_KEY`: Ihr Google API-Schlüssel (Masked ✓)
+    - `GITLAB_TOKEN`: Token aus Schritt 1 (Masked ✓)
+
+3. **CI-Datei erstellen:** im Stammverzeichnis Ihres Projekt-Repositorys:
     - erstellen Sie die Datei `.gitlab-ci.yml` mit folgendem Inhalt:
 
 ```yaml
@@ -84,6 +90,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 :point_right: [Mehr erfahren →](quick-start.md)

@@ -89,7 +89,7 @@ Usage: ai-review [OPTIONS]
 
     - Перевірте що токен не expired
     - Перевірте scope: потрібен `api`
-    - Використовуйте PAT замість `CI_JOB_TOKEN`
+    - Переконайтесь що використовуєте Project Access Token
 
 ---
 

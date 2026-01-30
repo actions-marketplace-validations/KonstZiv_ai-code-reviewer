@@ -155,8 +155,16 @@ jobs:
     steps:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           google_api_key: ${{ secrets.GOOGLE_API_KEY }}
 ```
+
+!!! info "Über `GITHUB_TOKEN`"
+    `secrets.GITHUB_TOKEN` ist ein **automatisches Token**, das GitHub für jeden Workflow-Lauf erstellt. Sie müssen es **nicht** manuell zu den Secrets hinzufügen — es ist bereits verfügbar.
+
+    Token-Berechtigungen werden durch den `permissions`-Abschnitt in der Workflow-Datei definiert.
+
+    :material-book-open-variant: [GitHub Docs: Automatic token authentication](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication)
 
 ### Mit Concurrency (empfohlen)
 
@@ -182,6 +190,7 @@ jobs:
     steps:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           google_api_key: ${{ secrets.GOOGLE_API_KEY }}
           language: uk
           language_mode: adaptive

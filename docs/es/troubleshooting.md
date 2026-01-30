@@ -89,7 +89,7 @@ Si el problema persiste, especifica explícitamente la versión:
 
     - Verifica que el token no haya expirado
     - Verifica el scope: necesita `api`
-    - Usa PAT en lugar de `CI_JOB_TOKEN`
+    - Asegúrate de usar Project Access Token
 
 ---
 
@@ -112,7 +112,7 @@ Si el problema persiste, especifica explícitamente la versión:
 **Límites del Free Tier de Gemini:**
 
 | Límite | Valor |
-|-------|-------|
+|--------|-------|
 | Solicitudes por minuto | 15 |
 | Tokens por día | 1,000,000 |
 | Solicitudes por día | 1,500 |
@@ -227,7 +227,7 @@ export LANGUAGE_MODE=fixed
 **Precios de Gemini Flash:**
 
 | Métrica | Costo |
-|--------|------|
+|---------|-------|
 | Tokens de entrada | $0.075 / 1M |
 | Tokens de salida | $0.30 / 1M |
 

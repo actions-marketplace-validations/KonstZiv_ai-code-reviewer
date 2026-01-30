@@ -52,8 +52,6 @@ ai-review:
 
 | Обмеження | Рішення |
 |-----------|---------|
-| `CI_JOB_TOKEN` обмежений | Використовуйте PAT |
-| Немає inline discussions | Потрібен PAT з scope `api` |
 | MR блокується при помилці | Додайте `allow_failure: true` |
 
 ---

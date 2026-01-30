@@ -52,8 +52,6 @@ Fatto! La revisione AI apparira come commenti sulla MR.
 
 | Limitazione | Soluzione |
 |-------------|-----------|
-| `CI_JOB_TOKEN` e limitato | Usa PAT |
-| Nessuna discussione inline | Serve PAT con scope `api` |
 | MR bloccata in caso di errore | Aggiungi `allow_failure: true` |
 
 ---

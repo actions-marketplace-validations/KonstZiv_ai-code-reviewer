@@ -134,8 +134,7 @@ env:
 ```yaml
 variables:
   GOOGLE_API_KEY: $GOOGLE_API_KEY  # Da CI/CD Variables
-  # GITLAB_TOKEN: $CI_JOB_TOKEN   # Automatico (limitato)
-  GITLAB_TOKEN: $GITLAB_TOKEN      # O PAT per permessi completi
+  GITLAB_TOKEN: $GITLAB_TOKEN      # Project Access Token
   LANGUAGE: uk
   LANGUAGE_MODE: adaptive
 ```

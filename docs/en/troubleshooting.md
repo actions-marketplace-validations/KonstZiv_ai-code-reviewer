@@ -89,7 +89,7 @@ If the problem persists, explicitly specify version:
 
     - Check that the token is not expired
     - Check scope: need `api`
-    - Use PAT instead of `CI_JOB_TOKEN`
+    - Make sure you're using a Project Access Token
 
 ---
 

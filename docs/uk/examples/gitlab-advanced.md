@@ -128,19 +128,6 @@ ai-review:
 
 ---
 
-## CI_JOB_TOKEN vs PAT
-
-| Функція | CI_JOB_TOKEN | PAT |
-|---------|--------------|-----|
-| Читати MR | :white_check_mark: | :white_check_mark: |
-| Постити notes | :white_check_mark: | :white_check_mark: |
-| Inline discussions | :x: | :white_check_mark: |
-| Потребує налаштування | :x: | :white_check_mark: |
-
-**Рекомендація:** Використовуйте PAT для повної функціональності.
-
----
-
 ## Troubleshooting
 
 ### Review не постить коментарі

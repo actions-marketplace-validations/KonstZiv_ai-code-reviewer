@@ -52,8 +52,6 @@ Fertig! Das AI-Review erscheint als Kommentare auf dem MR.
 
 | Einschränkung | Lösung |
 |---------------|--------|
-| `CI_JOB_TOKEN` ist eingeschränkt | PAT verwenden |
-| Keine Inline-Discussions | PAT mit Scope `api` benötigt |
 | MR bei Fehler blockiert | `allow_failure: true` hinzufügen |
 
 ---

@@ -53,7 +53,7 @@ docker run --rm \
 | Platform | Method | Token |
 |----------|--------|-------|
 | GitHub | GitHub Action | `GITHUB_TOKEN` (automatic) |
-| GitLab | Docker image | `CI_JOB_TOKEN` or custom token |
+| GitLab | Docker image | Project Access Token (`GITLAB_TOKEN`) |
 
 ## Troubleshooting
 
@@ -63,7 +63,7 @@ The default `GITHUB_TOKEN` may lack permissions. Create a Personal Access Token 
 
 ### GitLab: "403 Forbidden"
 
-The `CI_JOB_TOKEN` has limited permissions. Create a Project Access Token with `api` scope and add it as `GITLAB_API_TOKEN` variable.
+Create a Project Access Token with `api` scope and add it as `GITLAB_TOKEN` variable.
 
 ### Rate Limiting
 

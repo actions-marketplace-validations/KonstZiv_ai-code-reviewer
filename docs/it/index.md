@@ -30,71 +30,21 @@ E possibile l'integrazione con un'ampia gamma di provider LLM esistenti (di defa
 
 ## Quick Start
 
-Importante: per seguire i prossimi passi avrai bisogno della tua chiave API Google personale. Puoi ottenerla gratuitamente su [Google AI Studio](https://aistudio.google.com/api-keys) o [Google Cloud Console](https://console.cloud.google.com/).
+Configura AI Code Reviewer per il tuo progetto in 5 minuti:
 
-*AI Code Reviewer puo essere configurato per usare diversi provider LLM e modelli, sia gratuiti che a pagamento. I seguenti esempi usano il modello* **gemini-2.5-flash**. *Altre sezioni della documentazione spiegano come collegare altri provider e usare altri modelli. Siamo interessati alla tua opinione sulle differenze tra i vari modelli — ci piacerebbe leggere la tua esperienza nei commenti.*
+- :octicons-mark-github-16: **[Configura review per GitHub →](quick-start.md)**
+- :simple-gitlab: **[Configura review per GitLab →](quick-start.md)**
 
+Crea un nuovo PR/MR — ottieni una revisione automaticamente.
 
-### GitHub
+!!! tip "Importante per la qualita della revisione"
+    **La qualita della revisione dipende direttamente dalla comprensione delle tue intenzioni da parte di AI Code Reviewer** (proprio come con un revisore umano reale). Pertanto, e una buona idea accompagnare il processo di sviluppo con la documentazione:
 
+    - **Crea un issue** che descrive il problema e i risultati desiderati
+    - **Descrivi il PR/MR** — il problema in dettaglio, l'approccio alla soluzione, i vincoli, i casi limite
+    - **Comunica nei commenti** — se lavori in team, tutto questo aggiunge contesto
 
-Nel tuo repository, crea:
-- in `Settings` → `Secrets and variables [Security]` → `Actions` → premi `New repository secret`:
-    - crea un secret chiamato `GOOGLE_API_KEY` con la tua chiave API Google come valore.
-- nella root del repository del tuo progetto:
-    - crea il file `.github/workflows/ai-review.yml` con il seguente contenuto:
-
-```yaml
-# .github/workflows/ai-review.yml
-name: AI Code Review
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: KonstZiv/ai-code-reviewer@v1
-        with:
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
-```
-
-### GitLab
-
-Nel tuo repository, crea:
-- in `Settings` → `CI/CD` → `Variables` → `CI/CD Variables` → premi `Add variable`:
-    - `Type`: Variable (default)
-    - `Visibility`: Masked (cosi non viene mostrato nei log)
-    - `Key`: GOOGLE_API_KEY
-    - `Value`: la tua chiave API Google
-- nella root del repository del tuo progetto:
-    - crea il file `.gitlab-ci.yml` con il seguente contenuto:
-
-```yaml
-# .gitlab-ci.yml
-ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:1
-  script:
-    - ai-review
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-```
-
-:point_right: [Scopri di piu →](quick-start.md)
-
-
-Crea un nuovo PR/MR — ottieni una revisione.
-
-**La qualita della revisione dipende direttamente dalla comprensione delle tue intenzioni da parte di AI Code Reviewer** (proprio come con un revisore umano reale). Pertanto, e una buona idea accompagnare il processo di sviluppo con la documentazione:
-- crea un issue che descrive il problema e i risultati desiderati
-- crea un branch collegato/PR/MR collegato nell'issue, descrivendo il problema in modo piu dettagliato, l'approccio alla soluzione, i vincoli, i risultati desiderati, i casi limite — tutto cio che aggiunge comprensione del contesto, strumenti, risultati
-- se lavori in team — comunica negli issue, commenta i PR/MR — tutto questo aggiunge contesto e migliora la qualita della revisione
+    Piu contesto — migliore qualita della revisione!
 
 ---
 
@@ -225,7 +175,7 @@ Opzioni aggiuntive:
 
 -   :simple-gitlab: **[GitLab](gitlab.md)**
 
-    Job token, trigger MR, self-hosted
+    Project access token, trigger MR, self-hosted
 
 -   :material-console: **[Riferimento CLI](api.md)**
 

@@ -8,96 +8,33 @@ Die Installationsoption hängt von Ihrem Anwendungsfall und Ihren Zielen ab.
 
 Das häufigste Szenario: AI Code Reviewer läuft automatisch, wenn ein PR/MR erstellt oder aktualisiert wird.
 
-### GitHub Actions
+Einrichtung in 5 Minuten:
 
-Der einfachste Weg für GitHub — verwenden Sie die fertige GitHub Action:
+- :octicons-mark-github-16: **[Review für GitHub einrichten →](quick-start.md)**
 
-```yaml
-# .github/workflows/ai-review.yml
-name: AI Code Review
+    :point_right: [Workflow-Beispiele →](examples/github-minimal.md) · [Detaillierter GitHub-Leitfaden →](github.md)
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+- :simple-gitlab: **[Review für GitLab einrichten →](quick-start.md)**
 
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: KonstZiv/ai-code-reviewer@v1
-        with:
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
-```
+    :point_right: [Workflow-Beispiele →](examples/gitlab-minimal.md) · [Detaillierter GitLab-Leitfaden →](gitlab.md)
 
-**Erforderliche Einrichtung:**
-
-| Was benötigt wird | Wo konfigurieren |
-|-------------------|------------------|
-| `GOOGLE_API_KEY` | Repository → Settings → Secrets → Actions |
-
-:point_right: [Vollständiges Beispiel mit Concurrency und Filterung →](quick-start.md#github-actions)
-
-:point_right: [Detaillierter GitHub-Leitfaden →](github.md)
+Für Feinabstimmung siehe [Konfiguration →](configuration.md)
 
 ---
 
-### GitLab CI
+## 2. Eigenständige Bereitstellung: CLI/Docker {#standalone}
 
-Für GitLab verwenden Sie das Docker-Image in `.gitlab-ci.yml`:
+CLI und Docker-Image ermöglichen die Ausführung von AI Code Reviewer außerhalb der Standard-CI-Pipeline.
 
-```yaml
-# .gitlab-ci.yml
-ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:1
-  stage: test
-  script:
-    - ai-review
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  allow_failure: true
-  variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-```
+### Anwendungsfälle
 
-**Erforderliche Einrichtung:**
-
-| Was benötigt wird | Wo konfigurieren |
-|-------------------|------------------|
-| `GOOGLE_API_KEY` | Project → Settings → CI/CD → Variables (Masked) |
-| `GITLAB_TOKEN` | Optional, für Inline-Kommentare ([Details](gitlab.md#tokens)) |
-
-:point_right: [Vollständiges Beispiel →](quick-start.md#gitlab-ci)
-
-:point_right: [Detaillierter GitLab-Leitfaden →](gitlab.md)
-
----
-
-## 2. Lokales Testen / Evaluierung {#local}
-
-### Warum wird das benötigt?
-
-1. **Evaluierung vor dem Deployment** — testen Sie an einem echten PR, bevor Sie es zu CI hinzufügen
-2. **Debugging** — wenn etwas in CI nicht funktioniert, führen Sie es lokal mit `--log-level DEBUG` aus
-3. **Retrospektives Review** — analysieren Sie einen alten PR/MR
-4. **Demo** — zeigen Sie dem Team/Management, wie es funktioniert
-
-### Wie es funktioniert
-
-```
-Lokales Terminal
-       │
-       ▼
-   ai-review CLI
-       │
-       ├──► GitHub/GitLab API (liest PR/MR, Diff, verknüpfte Issues)
-       │
-       ├──► Gemini API (erhält Review)
-       │
-       └──► GitHub/GitLab API (veröffentlicht Kommentare)
-```
+| Szenario | Wie umsetzen |
+|----------|--------------|
+| **Manueller Start** | Lokales Terminal — Debugging, Demo, Evaluierung |
+| **Scheduled Review** | GitLab Scheduled Pipeline / GitHub Actions `schedule` / cron |
+| **Batch Review** | Skript, das über offene PR/MR iteriert |
+| **Eigener Server** | Docker auf Server mit Zugriff auf Git API |
+| **On-demand Review** | Webhook → Container-Start |
 
 ### Erforderliche Umgebungsvariablen
 
@@ -109,7 +46,11 @@ Lokales Terminal
 
 ---
 
-### Option A: Docker (empfohlen)
+### Manueller Start
+
+Für Debugging, Demo, Evaluierung vor dem Deployment, retrospektive PR/MR-Analyse.
+
+#### Docker (empfohlen)
 
 Keine Python-Installation erforderlich — alles ist im Container enthalten.
 
@@ -147,9 +88,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
     - `ghcr.io/konstziv/ai-code-reviewer:1` — GitHub Container Registry
     - `koszivdocker/ai-reviewbot:1` — DockerHub
 
----
-
-### Option B: pip / uv
+#### pip / uv
 
 Installation als Python-Paket.
 
@@ -214,62 +153,116 @@ Zusätzliche Variablen sind für die Feinabstimmung verfügbar:
 
 ---
 
-## 3. Unternehmensumgebung (air-gapped) {#airgapped}
+### Scheduled Reviews
 
-Für Umgebungen mit eingeschränktem Internetzugang.
+Review nach Zeitplan ausführen — zur Ressourceneinsparung oder wenn sofortiges Feedback nicht erforderlich ist.
 
-### Einschränkungen
+=== "GitLab Scheduled Pipeline"
 
-!!! warning "Gemini API-Zugriff erforderlich"
-    AI Code Reviewer verwendet die Google Gemini API für Code-Analyse.
+    ```yaml
+    # .gitlab-ci.yml
+    ai-review-scheduled:
+      image: ghcr.io/konstziv/ai-code-reviewer:1
+      script:
+        - |
+          # Liste der offenen MR abrufen
+          MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+            "$CI_SERVER_URL/api/v4/projects/$CI_PROJECT_ID/merge_requests?state=opened" \
+            | jq -r '.[].iid')
 
-    **Erforderlicher Zugriff auf:** `generativelanguage.googleapis.com`
+          # Review für jeden MR ausführen
+          for MR_IID in $MR_LIST; do
+            echo "Reviewing MR !$MR_IID"
+            ai-review --provider gitlab --project $CI_PROJECT_PATH --pr $MR_IID || true
+          done
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+      variables:
+        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        GITLAB_TOKEN: $GITLAB_TOKEN
+    ```
 
-    Unterstützung für lokal bereitgestellte LLM-Modelle ist **noch nicht implementiert**.
+    **Zeitplan einrichten:** Project → Build → Pipeline schedules → New schedule
 
-### Docker-Image-Bereitstellung
+=== "GitHub Actions Schedule"
 
-**Schritt 1: Auf einer Maschine mit Internetzugang**
+    ```yaml
+    # .github/workflows/scheduled-review.yml
+    name: Scheduled AI Review
 
-```bash
-# Image herunterladen
-docker pull ghcr.io/konstziv/ai-code-reviewer:1
+    on:
+      schedule:
+        - cron: '0 9 * * *'  # Täglich um 9:00 UTC
 
-# In Datei speichern
-docker save ghcr.io/konstziv/ai-code-reviewer:1 > ai-code-reviewer.tar
-```
+    jobs:
+      review-open-prs:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Get open PRs and review
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+            run: |
+              # Liste der offenen PR abrufen
+              PRS=$(gh pr list --repo ${{ github.repository }} --state open --json number -q '.[].number')
 
-**Schritt 2: Datei in die geschlossene Umgebung übertragen**
-
-**Schritt 3: In interne Registry laden**
-
-```bash
-# Aus Datei laden
-docker load < ai-code-reviewer.tar
-
-# Für interne Registry neu taggen
-docker tag ghcr.io/konstziv/ai-code-reviewer:1 \
-    registry.internal.company.com/devops/ai-code-reviewer:1
-
-# Pushen
-docker push registry.internal.company.com/devops/ai-code-reviewer:1
-```
-
-**Schritt 4: In GitLab CI verwenden**
-
-```yaml
-ai-review:
-  image: registry.internal.company.com/devops/ai-code-reviewer:1
-  script:
-    - ai-review
-  variables:
-    GITLAB_URL: https://gitlab.internal.company.com
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-```
+              for PR in $PRS; do
+                echo "Reviewing PR #$PR"
+                docker run --rm \
+                  -e GOOGLE_API_KEY -e GITHUB_TOKEN \
+                  ghcr.io/konstziv/ai-code-reviewer:1 \
+                  --repo ${{ github.repository }} --pr $PR || true
+              done
+    ```
 
 ---
 
-## 4. Contributors / Entwicklung {#development}
+### Eigener Server / private Umgebung
+
+Für die Bereitstellung auf eigener Infrastruktur mit Zugriff auf Git API.
+
+**Optionen:**
+
+- **Docker auf Server** — Ausführung über cron, systemd timer oder als Service
+- **Kubernetes** — CronJob für Scheduled Reviews
+- **Self-hosted GitLab** — Variable `GITLAB_URL` hinzufügen (siehe Beispiel unten)
+
+**Beispiel cron job:**
+
+```bash
+# /etc/cron.d/ai-review
+# Täglich um 10:00 Review für alle offenen MR ausführen
+0 10 * * * reviewer /usr/local/bin/review-all-mrs.sh
+```
+
+```bash
+#!/bin/bash
+# /usr/local/bin/review-all-mrs.sh
+export GOOGLE_API_KEY="your_key"
+export GITLAB_TOKEN="your_token"
+
+MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  "https://gitlab.company.com/api/v4/projects/123/merge_requests?state=opened" \
+  | jq -r '.[].iid')
+
+for MR_IID in $MR_LIST; do
+  docker run --rm \
+    -e GOOGLE_API_KEY -e GITLAB_TOKEN \
+    ghcr.io/konstziv/ai-code-reviewer:1 \
+    --provider gitlab --project group/repo --pr $MR_IID
+done
+```
+
+!!! tip "Self-hosted GitLab"
+    Für Self-hosted GitLab fügen Sie die Variable `GITLAB_URL` hinzu:
+
+    ```bash
+    -e GITLAB_URL=https://gitlab.company.com
+    ```
+
+---
+
+## 3. Contributors / Entwicklung {#development}
 
 Wenn Sie Zeit und Inspiration haben, bei der Entwicklung des Pakets zu helfen, oder es als Grundlage für Ihre eigene Entwicklung verwenden möchten — wir begrüßen und ermutigen solche Aktionen aufrichtig!
 

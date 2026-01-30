@@ -52,8 +52,6 @@ Done! AI review will appear as comments on the MR.
 
 | Limitation | Solution |
 |------------|----------|
-| `CI_JOB_TOKEN` is limited | Use PAT |
-| No inline discussions | Need PAT with scope `api` |
 | MR blocked on error | Add `allow_failure: true` |
 
 ---

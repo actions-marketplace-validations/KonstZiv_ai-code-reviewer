@@ -128,19 +128,6 @@ ai-review:
 
 ---
 
-## CI_JOB_TOKEN vs PAT
-
-| Funzionalita | CI_JOB_TOKEN | PAT |
-|--------------|--------------|-----|
-| Leggi MR | :white_check_mark: | :white_check_mark: |
-| Pubblica note | :white_check_mark: | :white_check_mark: |
-| Discussioni inline | :x: | :white_check_mark: |
-| Richiede setup | :x: | :white_check_mark: |
-
-**Raccomandazione:** Usa PAT per funzionalita completa.
-
----
-
 ## Troubleshooting
 
 ### La Review Non Pubblica Commenti

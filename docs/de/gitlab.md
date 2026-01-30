@@ -4,40 +4,32 @@ Detaillierter Leitfaden für die Integration mit GitLab CI.
 
 ---
 
-## Tokens {#tokens}
+## Zugriffstoken {#tokens}
 
-### CI_JOB_TOKEN (automatisch)
+### Project Access Token {#get-token}
 
-In GitLab CI ist `CI_JOB_TOKEN` automatisch verfügbar:
+AI Reviewer benötigt einen **Project Access Token** mit Berechtigungen zum Erstellen von Kommentaren.
 
-```yaml
-variables:
-  GITLAB_TOKEN: $CI_JOB_TOKEN
-```
+!!! note "Maintainer-Rolle erforderlich"
+    Um einen Project Access Token zu erstellen, benötigen Sie die Rolle **Maintainer** oder **Owner** im Projekt.
 
-**`CI_JOB_TOKEN`-Einschränkungen:**
+    :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
 
-| Funktion | Status |
-|----------|--------|
-| MR lesen | :white_check_mark: |
-| Diff lesen | :white_check_mark: |
-| Notes posten | :white_check_mark: |
-| Discussions erstellen | :x: |
+**Token erstellen:**
 
-!!! warning "Eingeschränkte Berechtigungen"
-    `CI_JOB_TOKEN` kann keine Inline-Discussions erstellen.
+1. Öffnen Sie Projekt → `Settings` → `Access Tokens`
+2. Klicken Sie auf **Add new token**
+3. Füllen Sie das Formular aus:
 
-    Für volle Funktionalität verwenden Sie einen Personal Access Token.
+| Feld | Wert |
+|------|------|
+| **Token name** | `ai-reviewer` |
+| **Expiration date** | Wählen Sie ein Datum (max. 1 Jahr) |
+| **Role** | `Developer` |
+| **Scopes** | :white_check_mark: `api` |
 
-### Personal Access Token (empfohlen) {#get-token}
-
-Für **lokale Ausführungen** oder **volle Funktionalität in CI** benötigen Sie einen Personal Access Token:
-
-1. Gehen Sie zu `User Settings → Access Tokens → Add new token`
-2. Geben Sie den Token-Namen ein (z.B. `ai-code-reviewer`)
-3. Wählen Sie Scope: **`api`**
-4. Klicken Sie auf **Create personal access token**
-5. Kopieren Sie den Token und speichern Sie ihn als `GITLAB_TOKEN`
+4. Klicken Sie auf **Create project access token**
+5. **Kopieren Sie den Token** — er wird nur einmal angezeigt!
 
 ```yaml
 variables:
@@ -46,6 +38,8 @@ variables:
 
 !!! warning "Token speichern"
     GitLab zeigt den Token **nur einmal** an. Speichern Sie ihn sofort.
+
+:material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
 
 ---
 
@@ -58,7 +52,7 @@ variables:
 | Variable | Wert | Optionen |
 |----------|------|----------|
 | `GOOGLE_API_KEY` | Gemini API-Schlüssel | Masked |
-| `GITLAB_TOKEN` | PAT (falls benötigt) | Masked |
+| `GITLAB_TOKEN` | Project Access Token | Masked |
 
 !!! tip "Masked"
     Aktivieren Sie immer **Masked** für Secrets — sie werden nicht in Logs angezeigt.
@@ -101,6 +95,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Vollständig (empfohlen)
@@ -188,7 +183,6 @@ AI Code Reviewer verwendet automatisch:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | MR-Nummer |
 | `CI_SERVER_URL` | GitLab-URL |
-| `CI_JOB_TOKEN` | Automatischer Token |
 
 Sie müssen `--project` und `--mr-iid` nicht übergeben — sie werden automatisch aus CI übernommen.
 
@@ -202,7 +196,7 @@ AI Review postet Kommentare zum MR als Notes.
 
 ### Discussions (Inline)
 
-Für Inline-Kommentare benötigen Sie einen vollständigen PAT-Token (nicht `CI_JOB_TOKEN`).
+Für Inline-Kommentare benötigen Sie einen Project Access Token mit Scope `api`.
 
 Inline-Kommentare erscheinen direkt neben Code-Zeilen in der Diff-Ansicht.
 
@@ -241,7 +235,7 @@ Am Ende des Reviews wird eine Zusammenfassungs-Note gepostet mit:
 
 **Lösung:**
 
-- Verwenden Sie PAT anstelle von `CI_JOB_TOKEN`
+- Verwenden Sie Project Access Token mit Scope `api`
 - Überprüfen Sie, ob der Token Zugriff auf das Projekt hat
 
 ### "404 Not Found"
@@ -270,7 +264,7 @@ Am Ende des Reviews wird eine Zusammenfassungs-Note gepostet mit:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, nicht CI_JOB_TOKEN
+  GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token
 ```
 
 ### 2. allow_failure hinzufügen

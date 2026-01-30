@@ -707,13 +707,36 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 
 **Нотатки:**
 ```
+2026-01-30: Критичне оновлення документації — CI_JOB_TOKEN → Project Access Token ✅
+  🐛 Виявлено під час QA: CI_JOB_TOKEN не має прав на створення коментарів!
+
+  Проблема:
+    - CI_JOB_TOKEN (GitLab) має тільки read-only доступ до Notes API
+    - Не може створювати discussions (inline comments)
+    - Наші приклади з CI_JOB_TOKEN не працювали б для публікації коментарів
+
+  ✅ Виправлено:
+    - Всі приклади тепер використовують Project Access Token
+    - Оновлено quick-start.md з детальними інструкціями (Крок 2a/2b)
+    - Додано примітку про права Maintainer для створення токена
+    - Оновлено index.md — спрощено розділ "Швидкий старт"
+    - Синхронізовано всі 6 мов (uk, en, de, es, sr, it)
+    - Оновлено examples/, README.md, DOCKERHUB_README.md
+    - CI_JOB_TOKEN повністю видалено з документації
+
+2026-01-30: QA виявило критичну помилку — виправлено ✅
+- Проблема: Action показував --help замість виконання
+- Причина: github_token не передавався явно в прикладах
+- Виправлено: оновлено всі приклади (6 мов) + troubleshooting
+- Реліз v1.0.0a2 опубліковано
+
 2026-01-28: План тестування розпочато
 - Визначено 5 груп з різними сценаріями
 - Концепція: функціональність + документація паралельно
 - Детальний план Групи 1 готовий
 - Плани груп 2-5 потрібно деталізувати
 
-Далі: Деталізувати плани груп 2-5, роздати студентам
+Далі: Продовжити QA з оновленою документацією
 ```
 
 ---
@@ -723,7 +746,8 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 **Призначено:** Human
 **Оцінка часу:** 1 година
 
-> **Примітка:** Alpha реліз v1.0.0a1 вже опубліковано в Task 8.
+> **Примітка:** Alpha реліз v1.0.0a2 вже опубліковано (виправлено помилку з --help).
+> Документація оновлена — CI_JOB_TOKEN замінено на Project Access Token.
 > Це завдання — фінальний стабільний реліз після QA.
 
 **Чеклист:**
@@ -804,42 +828,50 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 Завдання 9: Ручне тестування та QA
 - [x] План тестування створено (5 груп)
 - [x] Детальний план Групи 1 готовий
-- [ ] Деталізувати плани груп 2-5
-- [ ] Роздати завдання студентам
-- [ ] Зібрати звіти та виправити баги
+- [x] Виправлено помилку --help (v1.0.0a2)
+- [x] Виправлено CI_JOB_TOKEN → Project Access Token
+- [x] Оновлено quick-start.md (нова структура з кроками)
+- [x] Реструктуризовано installation.md (секція 2 → "Автономне розгортання: CLI/Docker")
+- [x] Видалено air-gapped секцію (Gemini потребує інтернету)
+- [x] Синхронізовано всі 6 мов документації
+- [ ] Продовжити QA з оновленою документацією
+- [ ] Створити реліз v1.0.0a3 з оновленою документацією
 ```
 
 ### Прогрес з останнього оновлення
 ```
+2026-01-30: Реструктуризація installation.md ✅
+  - Секція 2 перейменована: "Локальне тестування" → "Автономне розгортання: CLI/Docker"
+  - Додано таблицю сценаріїв використання (manual, scheduled, batch, server, on-demand)
+  - Додано приклади scheduled reviews (GitLab/GitHub)
+  - Додано секцію "Власний сервер / приватне середовище"
+  - Видалено секцію air-gapped (Gemini потребує інтернету)
+  - Синхронізовано всі 6 мов
+
+2026-01-30: Критичне оновлення документації — CI_JOB_TOKEN → Project Access Token ✅
+  🐛 Виявлено: CI_JOB_TOKEN не має прав на створення коментарів!
+
+  Проблема:
+    - CI_JOB_TOKEN має тільки read-only доступ до Notes/Discussions API
+    - Не працювало б для публікації коментарів в GitLab
+
+  ✅ Виправлено (42 файли):
+    - Всі приклади використовують Project Access Token
+    - quick-start.md: нова структура з Крок 1/2/3/4, закладки GitHub/GitLab
+    - Додано примітку про права Maintainer
+    - index.md: спрощено розділ "Швидкий старт"
+    - Синхронізовано 6 мов (uk, en, de, es, sr, it)
+    - Оновлено examples/, README.md, DOCKERHUB_README.md
+    - CI_JOB_TOKEN = 0 згадок в docs/
+
+2026-01-30: Виправлення --help (v1.0.0a2) ✅
+  - github_token не передавався явно в прикладах
+  - Оновлено всі приклади + troubleshooting
+
 2026-01-29: Критичні виправлення GitHub Action та Docker ✅
-  🐛 Issue від студентів: "Unable to resolve action @v1"
+  - Тег v1, Docker semver tags, lowercase конвертація
 
-  Виявлені проблеми:
-    1. Git тег v1 не існував (тільки v1.0.0a1)
-    2. Docker images не мали тегів :1, :1.0, :1.0.0a1 (тільки :latest)
-    3. docker-publish.yml: workflow_dispatch не передавав версію
-    4. docker-publish.yml: github.repository uppercase → Docker fail
-    5. examples/*.yml: застарілі посилання @v0.1.0
-
-  ✅ Виправлено:
-    - Створено тег v1 → d2918a9
-    - Оновлено docker-publish.yml з input для версії
-    - Додано lowercase конвертацію для Docker tags
-    - Перезапущено docker-publish з версією 1.0.0a1
-    - Оновлено examples/ на @v1
-    - Вся документація консистентна
-
-  📦 Docker images тепер доступні:
-    - ghcr.io/konstziv/ai-code-reviewer:1 ✅
-    - ghcr.io/konstziv/ai-code-reviewer:1.0 ✅
-    - ghcr.io/konstziv/ai-code-reviewer:1.0.0a1 ✅
-    - koszivdocker/ai-reviewbot:1 ✅
-
-2026-01-28: Завдання 8 ЗАВЕРШЕНО ✅
-  ✅ Реліз v1.0.0a1 опубліковано
-
-2026-01-28: Завдання 9 розпочато
-  📋 План ручного тестування: 5 груп студентів
+2026-01-28: Завдання 8 ЗАВЕРШЕНО, реліз v1.0.0a1 ✅
 ```
 
 ### Блокери
@@ -849,7 +881,7 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 
 ### Питання
 ```
-Немає — готові до ручного тестування
+Потрібен новий реліз v1.0.0a3 з оновленою документацією?
 ```
 
 ---
@@ -1034,6 +1066,16 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 **Рішення:** Додано `${GITHUB_REPOSITORY,,}` bash lowercase конвертацію
 **Статус:** ✅ Виправлено
 
+### Проблема 8: CI_JOB_TOKEN не може створювати коментарі — 2026-01-30
+**Проблема:** Приклади GitLab використовували `CI_JOB_TOKEN`, який не має прав на створення коментарів
+**Причина:** `CI_JOB_TOKEN` має тільки read-only доступ до Notes/Discussions API в GitLab
+**Рішення:**
+- Замінено всі приклади на Project Access Token
+- Оновлено quick-start.md з детальними інструкціями створення токена
+- Додано примітку про права Maintainer
+- Синхронізовано 6 мов документації (42 файли)
+**Статус:** ✅ Виправлено
+
 ---
 
 ## 💡 Висновки та інсайти
@@ -1043,6 +1085,8 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 - GitHub Review API потрібен для Apply Suggestion (не Issue Comments)
 - GitLab використовує Discussions API для inline comments
 - Мовна адаптивність краще через LLM prompt, ніж бібліотеку
+- GitLab CI_JOB_TOKEN має read-only доступ до Notes API — не підходить для коментарів!
+- Для GitLab потрібен Project Access Token з scope `api` та роль Maintainer для створення
 ```
 
 ### Процесні висновки
@@ -1167,23 +1211,23 @@ tag v1.0.0a1 → release.yml (test → build → PyPI → GitHub Release)
 
 ## 🔄 Відновлення сесії (Session Recovery)
 
-**Останнє оновлення:** 2026-01-29
+**Останнє оновлення:** 2026-01-30
 
 ### Поточний стан
 - **Sprint 1:** майже завершено (9/10 завдань done, QA в роботі)
-- **Реліз:** v1.0.0a1 опубліковано (alpha)
-- **Гілка:** main (всі виправлення змержені)
-- **Тег v1:** d2918a9 (актуальний)
+- **Реліз:** v1.0.0a2 опубліковано (alpha) — виправлено --help
+- **Документація:** оновлена — CI_JOB_TOKEN → Project Access Token
+- **Гілка:** main (потребує commit з оновленою документацією)
 
-### Опубліковані артефакти (всі працюють ✅)
-| Артефакт | URL/Image |
-|----------|-----------|
-| PyPI | https://pypi.org/project/ai-reviewbot/1.0.0a1/ |
-| DockerHub | `koszivdocker/ai-reviewbot:1` |
-| GHCR | `ghcr.io/konstziv/ai-code-reviewer:1` |
-| Marketplace | https://github.com/marketplace/actions/ai-reviewbot |
-| Documentation | https://konstziv.github.io/ai-code-reviewer/ |
-| Codecov | https://codecov.io/gh/KonstZiv/ai-code-reviewer |
+### Опубліковані артефакти
+| Артефакт | URL/Image | Статус |
+|----------|-----------|--------|
+| PyPI | https://pypi.org/project/ai-reviewbot/1.0.0a2/ | ✅ |
+| DockerHub | `koszivdocker/ai-reviewbot:1` | ✅ |
+| GHCR | `ghcr.io/konstziv/ai-code-reviewer:1` | ✅ |
+| Marketplace | https://github.com/marketplace/actions/ai-reviewbot | ✅ |
+| Documentation | https://konstziv.github.io/ai-code-reviewer/ | ⚠️ потрібен deploy |
+| Codecov | https://codecov.io/gh/KonstZiv/ai-code-reviewer | ✅ |
 
 ### ⚠️ Важливо: Правильні Docker URL
 ```bash
@@ -1198,30 +1242,24 @@ uses: KonstZiv/ai-code-reviewer@v1
 ```
 
 ### Консистентність документації ✅
-| Елемент | Значення | Кількість посилань |
-|---------|----------|-------------------|
-| GitHub Action | `@v1` | 58 |
-| GHCR Docker | `:1` | 126 |
-| DockerHub | `:1` | 8 |
+| Елемент | Значення |
+|---------|----------|
+| GitHub Action | `@v1` |
+| GHCR Docker | `:1` |
+| DockerHub | `:1` |
+| CI_JOB_TOKEN | **0 згадок** (видалено) |
+| Project Access Token | Основний метод для GitLab |
 
 ### Наступні кроки
-1. **Деталізувати плани груп 2-5** для ручного тестування
-2. **Роздати завдання студентам** (5 груп)
-3. **Зібрати звіти** та виправити знайдені баги
-4. **Завдання 10:** Стабільний реліз v1.0.0 після QA
+1. **Створити реліз v1.0.0a3** з оновленою документацією (CI_JOB_TOKEN → PAT)
+2. **Продовжити QA** з новою документацією
+3. **Завдання 10:** Стабільний реліз v1.0.0 після QA
 
-### План ручного тестування (Завдання 9)
-5 груп, кожна тестує сценарій + верифікує документацію:
-
-| # | Група | Сценарій | Статус плану |
-|---|-------|----------|--------------|
-| 1 | GitHub Quick Start | Marketplace Action → PR → коментарі | ✅ Готовий |
-| 2 | GitLab Quick Start | Docker в CI → MR → коментарі | ⏳ Потрібно |
-| 3 | Конфігурація | Мова, model, language_mode | ⏳ Потрібно |
-| 4 | Docker | Pull + run локально | ⏳ Потрібно |
-| 5 | PyPI | pip install + використання | ⏳ Потрібно |
-
-**Детальний план Групи 1** — див. секцію "Завдання 9" вище.
+### Зміни в документації (2026-01-30)
+- `quick-start.md` — нова структура з 4 кроками та закладками GitHub/GitLab
+- `index.md` — спрощений розділ "Швидкий старт"
+- `gitlab.md` — видалено CI_JOB_TOKEN, Project Access Token як основний
+- Всі 6 мов синхронізовано (uk, en, de, es, sr, it)
 
 ### Команди для початку роботи
 ```bash

@@ -128,19 +128,6 @@ ai-review:
 
 ---
 
-## CI_JOB_TOKEN vs PAT
-
-| Feature | CI_JOB_TOKEN | PAT |
-|---------|--------------|-----|
-| Read MR | :white_check_mark: | :white_check_mark: |
-| Post notes | :white_check_mark: | :white_check_mark: |
-| Inline discussions | :x: | :white_check_mark: |
-| Requires setup | :x: | :white_check_mark: |
-
-**Recommendation:** Use PAT for full functionality.
-
----
-
 ## Troubleshooting
 
 ### Review Not Posting Comments
