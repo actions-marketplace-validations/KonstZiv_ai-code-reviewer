@@ -8,101 +8,33 @@
 
 Найпоширеніший сценарій: AI Code Reviewer запускається автоматично при створенні або оновленні PR/MR.
 
-### GitHub Actions
+Налаштуйте за 5 хвилин:
 
-Найпростіший спосіб для GitHub — використання готового GitHub Action:
+- :octicons-mark-github-16: **[Налаштування ревʼю для GitHub →](quick-start.md)**
 
-```yaml
-# .github/workflows/ai-review.yml
-name: AI Code Review
+    :point_right: [Приклади workflows →](examples/github-minimal.md) · [Детальний GitHub Guide →](github.md)
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+- :simple-gitlab: **[Налаштування ревʼю для GitLab →](quick-start.md)**
 
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: KonstZiv/ai-code-reviewer@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
-```
+    :point_right: [Приклади workflows →](examples/gitlab-minimal.md) · [Детальний GitLab Guide →](gitlab.md)
 
-!!! info "Про `GITHUB_TOKEN`"
-    `secrets.GITHUB_TOKEN` — це автоматичний токен, який GitHub створює для кожного workflow. Його не потрібно додавати вручну.
-
-**Необхідні налаштування:**
-
-| Що потрібно | Де налаштувати |
-|-------------|----------------|
-| `GOOGLE_API_KEY` | Repository → Settings → Secrets → Actions |
-
-:point_right: [Повний приклад з concurrency та фільтрацією →](quick-start.md#ci-setup)
-
-:point_right: [Детальний GitHub Guide →](github.md)
+Для тонкого налаштування див. [Конфігурація →](configuration.md)
 
 ---
 
-### GitLab CI
+## 2. Автономне розгортання: CLI/Docker {#standalone}
 
-Для GitLab використовуйте Docker image в `.gitlab-ci.yml`:
+CLI та Docker image дозволяють запускати AI Code Reviewer поза стандартним CI pipeline.
 
-```yaml
-# .gitlab-ci.yml
-ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:1
-  stage: test
-  script:
-    - ai-review
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  allow_failure: true
-  variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-```
+### Сценарії використання
 
-**Необхідні налаштування:**
-
-| Що потрібно | Де налаштувати |
-|-------------|----------------|
-| `GOOGLE_API_KEY` | Project → Settings → CI/CD → Variables (Masked) |
-| `GITLAB_TOKEN` | Project Access Token з scope `api` ([детальніше](gitlab.md#tokens)) |
-
-:point_right: [Повний приклад →](quick-start.md#ci-setup)
-
-:point_right: [Детальний GitLab Guide →](gitlab.md)
-
----
-
-## 2. Локальне тестування / оцінка {#local}
-
-### Навіщо це потрібно?
-
-1. **Оцінка перед впровадженням** — спробувати на реальному PR перш ніж додавати в CI
-2. **Debugging** — якщо в CI щось не працює, запустити локально з `--log-level DEBUG`
-3. **Ретроспективний review** — проаналізувати старий PR/MR
-4. **Демо** — показати команді/менеджменту як це працює
-
-### Як це працює
-
-```
-Локальний термінал
-       │
-       ▼
-   ai-review CLI
-       │
-       ├──► GitHub/GitLab API (читає PR/MR, diff, linked issues)
-       │
-       ├──► Gemini API (отримує review)
-       │
-       └──► GitHub/GitLab API (публікує коментарі)
-```
+| Сценарій | Як реалізувати |
+|----------|----------------|
+| **Ручний запуск** | Локальний термінал — debugging, демо, оцінка |
+| **Scheduled review** | GitLab Scheduled Pipeline / GitHub Actions `schedule` / cron |
+| **Batch review** | Скрипт що ітерує по відкритих PR/MR |
+| **Власний сервер** | Docker на сервері з доступом до Git API |
+| **On-demand review** | Webhook → запуск контейнера |
 
 ### Обов'язкові змінні оточення
 
@@ -114,7 +46,11 @@ ai-review:
 
 ---
 
-### Варіант A: Docker (рекомендовано)
+### Ручний запуск
+
+Для debugging, демо, оцінки перед впровадженням, ретроспективного аналізу PR/MR.
+
+#### Docker (рекомендовано)
 
 Не потребує встановлення Python — все в контейнері.
 
@@ -152,9 +88,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
     - `ghcr.io/konstziv/ai-code-reviewer:1` — GitHub Container Registry
     - `koszivdocker/ai-reviewbot:1` — DockerHub
 
----
-
-### Варіант B: pip / uv
+#### pip / uv
 
 Встановлення як Python пакету.
 
@@ -219,62 +153,116 @@ export GITHUB_TOKEN=your_token  # або GITLAB_TOKEN для GitLab
 
 ---
 
-## 3. Корпоративне середовище (air-gapped) {#airgapped}
+### Scheduled reviews
 
-Для середовищ з обмеженим доступом до інтернету.
+Запуск ревʼю за розкладом — для економії ресурсів або коли не потрібен миттєвий фідбек.
 
-### Обмеження
+=== "GitLab Scheduled Pipeline"
 
-!!! warning "Потрібен доступ до Gemini API"
-    AI Code Reviewer використовує Google Gemini API для аналізу коду.
+    ```yaml
+    # .gitlab-ci.yml
+    ai-review-scheduled:
+      image: ghcr.io/konstziv/ai-code-reviewer:1
+      script:
+        - |
+          # Отримати список відкритих MR
+          MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+            "$CI_SERVER_URL/api/v4/projects/$CI_PROJECT_ID/merge_requests?state=opened" \
+            | jq -r '.[].iid')
 
-    **Потрібен доступ до:** `generativelanguage.googleapis.com`
+          # Запустити ревʼю для кожного MR
+          for MR_IID in $MR_LIST; do
+            echo "Reviewing MR !$MR_IID"
+            ai-review --provider gitlab --project $CI_PROJECT_PATH --pr $MR_IID || true
+          done
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+      variables:
+        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        GITLAB_TOKEN: $GITLAB_TOKEN
+    ```
 
-    Наразі підтримка локально розгорнутих LLM моделей **не реалізована**.
+    **Налаштування розкладу:** Project → Build → Pipeline schedules → New schedule
 
-### Розгортання Docker image
+=== "GitHub Actions Schedule"
 
-**Крок 1: На машині з доступом до інтернету**
+    ```yaml
+    # .github/workflows/scheduled-review.yml
+    name: Scheduled AI Review
 
-```bash
-# Завантажити image
-docker pull ghcr.io/konstziv/ai-code-reviewer:1
+    on:
+      schedule:
+        - cron: '0 9 * * *'  # Щодня о 9:00 UTC
 
-# Зберегти в файл
-docker save ghcr.io/konstziv/ai-code-reviewer:1 > ai-code-reviewer.tar
-```
+    jobs:
+      review-open-prs:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Get open PRs and review
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+            run: |
+              # Отримати список відкритих PR
+              PRS=$(gh pr list --repo ${{ github.repository }} --state open --json number -q '.[].number')
 
-**Крок 2: Перенести файл у закрите середовище**
-
-**Крок 3: Завантажити в internal registry**
-
-```bash
-# Завантажити з файлу
-docker load < ai-code-reviewer.tar
-
-# Перетегувати для internal registry
-docker tag ghcr.io/konstziv/ai-code-reviewer:1 \
-    registry.internal.company.com/devops/ai-code-reviewer:1
-
-# Опублікувати
-docker push registry.internal.company.com/devops/ai-code-reviewer:1
-```
-
-**Крок 4: Використати в GitLab CI**
-
-```yaml
-ai-review:
-  image: registry.internal.company.com/devops/ai-code-reviewer:1
-  script:
-    - ai-review
-  variables:
-    GITLAB_URL: https://gitlab.internal.company.com
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-```
+              for PR in $PRS; do
+                echo "Reviewing PR #$PR"
+                docker run --rm \
+                  -e GOOGLE_API_KEY -e GITHUB_TOKEN \
+                  ghcr.io/konstziv/ai-code-reviewer:1 \
+                  --repo ${{ github.repository }} --pr $PR || true
+              done
+    ```
 
 ---
 
-## 4. Контриб'ютори / розробка {#development}
+### Власний сервер / приватне середовище
+
+Для розгортання на власній інфраструктурі з доступом до Git API.
+
+**Варіанти:**
+
+- **Docker на сервері** — запуск через cron, systemd timer, або як сервіс
+- **Kubernetes** — CronJob для scheduled reviews
+- **Self-hosted GitLab** — додайте змінну `GITLAB_URL` (див. приклад нижче)
+
+**Приклад cron job:**
+
+```bash
+# /etc/cron.d/ai-review
+# Щодня о 10:00 запускати ревʼю для всіх відкритих MR
+0 10 * * * reviewer /usr/local/bin/review-all-mrs.sh
+```
+
+```bash
+#!/bin/bash
+# /usr/local/bin/review-all-mrs.sh
+export GOOGLE_API_KEY="your_key"
+export GITLAB_TOKEN="your_token"
+
+MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  "https://gitlab.company.com/api/v4/projects/123/merge_requests?state=opened" \
+  | jq -r '.[].iid')
+
+for MR_IID in $MR_LIST; do
+  docker run --rm \
+    -e GOOGLE_API_KEY -e GITLAB_TOKEN \
+    ghcr.io/konstziv/ai-code-reviewer:1 \
+    --provider gitlab --project group/repo --pr $MR_IID
+done
+```
+
+!!! tip "Self-hosted GitLab"
+    Для self-hosted GitLab додайте змінну `GITLAB_URL`:
+
+    ```bash
+    -e GITLAB_URL=https://gitlab.company.com
+    ```
+
+---
+
+## 3. Контриб'ютори / розробка {#development}
 
 Якщо ви маєте час і натхнення допомогти в розвитку пакета, або бажаєте використати його як основу для власних розробок — ми щиро вітаємо і заохочуємо до таких дій!
 

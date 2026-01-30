@@ -8,113 +8,49 @@ Opcija instalacije zavisi od vašeg slučaja upotrebe i ciljeva.
 
 Najčešći scenario: AI Code Reviewer se pokreće automatski kada se kreira ili ažurira PR/MR.
 
-### GitHub Actions
+Podesite za 5 minuta:
 
-Najjednostavniji način za GitHub — koristite gotov GitHub Action:
+- :octicons-mark-github-16: **[Podešavanje revizije za GitHub →](quick-start.md)**
 
-```yaml
-# .github/workflows/ai-review.yml
-name: AI Code Review
+    :point_right: [Primjeri workflow-a →](examples/github-minimal.md) · [Detaljan GitHub vodič →](github.md)
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+- :simple-gitlab: **[Podešavanje revizije za GitLab →](quick-start.md)**
 
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: KonstZiv/ai-code-reviewer@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
-```
+    :point_right: [Primjeri workflow-a →](examples/gitlab-minimal.md) · [Detaljan GitLab vodič →](gitlab.md)
 
-!!! info "O `GITHUB_TOKEN`"
-    `secrets.GITHUB_TOKEN` je automatski token koji GitHub kreira za svaki workflow. Ne trebate ga ručno dodavati.
-
-**Potrebna podešavanja:**
-
-| Šta je potrebno | Đe se konfiguriše |
-|---------------|-------------------|
-| `GOOGLE_API_KEY` | Repository → Settings → Secrets → Actions |
-
-:point_right: [Puni primjer sa konkurentnošću i filterima →](quick-start.md#ci-setup)
-
-:point_right: [Detaljan GitHub vodič →](github.md)
+Za fino podešavanje pogledajte [Konfiguracija →](configuration.md)
 
 ---
 
-### GitLab CI
+## 2. Samostalno postavljanje: CLI/Docker {#standalone}
 
-Za GitLab, koristite Docker image u `.gitlab-ci.yml`:
+CLI i Docker image omogućavaju pokretanje AI Code Reviewer-a van standardnog CI pipeline-a.
 
-```yaml
-# .gitlab-ci.yml
-ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:1
-  stage: test
-  script:
-    - ai-review
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  allow_failure: true
-  variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-```
+### Scenariji upotrebe
 
-**Potrebna podešavanja:**
+| Scenario | Kako realizovati |
+|----------|------------------|
+| **Ručno pokretanje** | Lokalni terminal — debugging, demo, evaluacija |
+| **Scheduled review** | GitLab Scheduled Pipeline / GitHub Actions `schedule` / cron |
+| **Batch review** | Skripta koja iterira kroz otvorene PR/MR |
+| **Vlastiti server** | Docker na serveru sa pristupom Git API-ju |
+| **On-demand review** | Webhook → pokretanje kontejnera |
 
-| Šta je potrebno | Đe se konfiguriše |
-|---------------|-------------------|
-| `GOOGLE_API_KEY` | Project → Settings → CI/CD → Variables (Masked) |
-| `GITLAB_TOKEN` | Project Access Token sa scope `api` ([detalji](gitlab.md#tokens)) |
-
-:point_right: [Puni primjer →](quick-start.md#ci-setup)
-
-:point_right: [Detaljan GitLab vodič →](gitlab.md)
-
----
-
-## 2. Lokalno testiranje / Evaluacija {#local}
-
-### Zašto je ovo potrebno?
-
-1. **Evaluacija prije deployovanja** — isprobajte na pravom PR-u prije dodavanja u CI
-2. **Debagovanje** — ako nešto ne radi u CI-ju, pokrenite lokalno sa `--log-level DEBUG`
-3. **Retrospektivna revizija** — analizirajte stari PR/MR
-4. **Demo** — pokažite timu/menadžmentu kako funkcioniše
-
-### Kako funkcioniše
-
-```
-Lokalni terminal
-       │
-       ▼
-   ai-review CLI
-       │
-       ├──► GitHub/GitLab API (čita PR/MR, diff, povezane issue-e)
-       │
-       ├──► Gemini API (dobija reviziju)
-       │
-       └──► GitHub/GitLab API (objavljuje komentare)
-```
-
-### Potrebne varijable okruženja
+### Obavezne varijable okruženja
 
 | Varijabla | Opis | Kada je potrebna | Kako dobiti |
-|----------|-------------|-------------|------------|
-| `GOOGLE_API_KEY` | Gemini API ključ | **Uvijek** | [Google AI Studio](https://aistudio.google.com/) |
+|----------|------|------------------|-------------|
+| `GOOGLE_API_KEY` | API ključ za Gemini | **Uvijek** | [Google AI Studio](https://aistudio.google.com/) |
 | `GITHUB_TOKEN` | GitHub Personal Access Token | Za GitHub | [Instrukcije](github.md#get-token) |
 | `GITLAB_TOKEN` | GitLab Personal Access Token | Za GitLab | [Instrukcije](gitlab.md#get-token) |
 
 ---
 
-### Opcija A: Docker (preporučeno)
+### Ručno pokretanje
+
+Za debugging, demo, evaluaciju prije implementacije, retrospektivnu analizu PR/MR.
+
+#### Docker (preporučeno)
 
 Nije potrebna instalacija Python-a — sve je u kontejneru.
 
@@ -152,9 +88,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
     - `ghcr.io/konstziv/ai-code-reviewer:1` — GitHub Container Registry
     - `koszivdocker/ai-reviewbot:1` — DockerHub
 
----
-
-### Opcija B: pip / uv
+#### pip / uv
 
 Instalacija kao Python paket.
 
@@ -219,62 +153,116 @@ Dodatne varijable su dostupne za fino podešavanje:
 
 ---
 
-## 3. Korporativno okruženje (air-gapped) {#airgapped}
+### Scheduled reviews
 
-Za okruženja sa ograničenim pristupom internetu.
+Pokretanje revizije po rasporedu — za uštedu resursa ili kada nije potreban trenutni feedback.
 
-### Ograničenja
+=== "GitLab Scheduled Pipeline"
 
-!!! warning "Potreban pristup Gemini API-ju"
-    AI Code Reviewer koristi Google Gemini API za analizu koda.
+    ```yaml
+    # .gitlab-ci.yml
+    ai-review-scheduled:
+      image: ghcr.io/konstziv/ai-code-reviewer:1
+      script:
+        - |
+          # Dobij listu otvorenih MR
+          MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+            "$CI_SERVER_URL/api/v4/projects/$CI_PROJECT_ID/merge_requests?state=opened" \
+            | jq -r '.[].iid')
 
-    **Potreban pristup:** `generativelanguage.googleapis.com`
+          # Pokreni reviziju za svaki MR
+          for MR_IID in $MR_LIST; do
+            echo "Reviewing MR !$MR_IID"
+            ai-review --provider gitlab --project $CI_PROJECT_PATH --pr $MR_IID || true
+          done
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+      variables:
+        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        GITLAB_TOKEN: $GITLAB_TOKEN
+    ```
 
-    Podrška za lokalno deployovane LLM modele **još nije implementirana**.
+    **Podešavanje rasporeda:** Project → Build → Pipeline schedules → New schedule
 
-### Deployovanje Docker image-a
+=== "GitHub Actions Schedule"
 
-**Korak 1: Na mašini sa pristupom internetu**
+    ```yaml
+    # .github/workflows/scheduled-review.yml
+    name: Scheduled AI Review
 
-```bash
-# Preuzmite image
-docker pull ghcr.io/konstziv/ai-code-reviewer:1
+    on:
+      schedule:
+        - cron: '0 9 * * *'  # Svaki dan u 9:00 UTC
 
-# Sačuvajte u fajl
-docker save ghcr.io/konstziv/ai-code-reviewer:1 > ai-code-reviewer.tar
-```
+    jobs:
+      review-open-prs:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Get open PRs and review
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+            run: |
+              # Dobij listu otvorenih PR
+              PRS=$(gh pr list --repo ${{ github.repository }} --state open --json number -q '.[].number')
 
-**Korak 2: Prenesite fajl u zatvoreno okruženje**
-
-**Korak 3: Učitajte u interni registar**
-
-```bash
-# Učitajte iz fajla
-docker load < ai-code-reviewer.tar
-
-# Ponovo tagirajte za interni registar
-docker tag ghcr.io/konstziv/ai-code-reviewer:1 \
-    registry.internal.company.com/devops/ai-code-reviewer:1
-
-# Push
-docker push registry.internal.company.com/devops/ai-code-reviewer:1
-```
-
-**Korak 4: Koristite u GitLab CI**
-
-```yaml
-ai-review:
-  image: registry.internal.company.com/devops/ai-code-reviewer:1
-  script:
-    - ai-review
-  variables:
-    GITLAB_URL: https://gitlab.internal.company.com
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-```
+              for PR in $PRS; do
+                echo "Reviewing PR #$PR"
+                docker run --rm \
+                  -e GOOGLE_API_KEY -e GITHUB_TOKEN \
+                  ghcr.io/konstziv/ai-code-reviewer:1 \
+                  --repo ${{ github.repository }} --pr $PR || true
+              done
+    ```
 
 ---
 
-## 4. Kontributori / Razvoj {#development}
+### Vlastiti server / privatno okruženje
+
+Za deployovanje na vlastitoj infrastrukturi sa pristupom Git API-ju.
+
+**Opcije:**
+
+- **Docker na serveru** — pokretanje putem cron, systemd timer, ili kao servis
+- **Kubernetes** — CronJob za scheduled reviews
+- **Self-hosted GitLab** — dodajte varijablu `GITLAB_URL` (pogledajte primjer ispod)
+
+**Primjer cron job-a:**
+
+```bash
+# /etc/cron.d/ai-review
+# Svaki dan u 10:00 pokreni reviziju za sve otvorene MR
+0 10 * * * reviewer /usr/local/bin/review-all-mrs.sh
+```
+
+```bash
+#!/bin/bash
+# /usr/local/bin/review-all-mrs.sh
+export GOOGLE_API_KEY="your_key"
+export GITLAB_TOKEN="your_token"
+
+MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  "https://gitlab.company.com/api/v4/projects/123/merge_requests?state=opened" \
+  | jq -r '.[].iid')
+
+for MR_IID in $MR_LIST; do
+  docker run --rm \
+    -e GOOGLE_API_KEY -e GITLAB_TOKEN \
+    ghcr.io/konstziv/ai-code-reviewer:1 \
+    --provider gitlab --project group/repo --pr $MR_IID
+done
+```
+
+!!! tip "Self-hosted GitLab"
+    Za self-hosted GitLab dodajte varijablu `GITLAB_URL`:
+
+    ```bash
+    -e GITLAB_URL=https://gitlab.company.com
+    ```
+
+---
+
+## 3. Kontributori / Razvoj {#development}
 
 Ako imate vremena i inspiracije da pomognete u razvoju paketa, ili želite da ga koristite kao osnovu za sopstveni razvoj — iskreno pozdravljamo i ohrabrujemo takve akcije!
 
