@@ -66,13 +66,18 @@ jobs:
 ### GitLab
 
 U vašem repozitorijumu kreirajte:
-- u `Settings` → `CI/CD` → `Variables` → `CI/CD Variables` → pritisnite `Add variable`:
-    - `Type`: Variable (podrazumijevano)
-    - `Visibility`: Masked (da se ne prikazuje u logovima)
-    - `Key`: GOOGLE_API_KEY
-    - `Value`: vaš Google API ključ
-- u korijenu vašeg projektnog repozitorijuma:
-    - kreirajte fajl `.gitlab-ci.yml` sa sljedećim sadržajem:
+
+1. **Project Access Token** (za pisanje komentara):
+   - `Settings` → `Access Tokens` → `Add new token`
+   - Token name: `ai-reviewer`
+   - Role: `Developer`
+   - Scopes: `api`
+
+2. **CI/CD varijable** u `Settings` → `CI/CD` → `Variables`:
+   - `GOOGLE_API_KEY`: vaš Google API ključ (Masked)
+   - `GITLAB_TOKEN`: token iz koraka 1 (Masked)
+
+3. **Workflow fajl** `.gitlab-ci.yml` u korijenu repozitorijuma:
 
 ```yaml
 # .gitlab-ci.yml
@@ -84,6 +89,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 :point_right: [Saznajte više →](quick-start.md)

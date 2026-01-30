@@ -57,14 +57,14 @@ jobs:
 ```yaml
 # .gitlab-ci.yml
 ai-review:
-  image: koszivdocker/ai-reviewbot:1
+  image: ghcr.io/konstziv/ai-code-reviewer:1
   script:
     - ai-review
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $CI_JOB_TOKEN
+    GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token with 'api' scope
 ```
 
 ### PyPI

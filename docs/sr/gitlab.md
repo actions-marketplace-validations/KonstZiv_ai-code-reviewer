@@ -4,40 +4,27 @@ Detaljan vodič za integraciju sa GitLab CI.
 
 ---
 
-## Tokeni {#tokens}
+## Token pristupa {#tokens}
 
-### CI_JOB_TOKEN (automatski)
+### Project Access Token {#get-token}
 
-U GitLab CI, `CI_JOB_TOKEN` je automatski dostupan:
+Za rad AI Reviewer-a potreban je **Project Access Token** sa pravima za kreiranje komentara.
 
-```yaml
-variables:
-  GITLAB_TOKEN: $CI_JOB_TOKEN
-```
+**Kreiranje tokena:**
 
-**Ograničenja `CI_JOB_TOKEN`:**
+1. Otvorite projekat → `Settings` → `Access Tokens`
+2. Kliknite **Add new token**
+3. Popunite formu:
 
-| Funkcionalnost | Status |
-|---------|--------|
-| Čitanje MR | :white_check_mark: |
-| Čitanje diff-a | :white_check_mark: |
-| Objavljivanje bilješki | :white_check_mark: |
-| Kreiranje diskusija | :x: |
+| Polje | Vrijednost |
+|------|----------|
+| **Token name** | `ai-reviewer` |
+| **Expiration date** | Izaberite datum (maks. 1 godina) |
+| **Role** | `Developer` |
+| **Scopes** | :white_check_mark: `api` |
 
-!!! warning "Ograničene dozvole"
-    `CI_JOB_TOKEN` ne može kreirati inline diskusije.
-
-    Za punu funkcionalnost, koristite Personal Access Token.
-
-### Personal Access Token (preporučeno) {#get-token}
-
-Za **lokalno pokretanje** ili **punu funkcionalnost u CI-ju**, trebate Personal Access Token:
-
-1. Idite na `User Settings → Access Tokens → Add new token`
-2. Unesite ime tokena (npr. `ai-code-reviewer`)
-3. Izaberite scope: **`api`**
-4. Kliknite **Create personal access token**
-5. Kopirajte token i sačuvajte ga kao `GITLAB_TOKEN`
+4. Kliknite **Create project access token**
+5. **Kopirajte token** — prikazuje se samo jednom!
 
 ```yaml
 variables:
@@ -46,6 +33,8 @@ variables:
 
 !!! warning "Sačuvajte token"
     GitLab prikazuje token **samo jednom**. Sačuvajte ga odmah.
+
+:material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
 
 ---
 
@@ -58,7 +47,7 @@ variables:
 | Varijabla | Vrijednost | Opcije |
 |----------|-------|---------|
 | `GOOGLE_API_KEY` | Gemini API ključ | Masked |
-| `GITLAB_TOKEN` | PAT (ako je potreban) | Masked |
+| `GITLAB_TOKEN` | Project Access Token | Masked |
 
 !!! tip "Masked"
     Uvijek omogućite **Masked** za tajne — neće se prikazivati u logovima.
@@ -188,7 +177,6 @@ AI Code Reviewer automatski koristi:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | Broj MR-a |
 | `CI_SERVER_URL` | GitLab URL |
-| `CI_JOB_TOKEN` | Automatski token |
 
 Ne morate proslijeđivati `--project` i `--mr-iid` — uzimaju se iz CI-ja automatski.
 
@@ -202,7 +190,7 @@ AI Review objavljuje komentare na MR kao bilješke.
 
 ### Diskusije (inline)
 
-Za inline komentare, trebate pun PAT token (ne `CI_JOB_TOKEN`).
+Za inline komentare potreban je Project Access Token sa scope `api`.
 
 Inline komentari se pojavljuju direktno pored linija koda u diff pogledu.
 
@@ -241,7 +229,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 **Rješenje:**
 
-- Koristite PAT umjesto `CI_JOB_TOKEN`
+- Koristite Project Access Token sa scope `api`
 - Provjerite da token ima pristup projektu
 
 ### "404 Not Found"
@@ -270,7 +258,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, ne CI_JOB_TOKEN
+  GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token
 ```
 
 ### 2. Dodajte allow_failure

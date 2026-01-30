@@ -30,78 +30,28 @@ Es posible la integración con una amplia gama de proveedores de LLM existentes 
 
 ## Inicio Rápido
 
-Importante: para seguir los siguientes pasos necesitarás tu clave personal de API de Google. Puedes obtenerla gratis en [Google AI Studio](https://aistudio.google.com/api-keys) o [Google Cloud Console](https://console.cloud.google.com/).
+Configura AI Code Reviewer para tu proyecto en 5 minutos:
 
-*AI Code Reviewer puede configurarse para usar diferentes proveedores de LLM y modelos, tanto gratuitos como de pago. Los siguientes ejemplos usan el modelo* **gemini-2.5-flash**. *Otras secciones de la documentación explican cómo conectar otros proveedores y usar otros modelos. Nos interesa tu opinión sobre las diferencias entre varios modelos — nos encantaría leer sobre tu experiencia en los comentarios.*
+- :octicons-mark-github-16: **[Configurar revisión para GitHub →](quick-start.md)**
+- :simple-gitlab: **[Configurar revisión para GitLab →](quick-start.md)**
 
+Crea un nuevo PR/MR — obtén una revisión automáticamente.
 
-### GitHub
+!!! tip "Importante para la calidad de la revisión"
+    **La calidad de la revisión depende directamente de la comprensión de AI Code Reviewer de tus intenciones** (igual que con un revisor humano real). Por lo tanto, es buena idea acompañar el proceso de desarrollo con documentación:
 
+    - **Crea un issue** describiendo el problema y los resultados deseados
+    - **Describe el PR/MR** — el problema con más detalle, el enfoque de la solución, restricciones, casos especiales
+    - **Comunícate en los comentarios** — si trabajas en equipo, todo esto añade contexto
 
-En tu repositorio, crea:
-- en `Settings` → `Secrets and variables [Security]` → `Actions` → presiona `New repository secret`:
-    - crea un secreto llamado `GOOGLE_API_KEY` con tu clave de API de Google como valor.
-- en la raíz del repositorio de tu proyecto:
-    - crea el archivo `.github/workflows/ai-review.yml` con el siguiente contenido:
-
-```yaml
-# .github/workflows/ai-review.yml
-name: AI Code Review
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: KonstZiv/ai-code-reviewer@v1
-        with:
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
-```
-
-### GitLab
-
-En tu repositorio, crea:
-- en `Settings` → `CI/CD` → `Variables` → `CI/CD Variables` → presiona `Add variable`:
-    - `Type`: Variable (por defecto)
-    - `Visibility`: Masked (para que no se muestre en los logs)
-    - `Key`: GOOGLE_API_KEY
-    - `Value`: tu clave de API de Google
-- en la raíz del repositorio de tu proyecto:
-    - crea el archivo `.gitlab-ci.yml` con el siguiente contenido:
-
-```yaml
-# .gitlab-ci.yml
-ai-review:
-  image: ghcr.io/konstziv/ai-code-reviewer:1
-  script:
-    - ai-review
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-```
-
-:point_right: [Más información →](quick-start.md)
-
-
-Crea un nuevo PR/MR — obtén una revisión.
-
-**La calidad de la revisión depende directamente de la comprensión de AI Code Reviewer de tus intenciones** (igual que con un revisor humano real). Por lo tanto, es buena idea acompañar el proceso de desarrollo con documentación:
-- crea un issue describiendo el problema y los resultados deseados
-- crea una rama vinculada/PR/MR vinculado en el issue, describiendo el problema con más detalle, el enfoque de la solución, restricciones, resultados deseados, casos límite — cualquier cosa que añada comprensión del contexto, herramientas, resultados
-- si trabajas en equipo — comunícate en los issues, comenta los PR/MRs — todo esto añade contexto y mejora la calidad de la revisión
+    ¡Cuanto más contexto — mejor será la revisión!
 
 ---
 
 ## Plataformas Soportadas
 
 | Plataforma | Estado | Integración |
-|----------|--------|-------------|
+|------------|--------|-------------|
 | **GitHub** | :white_check_mark: | GitHub Actions / GitHub Action |
 | **GitLab** | :white_check_mark: | GitLab CI / Imagen Docker |
 | **Self-hosted** | :white_check_mark: | Docker / PyPI |
@@ -151,7 +101,7 @@ graph TD
 ## Categorías de Problemas
 
 | Categoría | Descripción |
-|----------|-------------|
+|-----------|-------------|
 | :lock: **Seguridad** | Vulnerabilidades, secretos hardcodeados |
 | :memo: **Calidad de Código** | Legibilidad, nomenclatura, DRY |
 | :building_construction: **Arquitectura** | SOLID, patrones de diseño |
@@ -197,7 +147,7 @@ export GOOGLE_API_KEY=your_api_key
 Opciones adicionales:
 
 | Variable | Descripción | Por defecto |
-|----------|-------------|---------|
+|----------|-------------|-------------|
 | `LANGUAGE` | Idioma de respuesta (ISO 639) | `en` |
 | `LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
 | `GEMINI_MODEL` | Modelo Gemini | `gemini-2.0-flash` |
@@ -225,7 +175,7 @@ Opciones adicionales:
 
 -   :simple-gitlab: **[GitLab](gitlab.md)**
 
-    Job tokens, triggers de MR, self-hosted
+    Project Access Token, triggers de MR, self-hosted
 
 -   :material-console: **[Referencia CLI](api.md)**
 
@@ -245,7 +195,7 @@ AI Code Reviewer usa **Google Gemini 2.5 Flash** — en modo Free Tier. Los lím
 Si usas el nivel de pago (Pay-as-you-go), el costo de una revisión típica y conversaciones ilimitadas:
 
 | Métrica | Costo |
-|--------|------|
+|---------|-------|
 | Tokens de entrada | $0.30 / 1M |
 | Tokens de salida | $2.5 / 1M |
 | **Revisión típica** | **~$0.003 - $0.01** |

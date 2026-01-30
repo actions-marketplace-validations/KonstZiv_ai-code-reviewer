@@ -9,7 +9,7 @@ La configuración más sencilla para GitLab CI.
 `Settings → CI/CD → Variables → Add variable`
 
 | Nombre | Valor | Opciones |
-|------|-------|---------|
+|--------|-------|----------|
 | `GOOGLE_API_KEY` | Tu clave API de Gemini | Masked |
 
 ---
@@ -40,7 +40,7 @@ ai-review:
 ## Qué Incluye
 
 | Funcionalidad | Estado |
-|---------|--------|
+|---------------|--------|
 | Notas en MR | :white_check_mark: |
 | Adaptabilidad de idioma | :white_check_mark: (adaptive) |
 | Métricas | :white_check_mark: |
@@ -52,8 +52,6 @@ ai-review:
 
 | Limitación | Solución |
 |------------|----------|
-| `CI_JOB_TOKEN` es limitado | Usar PAT |
-| Sin discusiones en línea | Necesita PAT con scope `api` |
 | MR bloqueado en error | Añadir `allow_failure: true` |
 
 ---

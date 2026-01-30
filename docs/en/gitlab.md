@@ -4,40 +4,27 @@ Detailed guide for integration with GitLab CI.
 
 ---
 
-## Tokens {#tokens}
+## Access Token {#tokens}
 
-### CI_JOB_TOKEN (automatic)
+### Project Access Token {#get-token}
 
-In GitLab CI, `CI_JOB_TOKEN` is automatically available:
+AI Reviewer needs a **Project Access Token** with permissions to create comments.
 
-```yaml
-variables:
-  GITLAB_TOKEN: $CI_JOB_TOKEN
-```
+**Creating the token:**
 
-**`CI_JOB_TOKEN` limitations:**
+1. Open the project → `Settings` → `Access Tokens`
+2. Click **Add new token**
+3. Fill in the form:
 
-| Feature | Status |
-|---------|--------|
-| Read MR | :white_check_mark: |
-| Read diff | :white_check_mark: |
-| Post notes | :white_check_mark: |
-| Create discussions | :x: |
+| Field | Value |
+|-------|-------|
+| **Token name** | `ai-reviewer` |
+| **Expiration date** | Choose a date (max 1 year) |
+| **Role** | `Developer` |
+| **Scopes** | :white_check_mark: `api` |
 
-!!! warning "Limited permissions"
-    `CI_JOB_TOKEN` cannot create inline discussions.
-
-    For full functionality, use a Personal Access Token.
-
-### Personal Access Token (recommended) {#get-token}
-
-For **local runs** or **full functionality in CI**, you need a Personal Access Token:
-
-1. Go to `User Settings → Access Tokens → Add new token`
-2. Enter the token name (e.g., `ai-code-reviewer`)
-3. Select scope: **`api`**
-4. Click **Create personal access token**
-5. Copy the token and save it as `GITLAB_TOKEN`
+4. Click **Create project access token**
+5. **Copy the token** — it's shown only once!
 
 ```yaml
 variables:
@@ -46,6 +33,8 @@ variables:
 
 !!! warning "Save the token"
     GitLab shows the token **only once**. Save it immediately.
+
+:material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
 
 ---
 
@@ -58,7 +47,7 @@ variables:
 | Variable | Value | Options |
 |----------|-------|---------|
 | `GOOGLE_API_KEY` | Gemini API key | Masked |
-| `GITLAB_TOKEN` | PAT (if needed) | Masked |
+| `GITLAB_TOKEN` | Project Access Token | Masked |
 
 !!! tip "Masked"
     Always enable **Masked** for secrets — they won't be shown in logs.
@@ -188,7 +177,6 @@ AI Code Reviewer automatically uses:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | MR number |
 | `CI_SERVER_URL` | GitLab URL |
-| `CI_JOB_TOKEN` | Automatic token |
 
 You don't need to pass `--project` and `--mr-iid` — they're taken from CI automatically.
 
@@ -202,7 +190,7 @@ AI Review posts comments to MR as notes.
 
 ### Discussions (inline)
 
-For inline comments, you need a full PAT token (not `CI_JOB_TOKEN`).
+For inline comments you need a Project Access Token with scope `api`.
 
 Inline comments appear directly next to code lines in the diff view.
 
@@ -241,7 +229,7 @@ At the end of the review, a Summary note is posted with:
 
 **Solution:**
 
-- Use PAT instead of `CI_JOB_TOKEN`
+- Use Project Access Token with scope `api`
 - Check that the token has access to the project
 
 ### "404 Not Found"
@@ -270,7 +258,7 @@ At the end of the review, a Summary note is posted with:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, not CI_JOB_TOKEN
+  GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token
 ```
 
 ### 2. Add allow_failure

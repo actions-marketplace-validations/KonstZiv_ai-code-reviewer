@@ -89,7 +89,7 @@ Wenn das Problem weiterhin besteht, geben Sie explizit die Version an:
 
     - Überprüfen Sie, ob der Token nicht abgelaufen ist
     - Überprüfen Sie den Scope: benötigt `api`
-    - Verwenden Sie PAT anstelle von `CI_JOB_TOKEN`
+    - Stellen Sie sicher, dass Sie einen Project Access Token verwenden
 
 ---
 

@@ -52,8 +52,6 @@ Gotovo! AI revizija će se pojaviti kao komentari na MR-u.
 
 | Ograničenje | Rješenje |
 |------------|----------|
-| `CI_JOB_TOKEN` je ograničen | Koristite PAT |
-| Nema inline diskusija | Potreban PAT sa scope `api` |
 | MR blokiran na grešci | Dodajte `allow_failure: true` |
 
 ---

@@ -128,19 +128,6 @@ ai-review:
 
 ---
 
-## CI_JOB_TOKEN vs PAT
-
-| Funkcionalnost | CI_JOB_TOKEN | PAT |
-|---------|--------------|-----|
-| Čitanje MR | :white_check_mark: | :white_check_mark: |
-| Objavljivanje bilješki | :white_check_mark: | :white_check_mark: |
-| Inline diskusije | :x: | :white_check_mark: |
-| Zahtijeva podešavanje | :x: | :white_check_mark: |
-
-**Preporuka:** Koristite PAT za punu funkcionalnost.
-
----
-
 ## Rješavanje problema
 
 ### Revizija ne objavljuje komentare

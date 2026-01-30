@@ -7,7 +7,7 @@ Todas las configuraciones se hacen mediante variables de entorno.
 ## Variables Requeridas
 
 | Variable | Descripción | Ejemplo | Cómo obtener |
-|----------|-------------|---------|------------|
+|----------|-------------|---------|--------------|
 | `GOOGLE_API_KEY` | Clave API de Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
 | `GITHUB_TOKEN` | GitHub PAT (para GitHub) | `ghp_...` | [Instrucciones](github.md#get-token) |
 | `GITLAB_TOKEN` | GitLab PAT (para GitLab) | `glpat-...` | [Instrucciones](gitlab.md#get-token) |
@@ -22,14 +22,14 @@ Todas las configuraciones se hacen mediante variables de entorno.
 ### General
 
 | Variable | Descripción | Por defecto | Rango |
-|----------|-------------|---------|-------|
+|----------|-------------|-------------|-------|
 | `LOG_LEVEL` | Nivel de logging | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
 | `API_TIMEOUT` | Timeout de solicitud (seg) | `60` | 1-300 |
 
 ### Idioma
 
 | Variable | Descripción | Por defecto | Ejemplos |
-|----------|-------------|---------|----------|
+|----------|-------------|-------------|----------|
 | `LANGUAGE` | Idioma de respuesta | `en` | `uk`, `de`, `es`, `it`, `me` |
 | `LANGUAGE_MODE` | Modo de detección | `adaptive` | `adaptive`, `fixed` |
 
@@ -48,13 +48,13 @@ Todas las configuraciones se hacen mediante variables de entorno.
 ### LLM
 
 | Variable | Descripción | Por defecto |
-|----------|-------------|---------|
+|----------|-------------|-------------|
 | `GEMINI_MODEL` | Modelo Gemini | `gemini-2.5-flash` |
 
 **Modelos disponibles:**
 
 | Modelo | Descripción | Costo |
-|-------|-------------|------|
+|--------|-------------|-------|
 | `gemini-2.5-flash` | Rápido, económico | $0.075 / 1M entrada |
 | `gemini-2.0-flash` | Versión anterior | $0.075 / 1M entrada |
 | `gemini-1.5-pro` | Más potente | $1.25 / 1M entrada |
@@ -72,14 +72,14 @@ Todas las configuraciones se hacen mediante variables de entorno.
 ### Revisión
 
 | Variable | Descripción | Por defecto | Rango |
-|----------|-------------|---------|-------|
+|----------|-------------|-------------|-------|
 | `REVIEW_MAX_FILES` | Máximo de archivos en contexto | `20` | 1-100 |
 | `REVIEW_MAX_DIFF_LINES` | Máximo de líneas de diff por archivo | `500` | 1-5000 |
 
 ### GitLab
 
 | Variable | Descripción | Por defecto |
-|----------|-------------|---------|
+|----------|-------------|-------------|
 | `GITLAB_URL` | URL del servidor GitLab | `https://gitlab.com` |
 
 !!! info "GitLab Self-hosted"
@@ -134,8 +134,7 @@ env:
 ```yaml
 variables:
   GOOGLE_API_KEY: $GOOGLE_API_KEY  # Desde CI/CD Variables
-  # GITLAB_TOKEN: $CI_JOB_TOKEN   # Automático (limitado)
-  GITLAB_TOKEN: $GITLAB_TOKEN      # O PAT para permisos completos
+  GITLAB_TOKEN: $GITLAB_TOKEN      # Project Access Token
   LANGUAGE: uk
   LANGUAGE_MODE: adaptive
 ```

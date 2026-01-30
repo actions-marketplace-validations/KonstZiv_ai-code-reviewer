@@ -21,7 +21,7 @@ Configuración lista para producción con todas las mejores prácticas.
 `Settings → CI/CD → Variables`
 
 | Nombre | Valor | Opciones |
-|------|-------|---------|
+|--------|-------|----------|
 | `GOOGLE_API_KEY` | Clave API de Gemini | Masked |
 | `GITLAB_TOKEN` | PAT del Paso 1 | Masked |
 
@@ -72,7 +72,7 @@ ai-review:
 ## Qué Incluye
 
 | Funcionalidad | Estado | Descripción |
-|---------|--------|-------------|
+|---------------|--------|-------------|
 | Discusiones en línea | :white_check_mark: | Con token PAT |
 | No bloqueante | :white_check_mark: | `allow_failure: true` |
 | Timeout | :white_check_mark: | 10 minutos |
@@ -125,19 +125,6 @@ ai-review:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
       when: always
 ```
-
----
-
-## CI_JOB_TOKEN vs PAT
-
-| Funcionalidad | CI_JOB_TOKEN | PAT |
-|---------|--------------|-----|
-| Leer MR | :white_check_mark: | :white_check_mark: |
-| Publicar notas | :white_check_mark: | :white_check_mark: |
-| Discusiones en línea | :x: | :white_check_mark: |
-| Requiere configuración | :x: | :white_check_mark: |
-
-**Recomendación:** Usa PAT para funcionalidad completa.
 
 ---
 

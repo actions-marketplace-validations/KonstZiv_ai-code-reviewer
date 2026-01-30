@@ -30,7 +30,7 @@ Aggiorna all'ultima versione:
 Se il problema persiste, specifica esplicitamente la versione:
 
 ```yaml
-- uses: KonstZiv/ai-code-reviewer@v1.0.0a2  # O più recente
+- uses: KonstZiv/ai-code-reviewer@v1.0.0a2  # O piu recente
 ```
 
 ---
@@ -44,7 +44,7 @@ Se il problema persiste, specifica esplicitamente la versione:
 1. **Log del job CI** — ci sono errori?
 2. **Chiave API** — `GOOGLE_API_KEY` e valida?
 3. **Token** — ci sono permessi di scrittura?
-4. **github_token** — è stato passato esplicitamente?
+4. **github_token** — e stato passato esplicitamente?
 
 === "GitHub"
 
@@ -89,7 +89,7 @@ Se il problema persiste, specifica esplicitamente la versione:
 
     - Controlla che il token non sia scaduto
     - Controlla lo scope: serve `api`
-    - Usa PAT invece di `CI_JOB_TOKEN`
+    - Assicurati di usare un Project Access Token
 
 ---
 

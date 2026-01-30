@@ -28,7 +28,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $CI_JOB_TOKEN
+    GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token with 'api' scope
 ```
 
 ### Docker Run (Local Testing)
@@ -48,7 +48,7 @@ docker run --rm \
 |----------|----------|-------------|
 | `GOOGLE_API_KEY` | Yes | Google Gemini API key |
 | `GITHUB_TOKEN` | GitHub | GitHub token for API access |
-| `GITLAB_TOKEN` | GitLab | GitLab token (or `CI_JOB_TOKEN`) |
+| `GITLAB_TOKEN` | GitLab | Project Access Token with `api` scope |
 | `LANGUAGE` | No | Response language (default: `en`) |
 | `LANGUAGE_MODE` | No | `adaptive` or `fixed` (default: `adaptive`) |
 | `GEMINI_MODEL` | No | Model to use (default: `gemini-2.5-flash`) |
