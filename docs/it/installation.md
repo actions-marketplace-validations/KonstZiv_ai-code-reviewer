@@ -29,8 +29,12 @@ jobs:
     steps:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           google_api_key: ${{ secrets.GOOGLE_API_KEY }}
 ```
+
+!!! info "Informazioni su `GITHUB_TOKEN`"
+    `secrets.GITHUB_TOKEN` e un token automatico che GitHub crea per ogni workflow. Non e necessario aggiungerlo manualmente.
 
 **Configurazione necessaria:**
 
@@ -60,6 +64,7 @@ ai-review:
   allow_failure: true
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 **Configurazione necessaria:**
@@ -67,7 +72,7 @@ ai-review:
 | Cosa serve | Dove configurare |
 |------------|------------------|
 | `GOOGLE_API_KEY` | Project → Settings → CI/CD → Variables (Masked) |
-| `GITLAB_TOKEN` | Opzionale, per commenti inline ([dettagli](gitlab.md#tokens)) |
+| `GITLAB_TOKEN` | Project Access Token con scope `api` ([dettagli](gitlab.md#tokens)) |
 
 :point_right: [Esempio completo →](quick-start.md#ci-setup)
 
