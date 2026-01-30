@@ -83,8 +83,12 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   allow_failure: true
   variables:
+    GITLAB_TOKEN: $CI_JOB_TOKEN
     GOOGLE_API_KEY: $GOOGLE_API_KEY
 ```
+
+!!! note "Za inline komentare"
+    `CI_JOB_TOKEN` ima ograničenja. Za punu funkcionalnost koristite [Personal Access Token](gitlab.md#personal-access-token).
 
 ### Korak 3: Kreirajte MR
 
