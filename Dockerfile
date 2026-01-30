@@ -71,6 +71,7 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD ai-review --help > /dev/null 2>&1 || exit 1
 
-# Default entrypoint
+# Default entrypoint - runs ai-review command
+# When run without args, auto-detects CI environment (GitHub Actions / GitLab CI)
 ENTRYPOINT ["ai-review"]
-CMD ["--help"]
+CMD []

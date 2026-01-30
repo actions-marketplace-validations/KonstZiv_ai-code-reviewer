@@ -6,6 +6,35 @@ FAQ y resolución de problemas comunes.
 
 ## Problemas Comunes
 
+### Action muestra --help en lugar de ejecutarse
+
+**Síntoma:** En los logs del CI job se ve:
+
+```
+Usage: ai-review [OPTIONS]
+...
+╭─ Options ─────────────────────────────────────────────────────────╮
+│ --provider  -p      [github|gitlab]  CI provider...              │
+```
+
+**Causa:** Usando una versión antigua del Docker image (anterior a v1.0.0a2).
+
+**Solución:**
+
+Actualiza a la última versión:
+
+```yaml
+- uses: KonstZiv/ai-code-reviewer@v1  # Siempre usa la última v1.x
+```
+
+Si el problema persiste, especifica explícitamente la versión:
+
+```yaml
+- uses: KonstZiv/ai-code-reviewer@v1.0.0a2  # O más reciente
+```
+
+---
+
 ### La Revisión No Aparece
 
 **Síntoma:** El job de CI pasó exitosamente, pero no hay comentarios.
@@ -15,6 +44,7 @@ FAQ y resolución de problemas comunes.
 1. **Logs del job de CI** — ¿hay errores?
 2. **Clave API** — ¿es válida `GOOGLE_API_KEY`?
 3. **Token** — ¿hay permisos de escritura?
+4. **github_token** — ¿se pasó explícitamente?
 
 === "GitHub"
 

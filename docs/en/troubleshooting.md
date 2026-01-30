@@ -6,6 +6,35 @@ FAQ and solving common problems.
 
 ## Common Problems
 
+### Action Shows --help Instead of Running
+
+**Symptom:** In CI job logs you see:
+
+```
+Usage: ai-review [OPTIONS]
+...
+╭─ Options ─────────────────────────────────────────────────────────╮
+│ --provider  -p      [github|gitlab]  CI provider...              │
+```
+
+**Cause:** Using an old Docker image version (before v1.0.0a2).
+
+**Solution:**
+
+Update to the latest version:
+
+```yaml
+- uses: KonstZiv/ai-code-reviewer@v1  # Always uses latest v1.x
+```
+
+If the problem persists, explicitly specify version:
+
+```yaml
+- uses: KonstZiv/ai-code-reviewer@v1.0.0a2  # Or newer
+```
+
+---
+
 ### Review Not Appearing
 
 **Symptom:** CI job passed successfully, but there are no comments.
@@ -15,6 +44,7 @@ FAQ and solving common problems.
 1. **CI job logs** — are there errors?
 2. **API key** — is `GOOGLE_API_KEY` valid?
 3. **Token** — are there write permissions?
+4. **github_token** — is it explicitly passed?
 
 === "GitHub"
 
