@@ -107,6 +107,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $CI_JOB_TOKEN  # Automático, no requiere configuración
 ```
 
 ### Completo (recomendado)
@@ -123,7 +124,8 @@ ai-review:
   timeout: 10m
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
+    # CI_JOB_TOKEN (automático) o Personal Access Token para permisos completos:
+    GITLAB_TOKEN: $CI_JOB_TOKEN    # o: $GITLAB_PAT (ver "Obtener token")
     LANGUAGE: uk
     LANGUAGE_MODE: adaptive
   interruptible: true

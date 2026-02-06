@@ -107,6 +107,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
+    GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatski, ne zahtijeva podešavanje
 ```
 
 ### Puni (preporučeno)
@@ -123,7 +124,8 @@ ai-review:
   timeout: 10m
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
+    # CI_JOB_TOKEN (automatski) ili Personal Access Token za pune dozvole:
+    GITLAB_TOKEN: $CI_JOB_TOKEN    # ili: $GITLAB_PAT (vidi "Dobijanje tokena")
     LANGUAGE: uk
     LANGUAGE_MODE: adaptive
   interruptible: true
