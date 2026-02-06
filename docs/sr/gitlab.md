@@ -4,32 +4,40 @@ Detaljan vodič za integraciju sa GitLab CI.
 
 ---
 
-## Token pristupa {#tokens}
+## Tokeni {#tokens}
 
-### Project Access Token {#get-token}
+### CI_JOB_TOKEN (automatski)
 
-Za rad AI Reviewer-a potreban je **Project Access Token** sa pravima za kreiranje komentara.
+U GitLab CI, `CI_JOB_TOKEN` je automatski dostupan:
 
-!!! note "Potrebna je uloga Maintainer"
-    Za kreiranje Project Access Token-a potrebna vam je uloga **Maintainer** ili **Owner** u projektu.
+```yaml
+variables:
+  GITLAB_TOKEN: $CI_JOB_TOKEN
+```
 
-    :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
+**Ograničenja `CI_JOB_TOKEN`:**
 
-**Kreiranje tokena:**
+| Funkcionalnost | Status |
+|---------|--------|
+| Čitanje MR | :white_check_mark: |
+| Čitanje diff-a | :white_check_mark: |
+| Objavljivanje bilješki | :white_check_mark: |
+| Kreiranje diskusija | :x: |
 
-1. Otvorite projekat → `Settings` → `Access Tokens`
-2. Kliknite **Add new token**
-3. Popunite formu:
+!!! warning "Ograničene dozvole"
+    `CI_JOB_TOKEN` ne može kreirati inline diskusije.
 
-| Polje | Vrijednost |
-|------|----------|
-| **Token name** | `ai-reviewer` |
-| **Expiration date** | Izaberite datum (maks. 1 godina) |
-| **Role** | `Developer` |
-| **Scopes** | :white_check_mark: `api` |
+    Za punu funkcionalnost, koristite Personal Access Token.
 
-4. Kliknite **Create project access token**
-5. **Kopirajte token** — prikazuje se samo jednom!
+### Personal Access Token (preporučeno) {#get-token}
+
+Za **lokalno pokretanje** ili **punu funkcionalnost u CI-ju**, trebate Personal Access Token:
+
+1. Idite na `User Settings → Access Tokens → Add new token`
+2. Unesite ime tokena (npr. `ai-code-reviewer`)
+3. Izaberite scope: **`api`**
+4. Kliknite **Create personal access token**
+5. Kopirajte token i sačuvajte ga kao `GITLAB_TOKEN`
 
 ```yaml
 variables:
@@ -39,7 +47,11 @@ variables:
 !!! warning "Sačuvajte token"
     GitLab prikazuje token **samo jednom**. Sačuvajte ga odmah.
 
-:material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+!!! info "Personal Access Token vs Project Access Token"
+    **Personal Access Token** (PAT) radi na **svim GitLab planovima**, uključujući Free.
+
+    **Project Access Token** je dostupan samo na **GitLab Premium/Ultimate**.
+    Ako ste na Free planu, koristite Personal Access Token.
 
 ---
 
@@ -52,7 +64,7 @@ variables:
 | Varijabla | Vrijednost | Opcije |
 |----------|-------|---------|
 | `GOOGLE_API_KEY` | Gemini API ključ | Masked |
-| `GITLAB_TOKEN` | Project Access Token | Masked |
+| `GITLAB_TOKEN` | PAT (ako je potreban) | Masked |
 
 !!! tip "Masked"
     Uvijek omogućite **Masked** za tajne — neće se prikazivati u logovima.
@@ -95,7 +107,6 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Puni (preporučeno)
@@ -183,6 +194,7 @@ AI Code Reviewer automatski koristi:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | Broj MR-a |
 | `CI_SERVER_URL` | GitLab URL |
+| `CI_JOB_TOKEN` | Automatski token |
 
 Ne morate proslijeđivati `--project` i `--mr-iid` — uzimaju se iz CI-ja automatski.
 
@@ -196,7 +208,7 @@ AI Review objavljuje komentare na MR kao bilješke.
 
 ### Diskusije (inline)
 
-Za inline komentare potreban je Project Access Token sa scope `api`.
+Za inline komentare, trebate pun PAT token (ne `CI_JOB_TOKEN`).
 
 Inline komentari se pojavljuju direktno pored linija koda u diff pogledu.
 
@@ -235,7 +247,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 **Rješenje:**
 
-- Koristite Project Access Token sa scope `api`
+- Koristite PAT umjesto `CI_JOB_TOKEN`
 - Provjerite da token ima pristup projektu
 
 ### "404 Not Found"
@@ -264,7 +276,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token
+  GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, ne CI_JOB_TOKEN
 ```
 
 ### 2. Dodajte allow_failure
