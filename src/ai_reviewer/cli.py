@@ -231,7 +231,7 @@ def main(  # noqa: PLR0912, PLR0915
                     f"[bold red]Configuration Error:[/bold red] {_ERR_GITHUB_TOKEN_MISSING}"
                 )
                 _exit_app(code=1)
-            if len(settings.github_token.get_secret_value()) < MIN_SECRET_LENGTH:
+            elif len(settings.github_token.get_secret_value()) < MIN_SECRET_LENGTH:
                 console.print(
                     f"[bold red]Configuration Error:[/bold red] {_ERR_GITHUB_TOKEN_SHORT}"
                 )
@@ -264,7 +264,7 @@ def main(  # noqa: PLR0912, PLR0915
                     f"[bold red]Configuration Error:[/bold red] {_ERR_GITLAB_TOKEN_MISSING}"
                 )
                 _exit_app(code=1)
-            if len(settings.gitlab_token.get_secret_value()) < MIN_SECRET_LENGTH:
+            elif len(settings.gitlab_token.get_secret_value()) < MIN_SECRET_LENGTH:
                 console.print(
                     f"[bold red]Configuration Error:[/bold red] {_ERR_GITLAB_TOKEN_SHORT}"
                 )
