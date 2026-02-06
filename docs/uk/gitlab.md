@@ -29,29 +29,76 @@ variables:
 
     Для повної функціональності використовуйте Personal Access Token.
 
-### Personal Access Token (рекомендовано) {#get-token}
+### Personal Access Token (PAT) {#get-token}
 
-Для **локального запуску** або **повної функціональності в CI** потрібен Personal Access Token:
+Для **всіх планів GitLab** (включаючи Free). Рекомендовано для локального запуску або повної функціональності в CI.
 
-1. Перейдіть до `User Settings → Access Tokens → Add new token`
-2. Введіть назву токену (наприклад, `ai-code-reviewer`)
-3. Оберіть scope: **`api`**
-4. Натисніть **Create personal access token**
-5. Скопіюйте токен та збережіть як `GITLAB_TOKEN`
+**Як створити:**
+
+1. Перейдіть до **User Settings → Access Tokens → Add new token**
+    - URL: `https://gitlab.com/-/user_settings/personal_access_tokens`
+2. Заповніть поля:
+    - **Token name:** `ai-code-reviewer`
+    - **Expiration date:** встановіть за потреби (наприклад, 1 рік)
+    - **Scopes:** оберіть **`api`**
+3. Натисніть **Create personal access token**
+4. **Скопіюйте токен одразу** — GitLab показує його лише один раз!
+
+**Як використовувати в CI:**
+
+1. Перейдіть до **Settings → CI/CD → Variables → Add variable**
+2. Додайте змінну:
+    - **Key:** `GITLAB_TOKEN`
+    - **Value:** вставте ваш токен
+    - **Flags:** увімкніть **Masked** та **Protected**
+3. Використовуйте в `.gitlab-ci.yml`:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # З CI/CD Variables
+  GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token з CI/CD Variables
 ```
 
 !!! warning "Збережіть токен"
-    GitLab показує токен **лише один раз**. Збережіть його одразу.
+    GitLab показує токен **лише один раз**. Збережіть його в безпечному місці одразу.
 
-!!! info "Personal Access Token vs Project Access Token"
-    **Personal Access Token** (PAT) працює на **всіх планах GitLab**, включаючи Free.
+### Project Access Token (:material-crown: Premium/Ultimate) {#project-token}
 
-    **Project Access Token** доступний лише на **GitLab Premium/Ultimate**.
-    Якщо ви на Free плані, використовуйте Personal Access Token.
+Доступний лише на планах **GitLab Premium** та **Ultimate**. Гарний вибір, якщо ви хочете токен, прив'язаний до проєкту, а не до особистого акаунту.
+
+**Переваги над PAT:**
+
+- Обмежений одним проєктом (немає доступу до інших проєктів)
+- Може бути відкликаний мейнтейнерами проєкту (немає залежності від конкретного користувача)
+- Краще для команд — не прив'язаний до персонального акаунту
+
+**Як створити:**
+
+1. Перейдіть до **Project → Settings → Access Tokens**
+    - URL: `https://gitlab.com/<owner>/<repo>/-/settings/access_tokens`
+2. Заповніть поля:
+    - **Token name:** `ai-code-reviewer`
+    - **Role:** `Developer` (мінімально необхідна роль)
+    - **Scopes:** оберіть **`api`**
+3. Натисніть **Create project access token**
+4. **Скопіюйте токен одразу**
+
+**Як використовувати в CI:**
+
+Так само як PAT — додайте як `GITLAB_TOKEN` в CI/CD Variables:
+
+```yaml
+variables:
+  GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token з CI/CD Variables
+```
+
+!!! info "Який токен обрати?"
+    | | CI_JOB_TOKEN | Personal Access Token | Project Access Token |
+    |---|---|---|---|
+    | **План** | Всі | Всі (включаючи Free) | Лише Premium/Ultimate |
+    | **Налаштування** | Автоматичне | Ручне | Ручне |
+    | **Область дії** | Лише поточний job | Всі проєкти користувача | Один проєкт |
+    | **Inline коментарі** | :x: | :white_check_mark: | :white_check_mark: |
+    | **Найкраще для** | Швидкий старт | Free план + повні можливості | Команди на Premium/Ultimate |
 
 ---
 

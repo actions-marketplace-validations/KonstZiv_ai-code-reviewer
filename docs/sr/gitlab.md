@@ -29,29 +29,76 @@ variables:
 
     Za punu funkcionalnost, koristite Personal Access Token.
 
-### Personal Access Token (preporučeno) {#get-token}
+### Personal Access Token (PAT) {#get-token}
 
-Za **lokalno pokretanje** ili **punu funkcionalnost u CI-ju**, trebate Personal Access Token:
+Za **sve GitLab planove** (uključujući Free). Preporučeno za lokalno pokretanje ili punu funkcionalnost u CI-ju.
 
-1. Idite na `User Settings → Access Tokens → Add new token`
-2. Unesite ime tokena (npr. `ai-code-reviewer`)
-3. Izaberite scope: **`api`**
-4. Kliknite **Create personal access token**
-5. Kopirajte token i sačuvajte ga kao `GITLAB_TOKEN`
+**Kako kreirati:**
+
+1. Idite na **User Settings → Access Tokens → Add new token**
+    - URL: `https://gitlab.com/-/user_settings/personal_access_tokens`
+2. Popunite polja:
+    - **Token name:** `ai-code-reviewer`
+    - **Expiration date:** podesite prema potrebi (npr. 1 godina)
+    - **Scopes:** označite **`api`**
+3. Kliknite **Create personal access token**
+4. **Kopirajte token odmah** — GitLab ga prikazuje samo jednom!
+
+**Kako koristiti u CI-ju:**
+
+1. Idite na **Settings → CI/CD → Variables → Add variable**
+2. Dodajte varijablu:
+    - **Key:** `GITLAB_TOKEN`
+    - **Value:** nalijepite vaš token
+    - **Flags:** označite **Masked** i **Protected**
+3. Koristite u `.gitlab-ci.yml`:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Iz CI/CD Variables
+  GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token iz CI/CD Variables
 ```
 
 !!! warning "Sačuvajte token"
-    GitLab prikazuje token **samo jednom**. Sačuvajte ga odmah.
+    GitLab prikazuje token **samo jednom**. Sačuvajte ga odmah na sigurnom mjestu.
 
-!!! info "Personal Access Token vs Project Access Token"
-    **Personal Access Token** (PAT) radi na **svim GitLab planovima**, uključujući Free.
+### Project Access Token (:material-crown: Premium/Ultimate) {#project-token}
 
-    **Project Access Token** je dostupan samo na **GitLab Premium/Ultimate**.
-    Ako ste na Free planu, koristite Personal Access Token.
+Dostupan samo na **GitLab Premium** i **Ultimate** planovima. Dobar izbor ako preferirate token ograničen na projekat umjesto ličnog.
+
+**Prednosti u odnosu na PAT:**
+
+- Ograničen na jedan projekat (nema pristupa drugim projektima)
+- Može ga opozvati maintainer projekta (nema zavisnosti od konkretnog korisnika)
+- Bolji za timove — nije vezan za lični nalog
+
+**Kako kreirati:**
+
+1. Idite na **Project → Settings → Access Tokens**
+    - URL: `https://gitlab.com/<owner>/<repo>/-/settings/access_tokens`
+2. Popunite polja:
+    - **Token name:** `ai-code-reviewer`
+    - **Role:** `Developer` (minimalno potreban)
+    - **Scopes:** označite **`api`**
+3. Kliknite **Create project access token**
+4. **Kopirajte token odmah**
+
+**Kako koristiti u CI-ju:**
+
+Isto kao PAT — dodajte kao `GITLAB_TOKEN` u CI/CD Variables:
+
+```yaml
+variables:
+  GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token iz CI/CD Variables
+```
+
+!!! info "Koji token odabrati?"
+    | | CI_JOB_TOKEN | Personal Access Token | Project Access Token |
+    |---|---|---|---|
+    | **Plan** | Svi | Svi (uključujući Free) | Samo Premium/Ultimate |
+    | **Podešavanje** | Automatsko | Ručno | Ručno |
+    | **Opseg** | Samo trenutni job | Svi projekti korisnika | Jedan projekat |
+    | **Inline komentari** | :x: | :white_check_mark: | :white_check_mark: |
+    | **Najbolje za** | Brzi početak | Free plan + pune funkcije | Timovi na Premium/Ultimate |
 
 ---
 

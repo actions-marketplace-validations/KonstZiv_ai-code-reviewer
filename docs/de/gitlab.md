@@ -29,29 +29,76 @@ variables:
 
     Für volle Funktionalität verwenden Sie einen Personal Access Token.
 
-### Personal Access Token (empfohlen) {#get-token}
+### Personal Access Token (PAT) {#get-token}
 
-Für **lokale Ausführungen** oder **volle Funktionalität in CI** benötigen Sie einen Personal Access Token:
+Für **alle GitLab-Pläne** (einschließlich Free). Empfohlen für lokale Ausführungen oder volle CI-Funktionalität.
 
-1. Gehen Sie zu `User Settings → Access Tokens → Add new token`
-2. Geben Sie den Token-Namen ein (z.B. `ai-code-reviewer`)
-3. Wählen Sie Scope: **`api`**
-4. Klicken Sie auf **Create personal access token**
-5. Kopieren Sie den Token und speichern Sie ihn als `GITLAB_TOKEN`
+**So erstellen Sie einen PAT:**
+
+1. Gehen Sie zu **User Settings → Access Tokens → Add new token**
+    - URL: `https://gitlab.com/-/user_settings/personal_access_tokens`
+2. Füllen Sie die Felder aus:
+    - **Token name:** `ai-code-reviewer`
+    - **Expiration date:** nach Bedarf festlegen (z.B. 1 Jahr)
+    - **Scopes:** aktivieren Sie **`api`**
+3. Klicken Sie auf **Create personal access token**
+4. **Kopieren Sie den Token sofort** — GitLab zeigt ihn nur einmal!
+
+**Verwendung in CI:**
+
+1. Gehen Sie zu **Settings → CI/CD → Variables → Add variable**
+2. Variable hinzufügen:
+    - **Key:** `GITLAB_TOKEN`
+    - **Value:** fügen Sie Ihren Token ein
+    - **Flags:** aktivieren Sie **Masked** und **Protected**
+3. Verwenden Sie in `.gitlab-ci.yml`:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Aus CI/CD Variables
+  GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token aus CI/CD Variables
 ```
 
 !!! warning "Token speichern"
-    GitLab zeigt den Token **nur einmal** an. Speichern Sie ihn sofort.
+    GitLab zeigt den Token **nur einmal** an. Speichern Sie ihn sofort an einem sicheren Ort.
 
-!!! info "Personal Access Token vs Project Access Token"
-    **Personal Access Token** (PAT) funktioniert mit **allen GitLab-Plänen**, einschließlich Free.
+### Project Access Token (:material-crown: Premium/Ultimate) {#project-token}
 
-    **Project Access Token** ist nur mit **GitLab Premium/Ultimate** verfügbar.
-    Wenn Sie den Free-Plan verwenden, nutzen Sie einen Personal Access Token.
+Nur verfügbar mit **GitLab Premium** und **Ultimate** Plänen. Eine gute Wahl, wenn Sie einen projektbezogenen Token anstelle eines persönlichen bevorzugen.
+
+**Vorteile gegenüber PAT:**
+
+- Auf ein einzelnes Projekt beschränkt (kein Zugriff auf andere Projekte)
+- Kann von Projekt-Maintainern widerrufen werden (keine Abhängigkeit von einem bestimmten Benutzer)
+- Besser für Teams — nicht an ein persönliches Konto gebunden
+
+**So erstellen Sie einen Project Access Token:**
+
+1. Gehen Sie zu **Project → Settings → Access Tokens**
+    - URL: `https://gitlab.com/<owner>/<repo>/-/settings/access_tokens`
+2. Füllen Sie die Felder aus:
+    - **Token name:** `ai-code-reviewer`
+    - **Role:** `Developer` (Minimum erforderlich)
+    - **Scopes:** aktivieren Sie **`api`**
+3. Klicken Sie auf **Create project access token**
+4. **Kopieren Sie den Token sofort**
+
+**Verwendung in CI:**
+
+Gleich wie PAT — als `GITLAB_TOKEN` in CI/CD Variables hinzufügen:
+
+```yaml
+variables:
+  GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token aus CI/CD Variables
+```
+
+!!! info "Welchen Token wählen?"
+    | | CI_JOB_TOKEN | Personal Access Token | Project Access Token |
+    |---|---|---|---|
+    | **Plan** | Alle | Alle (einschließlich Free) | Nur Premium/Ultimate |
+    | **Einrichtung** | Automatisch | Manuell | Manuell |
+    | **Geltungsbereich** | Nur aktueller Job | Alle Projekte des Benutzers | Einzelnes Projekt |
+    | **Inline-Kommentare** | :x: | :white_check_mark: | :white_check_mark: |
+    | **Am besten für** | Schnellstart | Free-Plan + volle Funktionen | Teams mit Premium/Ultimate |
 
 ---
 
