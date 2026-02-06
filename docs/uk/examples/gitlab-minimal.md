@@ -54,6 +54,12 @@ ai-review:
 |-----------|---------|
 | MR блокується при помилці | Додайте `allow_failure: true` |
 
+!!! info "PAT vs Project Access Token"
+    **Personal Access Token** (PAT) працює на **всіх планах GitLab**, включаючи Free.
+
+    **Project Access Token** потребує **GitLab Premium/Ultimate**.
+    На Free плані завжди використовуйте Personal Access Token.
+
 ---
 
 ## Наступний крок

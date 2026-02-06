@@ -4,42 +4,101 @@ Guía detallada para integración con GitLab CI.
 
 ---
 
-## Token de Acceso {#tokens}
+## Tokens {#tokens}
 
-### Project Access Token {#get-token}
+### CI_JOB_TOKEN (automático)
 
-Para que AI Reviewer funcione, necesitas un **Project Access Token** con permisos para crear comentarios.
-
-!!! note "Se requiere rol de Maintainer"
-    Para crear un Project Access Token, necesitas el rol **Maintainer** o **Owner** en el proyecto.
-
-    :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
-
-**Crear token:**
-
-1. Abre el proyecto → `Settings` → `Access Tokens`
-2. Haz clic en **Add new token**
-3. Completa el formulario:
-
-| Campo | Valor |
-|-------|-------|
-| **Token name** | `ai-reviewer` |
-| **Expiration date** | Elige una fecha (máx. 1 año) |
-| **Role** | `Developer` |
-| **Scopes** | :white_check_mark: `api` |
-
-4. Haz clic en **Create project access token**
-5. **Copia el token** — ¡solo se muestra una vez!
+En GitLab CI, `CI_JOB_TOKEN` está disponible automáticamente:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Desde CI/CD Variables
+  GITLAB_TOKEN: $CI_JOB_TOKEN
+```
+
+**Limitaciones de `CI_JOB_TOKEN`:**
+
+| Funcionalidad | Estado |
+|---------|--------|
+| Leer MR | :white_check_mark: |
+| Leer diff | :white_check_mark: |
+| Publicar notas | :white_check_mark: |
+| Crear discusiones | :x: |
+
+!!! warning "Permisos limitados"
+    `CI_JOB_TOKEN` no puede crear discusiones en línea.
+
+    Para funcionalidad completa, usa un Personal Access Token.
+
+### Personal Access Token (PAT) {#get-token}
+
+Para **todos los planes de GitLab** (incluido Free). Recomendado para ejecuciones locales o funcionalidad completa en CI.
+
+**Cómo crear:**
+
+1. Ve a **User Settings → Access Tokens → Add new token**
+    - URL: `https://gitlab.com/-/user_settings/personal_access_tokens`
+2. Completa los campos:
+    - **Token name:** `ai-code-reviewer`
+    - **Expiration date:** configura según necesidad (ej. 1 año)
+    - **Scopes:** marca **`api`**
+3. Haz clic en **Create personal access token**
+4. **Copia el token inmediatamente** — GitLab lo muestra solo una vez!
+
+**Cómo usar en CI:**
+
+1. Ve a **Settings → CI/CD → Variables → Add variable**
+2. Añade la variable:
+    - **Key:** `GITLAB_TOKEN`
+    - **Value:** pega tu token
+    - **Flags:** marca **Masked** y **Protected**
+3. Usa en `.gitlab-ci.yml`:
+
+```yaml
+variables:
+  GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token desde CI/CD Variables
 ```
 
 !!! warning "Guarda el token"
-    GitLab muestra el token **solo una vez**. Guárdalo inmediatamente.
+    GitLab muestra el token **solo una vez**. Guárdalo en un lugar seguro inmediatamente.
 
-:material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+### Project Access Token (:material-crown: Premium/Ultimate) {#project-token}
+
+Disponible solo en planes **GitLab Premium** y **Ultimate**. Una buena opción si prefieres un token con alcance de proyecto en lugar de uno personal.
+
+**Ventajas sobre PAT:**
+
+- Limitado a un solo proyecto (sin acceso a otros proyectos)
+- Puede ser revocado por los maintainers del proyecto (sin dependencia de un usuario específico)
+- Mejor para equipos — no está vinculado a una cuenta personal
+
+**Cómo crear:**
+
+1. Ve a **Project → Settings → Access Tokens**
+    - URL: `https://gitlab.com/<owner>/<repo>/-/settings/access_tokens`
+2. Completa los campos:
+    - **Token name:** `ai-code-reviewer`
+    - **Role:** `Developer` (mínimo requerido)
+    - **Scopes:** marca **`api`**
+3. Haz clic en **Create project access token**
+4. **Copia el token inmediatamente**
+
+**Cómo usar en CI:**
+
+Igual que PAT — añade como `GITLAB_TOKEN` en CI/CD Variables:
+
+```yaml
+variables:
+  GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token desde CI/CD Variables
+```
+
+!!! info "¿Qué token elegir?"
+    | | CI_JOB_TOKEN | Personal Access Token | Project Access Token |
+    |---|---|---|---|
+    | **Plan** | Todos | Todos (incluido Free) | Solo Premium/Ultimate |
+    | **Configuración** | Automática | Manual | Manual |
+    | **Alcance** | Solo el job actual | Todos los proyectos del usuario | Un solo proyecto |
+    | **Comentarios inline** | :x: | :white_check_mark: | :white_check_mark: |
+    | **Mejor para** | Inicio rápido | Plan Free + funciones completas | Equipos en Premium/Ultimate |
 
 ---
 
@@ -50,9 +109,9 @@ variables:
 `Settings → CI/CD → Variables → Add variable`
 
 | Variable | Valor | Opciones |
-|----------|-------|----------|
+|----------|-------|---------|
 | `GOOGLE_API_KEY` | Clave API de Gemini | Masked |
-| `GITLAB_TOKEN` | Project Access Token | Masked |
+| `GITLAB_TOKEN` | PAT (si es necesario) | Masked |
 
 !!! tip "Masked"
     Siempre activa **Masked** para secretos — no se mostrarán en los logs.
@@ -95,7 +154,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
+    GITLAB_TOKEN: $CI_JOB_TOKEN  # Automático, no requiere configuración
 ```
 
 ### Completo (recomendado)
@@ -112,7 +171,8 @@ ai-review:
   timeout: 10m
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
+    # CI_JOB_TOKEN (automático) o Personal Access Token para permisos completos:
+    GITLAB_TOKEN: $CI_JOB_TOKEN    # o: $GITLAB_PAT (ver "Obtener token")
     LANGUAGE: uk
     LANGUAGE_MODE: adaptive
   interruptible: true
@@ -183,6 +243,7 @@ AI Code Reviewer usa automáticamente:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | Número del MR |
 | `CI_SERVER_URL` | URL de GitLab |
+| `CI_JOB_TOKEN` | Token automático |
 
 No necesitas pasar `--project` y `--mr-iid` — se toman del CI automáticamente.
 
@@ -196,7 +257,7 @@ AI Review publica comentarios en el MR como notas.
 
 ### Discusiones (en línea)
 
-Para comentarios en línea, necesitas un Project Access Token con scope `api`.
+Para comentarios en línea, necesitas un token PAT completo (no `CI_JOB_TOKEN`).
 
 Los comentarios en línea aparecen directamente junto a las líneas de código en la vista de diff.
 
@@ -235,7 +296,7 @@ Al final de la revisión, se publica una nota de Resumen con:
 
 **Solución:**
 
-- Usa un Project Access Token con scope `api`
+- Usa PAT en lugar de `CI_JOB_TOKEN`
 - Verifica que el token tenga acceso al proyecto
 
 ### "404 Not Found"
@@ -264,7 +325,7 @@ Al final de la revisión, se publica una nota de Resumen con:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token
+  GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, no CI_JOB_TOKEN
 ```
 
 ### 2. Añade allow_failure

@@ -4,42 +4,101 @@ Detaljan vodič za integraciju sa GitLab CI.
 
 ---
 
-## Token pristupa {#tokens}
+## Tokeni {#tokens}
 
-### Project Access Token {#get-token}
+### CI_JOB_TOKEN (automatski)
 
-Za rad AI Reviewer-a potreban je **Project Access Token** sa pravima za kreiranje komentara.
-
-!!! note "Potrebna je uloga Maintainer"
-    Za kreiranje Project Access Token-a potrebna vam je uloga **Maintainer** ili **Owner** u projektu.
-
-    :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
-
-**Kreiranje tokena:**
-
-1. Otvorite projekat → `Settings` → `Access Tokens`
-2. Kliknite **Add new token**
-3. Popunite formu:
-
-| Polje | Vrijednost |
-|------|----------|
-| **Token name** | `ai-reviewer` |
-| **Expiration date** | Izaberite datum (maks. 1 godina) |
-| **Role** | `Developer` |
-| **Scopes** | :white_check_mark: `api` |
-
-4. Kliknite **Create project access token**
-5. **Kopirajte token** — prikazuje se samo jednom!
+U GitLab CI, `CI_JOB_TOKEN` je automatski dostupan:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Iz CI/CD Variables
+  GITLAB_TOKEN: $CI_JOB_TOKEN
+```
+
+**Ograničenja `CI_JOB_TOKEN`:**
+
+| Funkcionalnost | Status |
+|---------|--------|
+| Čitanje MR | :white_check_mark: |
+| Čitanje diff-a | :white_check_mark: |
+| Objavljivanje bilješki | :white_check_mark: |
+| Kreiranje diskusija | :x: |
+
+!!! warning "Ograničene dozvole"
+    `CI_JOB_TOKEN` ne može kreirati inline diskusije.
+
+    Za punu funkcionalnost, koristite Personal Access Token.
+
+### Personal Access Token (PAT) {#get-token}
+
+Za **sve GitLab planove** (uključujući Free). Preporučeno za lokalno pokretanje ili punu funkcionalnost u CI-ju.
+
+**Kako kreirati:**
+
+1. Idite na **User Settings → Access Tokens → Add new token**
+    - URL: `https://gitlab.com/-/user_settings/personal_access_tokens`
+2. Popunite polja:
+    - **Token name:** `ai-code-reviewer`
+    - **Expiration date:** podesite prema potrebi (npr. 1 godina)
+    - **Scopes:** označite **`api`**
+3. Kliknite **Create personal access token**
+4. **Kopirajte token odmah** — GitLab ga prikazuje samo jednom!
+
+**Kako koristiti u CI-ju:**
+
+1. Idite na **Settings → CI/CD → Variables → Add variable**
+2. Dodajte varijablu:
+    - **Key:** `GITLAB_TOKEN`
+    - **Value:** nalijepite vaš token
+    - **Flags:** označite **Masked** i **Protected**
+3. Koristite u `.gitlab-ci.yml`:
+
+```yaml
+variables:
+  GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token iz CI/CD Variables
 ```
 
 !!! warning "Sačuvajte token"
-    GitLab prikazuje token **samo jednom**. Sačuvajte ga odmah.
+    GitLab prikazuje token **samo jednom**. Sačuvajte ga odmah na sigurnom mjestu.
 
-:material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+### Project Access Token (:material-crown: Premium/Ultimate) {#project-token}
+
+Dostupan samo na **GitLab Premium** i **Ultimate** planovima. Dobar izbor ako preferirate token ograničen na projekat umjesto ličnog.
+
+**Prednosti u odnosu na PAT:**
+
+- Ograničen na jedan projekat (nema pristupa drugim projektima)
+- Može ga opozvati maintainer projekta (nema zavisnosti od konkretnog korisnika)
+- Bolji za timove — nije vezan za lični nalog
+
+**Kako kreirati:**
+
+1. Idite na **Project → Settings → Access Tokens**
+    - URL: `https://gitlab.com/<owner>/<repo>/-/settings/access_tokens`
+2. Popunite polja:
+    - **Token name:** `ai-code-reviewer`
+    - **Role:** `Developer` (minimalno potreban)
+    - **Scopes:** označite **`api`**
+3. Kliknite **Create project access token**
+4. **Kopirajte token odmah**
+
+**Kako koristiti u CI-ju:**
+
+Isto kao PAT — dodajte kao `GITLAB_TOKEN` u CI/CD Variables:
+
+```yaml
+variables:
+  GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token iz CI/CD Variables
+```
+
+!!! info "Koji token odabrati?"
+    | | CI_JOB_TOKEN | Personal Access Token | Project Access Token |
+    |---|---|---|---|
+    | **Plan** | Svi | Svi (uključujući Free) | Samo Premium/Ultimate |
+    | **Podešavanje** | Automatsko | Ručno | Ručno |
+    | **Opseg** | Samo trenutni job | Svi projekti korisnika | Jedan projekat |
+    | **Inline komentari** | :x: | :white_check_mark: | :white_check_mark: |
+    | **Najbolje za** | Brzi početak | Free plan + pune funkcije | Timovi na Premium/Ultimate |
 
 ---
 
@@ -52,7 +111,7 @@ variables:
 | Varijabla | Vrijednost | Opcije |
 |----------|-------|---------|
 | `GOOGLE_API_KEY` | Gemini API ključ | Masked |
-| `GITLAB_TOKEN` | Project Access Token | Masked |
+| `GITLAB_TOKEN` | PAT (ako je potreban) | Masked |
 
 !!! tip "Masked"
     Uvijek omogućite **Masked** za tajne — neće se prikazivati u logovima.
@@ -95,7 +154,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
+    GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatski, ne zahtijeva podešavanje
 ```
 
 ### Puni (preporučeno)
@@ -112,7 +171,8 @@ ai-review:
   timeout: 10m
   variables:
     GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
+    # CI_JOB_TOKEN (automatski) ili Personal Access Token za pune dozvole:
+    GITLAB_TOKEN: $CI_JOB_TOKEN    # ili: $GITLAB_PAT (vidi "Dobijanje tokena")
     LANGUAGE: uk
     LANGUAGE_MODE: adaptive
   interruptible: true
@@ -183,6 +243,7 @@ AI Code Reviewer automatski koristi:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | Broj MR-a |
 | `CI_SERVER_URL` | GitLab URL |
+| `CI_JOB_TOKEN` | Automatski token |
 
 Ne morate proslijeđivati `--project` i `--mr-iid` — uzimaju se iz CI-ja automatski.
 
@@ -196,7 +257,7 @@ AI Review objavljuje komentare na MR kao bilješke.
 
 ### Diskusije (inline)
 
-Za inline komentare potreban je Project Access Token sa scope `api`.
+Za inline komentare, trebate pun PAT token (ne `CI_JOB_TOKEN`).
 
 Inline komentari se pojavljuju direktno pored linija koda u diff pogledu.
 
@@ -235,7 +296,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 **Rješenje:**
 
-- Koristite Project Access Token sa scope `api`
+- Koristite PAT umjesto `CI_JOB_TOKEN`
 - Provjerite da token ima pristup projektu
 
 ### "404 Not Found"
@@ -264,7 +325,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token
+  GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, ne CI_JOB_TOKEN
 ```
 
 ### 2. Dodajte allow_failure

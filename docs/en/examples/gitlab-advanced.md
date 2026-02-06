@@ -4,7 +4,7 @@ Production-ready configuration with all best practices.
 
 ---
 
-## Step 1: Create a PAT
+## Step 1: Create a Personal Access Token (PAT)
 
 `User Settings → Access Tokens → Add new token`
 
@@ -13,6 +13,11 @@ Production-ready configuration with all best practices.
 | Name | `ai-code-reviewer` |
 | Scopes | `api` |
 | Expiration | As needed |
+
+!!! info "Free plan"
+    **Personal Access Token** works on **all GitLab plans**, including Free.
+
+    **Project Access Token** is only available on **GitLab Premium/Ultimate**.
 
 ---
 
@@ -125,6 +130,19 @@ ai-review:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
       when: always
 ```
+
+---
+
+## CI_JOB_TOKEN vs PAT
+
+| Feature | CI_JOB_TOKEN | PAT |
+|---------|--------------|-----|
+| Read MR | :white_check_mark: | :white_check_mark: |
+| Post notes | :white_check_mark: | :white_check_mark: |
+| Inline discussions | :x: | :white_check_mark: |
+| Requires setup | :x: | :white_check_mark: |
+
+**Recommendation:** Use a Personal Access Token for full functionality. It works on all GitLab plans, including Free.
 
 ---
 
