@@ -147,8 +147,19 @@ class GitLabClient(GitProvider):
             if is_bot:
                 author_type = CommentAuthorType.BOT
 
-            # Determine comment type (position indicates inline comment)
-            comment_type = CommentType.REVIEW if note.position else CommentType.ISSUE
+            # Determine comment type (position indicates inline comment).
+            # notes.list() may return objects without the 'position' attribute.
+            position = getattr(note, "position", None)
+            comment_type = CommentType.REVIEW if position else CommentType.ISSUE
+
+            # Extract file path and line number from position dict
+            file_path: str | None = None
+            line_number: int | None = None
+            if position and isinstance(position, dict):
+                file_path = position.get("new_path")
+                raw_line = position.get("new_line")
+                if raw_line is not None:
+                    line_number = int(raw_line)
 
             comments.append(
                 Comment(
@@ -157,6 +168,8 @@ class GitLabClient(GitProvider):
                     body=note.body,
                     type=comment_type,
                     created_at=note.created_at,
+                    file_path=file_path,
+                    line_number=line_number,
                 )
             )
 

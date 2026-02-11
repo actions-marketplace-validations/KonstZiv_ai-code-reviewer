@@ -108,6 +108,8 @@ class TestGitLabClient:
         assert len(mr.comments) == 1
         assert mr.comments[0].type == CommentType.ISSUE
         assert mr.comments[0].author_type == CommentAuthorType.USER
+        assert mr.comments[0].file_path is None
+        assert mr.comments[0].line_number is None
         assert len(mr.changes) == 1
         assert mr.changes[0].filename == "test.py"
         assert mr.changes[0].change_type == FileChangeType.MODIFIED
@@ -136,7 +138,7 @@ class TestGitLabClient:
         mock_note.system = False
         mock_note.author = {"username": "review-bot", "bot": True}
         mock_note.body = "Auto review"
-        mock_note.position = {"new_line": 10}  # Inline comment
+        mock_note.position = {"new_line": 10, "new_path": "src/main.py"}
         mock_note.created_at = "2024-01-01T00:00:00Z"
         mock_mr.notes.list.return_value = [mock_note]
 
@@ -145,6 +147,8 @@ class TestGitLabClient:
         assert len(mr.comments) == 1
         assert mr.comments[0].author_type == CommentAuthorType.BOT
         assert mr.comments[0].type == CommentType.REVIEW
+        assert mr.comments[0].file_path == "src/main.py"
+        assert mr.comments[0].line_number == 10
 
     def test_get_merge_request_skips_system_notes(self, client: GitLabClient) -> None:
         """Test that system notes are skipped."""
@@ -175,6 +179,44 @@ class TestGitLabClient:
         mr = client.get_merge_request("owner/repo", 1)
 
         assert len(mr.comments) == 0
+
+    def test_get_merge_request_note_without_position_attr(self, client: GitLabClient) -> None:
+        """Test MR fetching when note has no 'position' attribute at all.
+
+        python-gitlab's notes.list() may return ProjectMergeRequestNote
+        objects without the 'position' attribute (only a subset of data).
+        This must not raise AttributeError (issue #54).
+        """
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+
+        # Setup minimal MR data
+        mock_mr.iid = 1
+        mock_mr.title = "Test"
+        mock_mr.description = ""
+        mock_mr.author = {"username": "author"}
+        mock_mr.source_branch = "head"
+        mock_mr.target_branch = "base"
+        mock_mr.web_url = "url"
+        mock_mr.created_at = "2024-01-01T00:00:00Z"
+        mock_mr.updated_at = "2024-01-01T00:00:00Z"
+        mock_mr.diffs.list.return_value = []
+
+        # Mock note WITHOUT 'position' attribute — simulates notes.list() behavior
+        mock_note = Mock(spec=["system", "author", "body", "created_at"])
+        mock_note.system = False
+        mock_note.author = {"username": "user1"}
+        mock_note.body = "General comment"
+        mock_note.created_at = "2024-01-01T00:00:00Z"
+        mock_mr.notes.list.return_value = [mock_note]
+
+        mr = client.get_merge_request("owner/repo", 1)
+
+        assert len(mr.comments) == 1
+        assert mr.comments[0].type == CommentType.ISSUE
+        assert mr.comments[0].body == "General comment"
 
     def test_get_linked_task_found(self, client: GitLabClient) -> None:
         """Test finding linked issue."""

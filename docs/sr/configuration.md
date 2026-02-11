@@ -76,6 +76,12 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 |----------|-------------|---------|-------|
 | `REVIEW_MAX_FILES` | Maksimalno fajlova u kontekstu | `20` | 1-100 |
 | `REVIEW_MAX_DIFF_LINES` | Maksimalno linija diff-a po fajlu | `500` | 1-5000 |
+| `REVIEW_MAX_COMMENT_CHARS` | Maks. karaktera komentara MR u promptu | `3000` | 0-20000 |
+| `REVIEW_INCLUDE_BOT_COMMENTS` | Uključi bot komentare u prompt | `true` | true/false |
+
+!!! info "Kontekst diskusije"
+    AI revizor čita postojeće komentare MR/PR kako ne bi ponavljao prijedloge
+    koji su već razmatrani. Postavite `REVIEW_MAX_COMMENT_CHARS=0` za deaktivaciju.
 
 ### GitLab
 

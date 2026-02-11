@@ -78,6 +78,8 @@ class TestGitHubClient:
         mock_review_comment.user.type = "Bot"
         mock_review_comment.body = "Fix this"
         mock_review_comment.created_at = datetime.now(UTC)
+        mock_review_comment.path = "test.py"
+        mock_review_comment.line = 42
         mock_pr.get_review_comments.return_value = [mock_review_comment]
 
         # Mock Files
@@ -104,6 +106,39 @@ class TestGitHubClient:
         assert len(mr.changes) == 1
         assert mr.changes[0].filename == "test.py"
         assert mr.changes[0].change_type == FileChangeType.MODIFIED
+
+    def test_get_merge_request_captures_file_path_line(self, client: GitHubClient) -> None:
+        """Test that file_path and line_number are captured from review comments."""
+        mock_repo = Mock()
+        mock_pr = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+
+        mock_pr.number = 1
+        mock_pr.title = "Test"
+        mock_pr.body = ""
+        mock_pr.user.login = "author"
+        mock_pr.head.ref = "head"
+        mock_pr.base.ref = "base"
+        mock_pr.html_url = "url"
+        mock_pr.created_at = datetime.now(UTC)
+        mock_pr.updated_at = datetime.now(UTC)
+        mock_pr.get_issue_comments.return_value = []
+
+        mock_review_comment = Mock()
+        mock_review_comment.user.login = "bot"
+        mock_review_comment.user.type = "Bot"
+        mock_review_comment.body = "Fix"
+        mock_review_comment.created_at = datetime.now(UTC)
+        mock_review_comment.path = "src/main.py"
+        mock_review_comment.line = 99
+        mock_pr.get_review_comments.return_value = [mock_review_comment]
+        mock_pr.get_files.return_value = []
+
+        mr = client.get_merge_request("owner/repo", 1)
+
+        assert mr.comments[0].file_path == "src/main.py"
+        assert mr.comments[0].line_number == 99
 
     def test_get_merge_request_binary_file(self, client: GitHubClient) -> None:
         """Test fetching MR with binary file (no patch)."""

@@ -29,6 +29,14 @@ inputs:
     description: 'Log level (DEBUG, INFO, WARNING, ERROR)'
     required: false
     default: 'INFO'
+  review_max_comment_chars:
+    description: 'Max MR comment chars in AI prompt (0 to disable)'
+    required: false
+    default: '3000'
+  review_include_bot_comments:
+    description: 'Include bot comments in AI prompt'
+    required: false
+    default: 'true'
 
 runs:
   using: 'docker'
@@ -41,4 +49,6 @@ runs:
     LANGUAGE_MODE: ${{ inputs.language_mode }}
     GEMINI_MODEL: ${{ inputs.gemini_model }}
     LOG_LEVEL: ${{ inputs.log_level }}
+    REVIEW_MAX_COMMENT_CHARS: ${{ inputs.review_max_comment_chars }}
+    REVIEW_INCLUDE_BOT_COMMENTS: ${{ inputs.review_include_bot_comments }}
     GITHUB_ACTIONS: 'true'
