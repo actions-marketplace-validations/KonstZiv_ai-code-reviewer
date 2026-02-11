@@ -142,45 +142,45 @@ def _format_comment_for_prompt(comment: Comment) -> str:
 
 def _render_general_comments(
     comments: list[Comment],
-    budget: list[int],
+    chars_used: int,
     max_chars: int,
-) -> tuple[list[str], int]:
+) -> tuple[list[str], int, int]:
     """Render general discussion comments within budget.
 
     Args:
         comments: Sorted list of general comments.
-        budget: Mutable list with single int — current char count.
+        chars_used: Characters already consumed by prior sections.
         max_chars: Maximum total characters allowed.
 
     Returns:
-        Tuple of (lines, omitted_count).
+        Tuple of (lines, omitted_count, updated_chars_used).
     """
     lines: list[str] = []
     omitted = 0
     for comment in comments:
         line = _format_comment_for_prompt(comment)
-        if budget[0] + len(line) > max_chars:
+        if chars_used + len(line) > max_chars:
             omitted += 1
             continue
         lines.append(line)
-        budget[0] += len(line)
-    return lines, omitted
+        chars_used += len(line)
+    return lines, omitted, chars_used
 
 
 def _render_inline_comments(
     comments: list[Comment],
-    budget: list[int],
+    chars_used: int,
     max_chars: int,
-) -> tuple[list[str], int]:
+) -> tuple[list[str], int, int]:
     """Render inline comments grouped by file within budget.
 
     Args:
         comments: Sorted list of inline comments.
-        budget: Mutable list with single int — current char count.
+        chars_used: Characters already consumed by prior sections.
         max_chars: Maximum total characters allowed.
 
     Returns:
-        Tuple of (lines, omitted_count).
+        Tuple of (lines, omitted_count, updated_chars_used).
     """
     by_file: dict[str, list[Comment]] = defaultdict(list)
     no_file: list[Comment] = []
@@ -198,21 +198,21 @@ def _render_inline_comments(
     omitted = 0
     for file_path, file_comments in all_groups:
         file_header = f"\n**{file_path}:**"
-        if budget[0] + len(file_header) > max_chars:
+        if chars_used + len(file_header) > max_chars:
             omitted += len(file_comments)
             continue
         lines.append(file_header)
-        budget[0] += len(file_header)
+        chars_used += len(file_header)
 
         for comment in file_comments:
             line = _format_comment_for_prompt(comment)
-            if budget[0] + len(line) > max_chars:
+            if chars_used + len(line) > max_chars:
                 omitted += 1
                 continue
             lines.append(line)
-            budget[0] += len(line)
+            chars_used += len(line)
 
-    return lines, omitted
+    return lines, omitted, chars_used
 
 
 def _build_comments_section(
@@ -253,12 +253,11 @@ def _build_comments_section(
         key=_sort_key,
     )
 
-    # budget[0] tracks current char usage (mutable for sub-functions)
-    budget: list[int] = [0]
+    chars_used = 0
     section_parts: list[str] = []
 
     if general:
-        lines, omitted = _render_general_comments(general, budget, max_total_chars)
+        lines, omitted, chars_used = _render_general_comments(general, chars_used, max_total_chars)
         if lines or omitted:
             section_parts.append("### General Discussion")
             if omitted:
@@ -266,7 +265,7 @@ def _build_comments_section(
             section_parts.extend(lines)
 
     if inline:
-        lines, omitted = _render_inline_comments(inline, budget, max_total_chars)
+        lines, omitted, chars_used = _render_inline_comments(inline, chars_used, max_total_chars)
         if lines or omitted:
             section_parts.append("\n### Inline Code Discussion")
             if omitted:
