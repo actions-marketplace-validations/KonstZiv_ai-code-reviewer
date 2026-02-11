@@ -176,6 +176,44 @@ class TestGitLabClient:
 
         assert len(mr.comments) == 0
 
+    def test_get_merge_request_note_without_position_attr(self, client: GitLabClient) -> None:
+        """Test MR fetching when note has no 'position' attribute at all.
+
+        python-gitlab's notes.list() may return ProjectMergeRequestNote
+        objects without the 'position' attribute (only a subset of data).
+        This must not raise AttributeError (issue #54).
+        """
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+
+        # Setup minimal MR data
+        mock_mr.iid = 1
+        mock_mr.title = "Test"
+        mock_mr.description = ""
+        mock_mr.author = {"username": "author"}
+        mock_mr.source_branch = "head"
+        mock_mr.target_branch = "base"
+        mock_mr.web_url = "url"
+        mock_mr.created_at = "2024-01-01T00:00:00Z"
+        mock_mr.updated_at = "2024-01-01T00:00:00Z"
+        mock_mr.diffs.list.return_value = []
+
+        # Mock note WITHOUT 'position' attribute — simulates notes.list() behavior
+        mock_note = Mock(spec=["system", "author", "body", "created_at"])
+        mock_note.system = False
+        mock_note.author = {"username": "user1"}
+        mock_note.body = "General comment"
+        mock_note.created_at = "2024-01-01T00:00:00Z"
+        mock_mr.notes.list.return_value = [mock_note]
+
+        mr = client.get_merge_request("owner/repo", 1)
+
+        assert len(mr.comments) == 1
+        assert mr.comments[0].type == CommentType.ISSUE
+        assert mr.comments[0].body == "General comment"
+
     def test_get_linked_task_found(self, client: GitLabClient) -> None:
         """Test finding linked issue."""
         mock_project = Mock()
