@@ -76,6 +76,12 @@ Alle Einstellungen werden über Umgebungsvariablen konfiguriert.
 |----------|--------------|----------|---------|
 | `REVIEW_MAX_FILES` | Max. Dateien im Kontext | `20` | 1-100 |
 | `REVIEW_MAX_DIFF_LINES` | Max. Diff-Zeilen pro Datei | `500` | 1-5000 |
+| `REVIEW_MAX_COMMENT_CHARS` | Max. Zeichen der MR-Kommentare im Prompt | `3000` | 0-20000 |
+| `REVIEW_INCLUDE_BOT_COMMENTS` | Bot-Kommentare im Prompt einschließen | `true` | true/false |
+
+!!! info "Diskussionskontext"
+    Der AI-Reviewer liest bestehende MR/PR-Kommentare, um bereits besprochene
+    Vorschläge nicht zu wiederholen. Setzen Sie `REVIEW_MAX_COMMENT_CHARS=0` zum Deaktivieren.
 
 ### GitLab
 

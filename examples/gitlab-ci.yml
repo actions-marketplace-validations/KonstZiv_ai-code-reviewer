@@ -33,6 +33,8 @@ ai-review:
     # LANGUAGE_MODE: "adaptive"
     # GEMINI_MODEL: "gemini-2.5-flash"
     # LOG_LEVEL: "INFO"
+    # REVIEW_MAX_COMMENT_CHARS: "3000"
+    # REVIEW_INCLUDE_BOT_COMMENTS: "true"
 
   script:
     - ai-review

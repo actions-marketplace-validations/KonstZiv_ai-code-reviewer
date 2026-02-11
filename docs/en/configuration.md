@@ -80,6 +80,12 @@ All settings are configured via environment variables.
 |----------|-------------|---------|-------|
 | `REVIEW_MAX_FILES` | Max files in context | `20` | 1-100 |
 | `REVIEW_MAX_DIFF_LINES` | Max diff lines per file | `500` | 1-5000 |
+| `REVIEW_MAX_COMMENT_CHARS` | Max MR comment chars in AI prompt | `3000` | 0-20000 |
+| `REVIEW_INCLUDE_BOT_COMMENTS` | Include bot comments in prompt | `true` | true/false |
+
+!!! info "Discussion context"
+    The AI reviewer reads existing MR/PR comments to avoid repeating suggestions
+    that were already discussed. Set `REVIEW_MAX_COMMENT_CHARS=0` to disable.
 
 ### GitLab
 

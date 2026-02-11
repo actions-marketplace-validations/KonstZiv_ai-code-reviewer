@@ -76,6 +76,12 @@ Tutte le impostazioni vengono configurate tramite variabili d'ambiente.
 |-----------|-------------|---------|-------|
 | `REVIEW_MAX_FILES` | Max file nel contesto | `20` | 1-100 |
 | `REVIEW_MAX_DIFF_LINES` | Max righe diff per file | `500` | 1-5000 |
+| `REVIEW_MAX_COMMENT_CHARS` | Max caratteri commenti MR nel prompt | `3000` | 0-20000 |
+| `REVIEW_INCLUDE_BOT_COMMENTS` | Includi commenti bot nel prompt | `true` | true/false |
+
+!!! info "Contesto della discussione"
+    Il revisore AI legge i commenti esistenti della MR/PR per evitare di ripetere suggerimenti
+    già discussi. Imposta `REVIEW_MAX_COMMENT_CHARS=0` per disabilitare.
 
 ### GitLab
 

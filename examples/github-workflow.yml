@@ -43,3 +43,5 @@ jobs:
           # language_mode: 'adaptive'
           # gemini_model: 'gemini-2.5-flash'
           # log_level: 'INFO'
+          # review_max_comment_chars: '3000'
+          # review_include_bot_comments: 'true'
