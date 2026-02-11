@@ -147,8 +147,11 @@ class GitLabClient(GitProvider):
             if is_bot:
                 author_type = CommentAuthorType.BOT
 
-            # Determine comment type (position indicates inline comment)
-            comment_type = CommentType.REVIEW if note.position else CommentType.ISSUE
+            # Determine comment type (position indicates inline comment).
+            # notes.list() may return objects without the 'position' attribute.
+            comment_type = (
+                CommentType.REVIEW if getattr(note, "position", None) else CommentType.ISSUE
+            )
 
             comments.append(
                 Comment(
