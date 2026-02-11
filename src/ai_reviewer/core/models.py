@@ -66,6 +66,8 @@ class Comment(BaseModel):
         body: The content of the comment.
         type: The type of comment (issue or review).
         created_at: When the comment was created (must be timezone-aware).
+        file_path: File path for inline comments (None for general comments).
+        line_number: Line number for inline comments (None for general comments).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -77,6 +79,10 @@ class Comment(BaseModel):
     body: str = Field(..., description="Content of the comment")
     type: CommentType = Field(..., description="Type of comment (issue or review)")
     created_at: datetime | None = Field(default=None, description="When the comment was created")
+    file_path: str | None = Field(default=None, description="File path for inline comments")
+    line_number: int | None = Field(
+        default=None, ge=1, description="Line number for inline comments"
+    )
 
     @field_validator("created_at")
     @classmethod

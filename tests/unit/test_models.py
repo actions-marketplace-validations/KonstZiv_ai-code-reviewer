@@ -83,6 +83,34 @@ class TestComment:
             Comment(author="user", body="test", type=CommentType.ISSUE, created_at=naive_dt)
         assert "timezone-aware" in str(exc_info.value)
 
+    def test_comment_with_file_path_and_line(self) -> None:
+        """Test creating a comment with file_path and line_number."""
+        comment = Comment(
+            author="user",
+            body="Fix this",
+            type=CommentType.REVIEW,
+            file_path="src/main.py",
+            line_number=42,
+        )
+        assert comment.file_path == "src/main.py"
+        assert comment.line_number == 42
+
+    def test_comment_file_path_defaults_none(self) -> None:
+        """Test that file_path defaults to None (backward compat)."""
+        comment = Comment(author="user", body="test", type=CommentType.ISSUE)
+        assert comment.file_path is None
+        assert comment.line_number is None
+
+    def test_comment_line_number_must_be_positive(self) -> None:
+        """Test that line_number must be >= 1."""
+        with pytest.raises(ValidationError):
+            Comment(
+                author="user",
+                body="test",
+                type=CommentType.REVIEW,
+                line_number=0,
+            )
+
 
 class TestFileChange:
     """Tests for FileChange model."""

@@ -145,6 +145,10 @@ class GitHubClient(GitProvider):
 
         # 2. Review comments (code specific)
         for review_comment in pr.get_review_comments():
+            # Extract line number (may be None for outdated comments)
+            raw_line = getattr(review_comment, "line", None)
+            line_number: int | None = int(raw_line) if raw_line is not None else None
+
             comments.append(
                 Comment(
                     author=review_comment.user.login,
@@ -156,6 +160,8 @@ class GitHubClient(GitProvider):
                     body=review_comment.body,
                     type=CommentType.REVIEW,
                     created_at=review_comment.created_at,
+                    file_path=getattr(review_comment, "path", None),
+                    line_number=line_number,
                 )
             )
 

@@ -172,6 +172,8 @@ class Settings(BaseSettings):
         API_TIMEOUT: Request timeout in seconds (default: 60)
         LANGUAGE: Default response language (default: en)
         LANGUAGE_MODE: Detection mode - adaptive or fixed (default: adaptive)
+        REVIEW_MAX_COMMENT_CHARS: Max comment chars in prompt (default: 3000, 0 to disable)
+        REVIEW_INCLUDE_BOT_COMMENTS: Include bot comments in prompt (default: True)
     """
 
     model_config = SettingsConfigDict(
@@ -241,6 +243,18 @@ class Settings(BaseSettings):
     language_mode: LanguageMode = Field(
         default=LanguageMode.ADAPTIVE,
         description="Language detection mode: adaptive (auto-detect) or fixed (use LANGUAGE)",
+    )
+
+    # Comment inclusion in prompt
+    review_max_comment_chars: int = Field(
+        default=3000,
+        ge=0,
+        le=20000,
+        description="Max total chars of MR comments in review prompt (0 to disable)",
+    )
+    review_include_bot_comments: bool = Field(
+        default=True,
+        description="Include bot comments in review prompt (to avoid repeating AI suggestions)",
     )
 
 

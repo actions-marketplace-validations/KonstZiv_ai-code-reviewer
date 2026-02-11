@@ -492,3 +492,73 @@ class TestLanguageValidation:
             settings = Settings()
             # Cantonese doesn't have ISO 639-1, so keep ISO 639-3
             assert settings.language == "yue"
+
+
+class TestCommentSettings:
+    """Tests for review_max_comment_chars and review_include_bot_comments."""
+
+    @pytest.fixture
+    def minimal_env(self) -> dict[str, str]:
+        """Return minimal required environment variables."""
+        return {
+            "GOOGLE_API_KEY": "AIza_test_key_12345",
+        }
+
+    def test_review_max_comment_chars_default(self, minimal_env: dict[str, str]) -> None:
+        """Test review_max_comment_chars has default value of 3000."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.review_max_comment_chars == 3000
+
+    def test_review_max_comment_chars_from_env(self, minimal_env: dict[str, str]) -> None:
+        """Test review_max_comment_chars can be set from environment."""
+        env = {**minimal_env, "REVIEW_MAX_COMMENT_CHARS": "5000"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_max_comment_chars == 5000
+
+    def test_review_max_comment_chars_zero_disables(self, minimal_env: dict[str, str]) -> None:
+        """Test review_max_comment_chars=0 disables comment inclusion."""
+        env = {**minimal_env, "REVIEW_MAX_COMMENT_CHARS": "0"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_max_comment_chars == 0
+
+    def test_review_max_comment_chars_max_boundary(self, minimal_env: dict[str, str]) -> None:
+        """Test review_max_comment_chars maximum boundary."""
+        env = {**minimal_env, "REVIEW_MAX_COMMENT_CHARS": "20000"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_max_comment_chars == 20000
+
+    def test_review_max_comment_chars_over_max_raises(self, minimal_env: dict[str, str]) -> None:
+        """Test review_max_comment_chars over 20000 raises error."""
+        env = {**minimal_env, "REVIEW_MAX_COMMENT_CHARS": "20001"}
+        with patch.dict(os.environ, env, clear=True), pytest.raises(ValidationError):
+            Settings()
+
+    def test_review_max_comment_chars_negative_raises(self, minimal_env: dict[str, str]) -> None:
+        """Test review_max_comment_chars negative raises error."""
+        env = {**minimal_env, "REVIEW_MAX_COMMENT_CHARS": "-1"}
+        with patch.dict(os.environ, env, clear=True), pytest.raises(ValidationError):
+            Settings()
+
+    def test_review_include_bot_comments_default(self, minimal_env: dict[str, str]) -> None:
+        """Test review_include_bot_comments has default value of True."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.review_include_bot_comments is True
+
+    def test_review_include_bot_comments_from_env_false(self, minimal_env: dict[str, str]) -> None:
+        """Test review_include_bot_comments can be set to False."""
+        env = {**minimal_env, "REVIEW_INCLUDE_BOT_COMMENTS": "false"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_include_bot_comments is False
+
+    def test_review_include_bot_comments_from_env_true(self, minimal_env: dict[str, str]) -> None:
+        """Test review_include_bot_comments can be set to True."""
+        env = {**minimal_env, "REVIEW_INCLUDE_BOT_COMMENTS": "true"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_include_bot_comments is True
