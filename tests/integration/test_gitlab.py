@@ -108,6 +108,8 @@ class TestGitLabClient:
         assert len(mr.comments) == 1
         assert mr.comments[0].type == CommentType.ISSUE
         assert mr.comments[0].author_type == CommentAuthorType.USER
+        assert mr.comments[0].file_path is None
+        assert mr.comments[0].line_number is None
         assert len(mr.changes) == 1
         assert mr.changes[0].filename == "test.py"
         assert mr.changes[0].change_type == FileChangeType.MODIFIED
@@ -136,7 +138,7 @@ class TestGitLabClient:
         mock_note.system = False
         mock_note.author = {"username": "review-bot", "bot": True}
         mock_note.body = "Auto review"
-        mock_note.position = {"new_line": 10}  # Inline comment
+        mock_note.position = {"new_line": 10, "new_path": "src/main.py"}
         mock_note.created_at = "2024-01-01T00:00:00Z"
         mock_mr.notes.list.return_value = [mock_note]
 
@@ -145,6 +147,8 @@ class TestGitLabClient:
         assert len(mr.comments) == 1
         assert mr.comments[0].author_type == CommentAuthorType.BOT
         assert mr.comments[0].type == CommentType.REVIEW
+        assert mr.comments[0].file_path == "src/main.py"
+        assert mr.comments[0].line_number == 10
 
     def test_get_merge_request_skips_system_notes(self, client: GitLabClient) -> None:
         """Test that system notes are skipped."""

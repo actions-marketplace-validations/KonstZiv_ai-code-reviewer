@@ -10,13 +10,15 @@ This module handles the construction of prompts for the LLM, including:
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
+from ai_reviewer.core.models import CommentAuthorType, CommentType
 from ai_reviewer.utils.language import build_language_instruction
 
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
-    from ai_reviewer.core.models import FileChange, ReviewContext
+    from ai_reviewer.core.models import Comment, FileChange, ReviewContext
 
 # System prompt defining the AI's role and output format
 SYSTEM_PROMPT = """You are an expert Senior Software Engineer and Code Review Mentor.
@@ -79,8 +81,206 @@ Return valid JSON matching this structure:
 - Be actionable: Provide `proposed_code` for issues that can be fixed
 - Be educational: Explain WHY something matters, not just WHAT is wrong
 - Be balanced: Find at least one good practice if the code isn't terrible
+- Be context-aware: Read the "Existing Discussion" section carefully. Do NOT repeat \
+issues that were already discussed or intentionally rejected. Comments marked [BOT] \
+are from previous AI reviews
 - Respond in the language specified in the user prompt
 """
+
+
+# Maximum characters per individual comment in the prompt
+_MAX_SINGLE_COMMENT_CHARS = 500
+
+
+def _truncate_comment_body(body: str, max_chars: int = _MAX_SINGLE_COMMENT_CHARS) -> str:
+    """Truncate a comment body to max_chars, preserving word boundaries.
+
+    Args:
+        body: The comment body text.
+        max_chars: Maximum allowed characters.
+
+    Returns:
+        Truncated body with ellipsis if needed.
+    """
+    # Normalize whitespace
+    text = " ".join(body.split())
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 3].rsplit(" ", 1)[0] + "..."
+
+
+def _format_comment_for_prompt(comment: Comment) -> str:
+    """Format a single comment for inclusion in the prompt.
+
+    Args:
+        comment: The comment to format.
+
+    Returns:
+        Formatted comment string like:
+        - [BOT] @author [2024-01-15 10:30] (at file:42): body text
+    """
+    parts: list[str] = ["- "]
+
+    if comment.author_type == CommentAuthorType.BOT:
+        parts.append("[BOT] ")
+
+    parts.append(f"@{comment.author}")
+
+    if comment.created_at is not None:
+        parts.append(f" [{comment.created_at:%Y-%m-%d %H:%M}]")
+
+    if comment.file_path and comment.line_number:
+        parts.append(f" (at {comment.file_path}:{comment.line_number})")
+    elif comment.file_path:
+        parts.append(f" (at {comment.file_path})")
+
+    body = _truncate_comment_body(comment.body)
+    parts.append(f": {body}")
+
+    return "".join(parts)
+
+
+def _render_general_comments(
+    comments: list[Comment],
+    chars_used: int,
+    max_chars: int,
+) -> tuple[list[str], int, int]:
+    """Render general discussion comments within budget.
+
+    Args:
+        comments: Sorted list of general comments.
+        chars_used: Characters already consumed by prior sections.
+        max_chars: Maximum total characters allowed.
+
+    Returns:
+        Tuple of (lines, omitted_count, updated_chars_used).
+    """
+    lines: list[str] = []
+    omitted = 0
+    for comment in comments:
+        line = _format_comment_for_prompt(comment)
+        if chars_used + len(line) > max_chars:
+            omitted += 1
+            continue
+        lines.append(line)
+        chars_used += len(line)
+    return lines, omitted, chars_used
+
+
+def _render_inline_comments(
+    comments: list[Comment],
+    chars_used: int,
+    max_chars: int,
+) -> tuple[list[str], int, int]:
+    """Render inline comments grouped by file within budget.
+
+    Args:
+        comments: Sorted list of inline comments.
+        chars_used: Characters already consumed by prior sections.
+        max_chars: Maximum total characters allowed.
+
+    Returns:
+        Tuple of (lines, omitted_count, updated_chars_used).
+    """
+    by_file: dict[str, list[Comment]] = defaultdict(list)
+    no_file: list[Comment] = []
+    for c in comments:
+        if c.file_path:
+            by_file[c.file_path].append(c)
+        else:
+            no_file.append(c)
+
+    all_groups = list(by_file.items())
+    if no_file:
+        all_groups.append(("(unknown file)", no_file))
+
+    lines: list[str] = []
+    omitted = 0
+    for file_path, file_comments in all_groups:
+        file_header = f"\n**{file_path}:**"
+        if chars_used + len(file_header) > max_chars:
+            omitted += len(file_comments)
+            continue
+        lines.append(file_header)
+        chars_used += len(file_header)
+
+        for comment in file_comments:
+            line = _format_comment_for_prompt(comment)
+            if chars_used + len(line) > max_chars:
+                omitted += 1
+                continue
+            lines.append(line)
+            chars_used += len(line)
+
+    return lines, omitted, chars_used
+
+
+def _build_comments_section(
+    comments: tuple[Comment, ...],
+    max_total_chars: int,
+    include_bot: bool,
+) -> str | None:
+    """Build the comments section for the review prompt.
+
+    Groups comments into General Discussion and Inline Code Discussion.
+    Applies truncation: individual comments capped at 500 chars,
+    total capped at max_total_chars, oldest dropped first.
+
+    Args:
+        comments: Tuple of Comment objects from the MR.
+        max_total_chars: Maximum total characters for the section.
+        include_bot: Whether to include bot comments.
+
+    Returns:
+        Formatted comments section string, or None if no comments to show.
+    """
+    if not comments or max_total_chars == 0:
+        return None
+
+    filtered = [c for c in comments if include_bot or c.author_type != CommentAuthorType.BOT]
+    if not filtered:
+        return None
+
+    def _sort_key(c: Comment) -> str:
+        return c.created_at.isoformat() if c.created_at else ""
+
+    general = sorted(
+        (c for c in filtered if c.type == CommentType.ISSUE),
+        key=_sort_key,
+    )
+    inline = sorted(
+        (c for c in filtered if c.type != CommentType.ISSUE),
+        key=_sort_key,
+    )
+
+    chars_used = 0
+    section_parts: list[str] = []
+
+    if general:
+        lines, omitted, chars_used = _render_general_comments(general, chars_used, max_total_chars)
+        if lines or omitted:
+            section_parts.append("### General Discussion")
+            if omitted:
+                section_parts.append(f"[... {omitted} older comments omitted]")
+            section_parts.extend(lines)
+
+    if inline:
+        lines, omitted, chars_used = _render_inline_comments(inline, chars_used, max_total_chars)
+        if lines or omitted:
+            section_parts.append("\n### Inline Code Discussion")
+            if omitted:
+                section_parts.append(f"[... {omitted} older comments omitted]")
+            section_parts.extend(lines)
+
+    if not section_parts:
+        return None
+
+    header = (
+        "## Existing Discussion\n"
+        "The following comments have already been posted on this MR.\n"
+        "DO NOT repeat suggestions that were already discussed or rejected.\n"
+    )
+    return header + "\n".join(section_parts)
 
 
 def _format_file_change(change: FileChange, max_lines: int) -> str:
@@ -137,7 +337,16 @@ def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
     parts.append(f"Title: {context.mr.title}")
     parts.append(f"Description:\n{context.mr.description}")
 
-    # 3. Code Changes
+    # 3. Existing Discussion (between MR context and Code Changes)
+    comments_section = _build_comments_section(
+        context.mr.comments,
+        max_total_chars=settings.review_max_comment_chars,
+        include_bot=settings.review_include_bot_comments,
+    )
+    if comments_section:
+        parts.append(f"\n{comments_section}")
+
+    # 4. Code Changes
     parts.append("\n## Code Changes")
 
     # Filter and limit files
