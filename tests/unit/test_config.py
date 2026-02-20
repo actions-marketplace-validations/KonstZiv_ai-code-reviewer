@@ -595,6 +595,37 @@ class TestInlineCommentsSetting:
             assert settings.review_post_inline_comments is False
 
 
+class TestDialogueSetting:
+    """Tests for review_enable_dialogue setting."""
+
+    @pytest.fixture
+    def minimal_env(self) -> dict[str, str]:
+        """Return minimal required environment variables."""
+        return {
+            "GOOGLE_API_KEY": "AIza_test_key_12345",
+        }
+
+    def test_review_enable_dialogue_default(self, minimal_env: dict[str, str]) -> None:
+        """Test review_enable_dialogue has default value of True."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.review_enable_dialogue is True
+
+    def test_review_enable_dialogue_from_env_false(self, minimal_env: dict[str, str]) -> None:
+        """Test review_enable_dialogue can be set to False."""
+        env = {**minimal_env, "REVIEW_ENABLE_DIALOGUE": "false"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_enable_dialogue is False
+
+    def test_review_enable_dialogue_prefixed(self, minimal_env: dict[str, str]) -> None:
+        """Test review_enable_dialogue with AI_REVIEWER_ prefix."""
+        env = {**minimal_env, "AI_REVIEWER_REVIEW_ENABLE_DIALOGUE": "false"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_enable_dialogue is False
+
+
 class TestEnvVarPrefix:
     """Tests for AI_REVIEWER_ prefix and old name fallback."""
 

@@ -41,6 +41,10 @@ inputs:
     description: 'Post inline comments on specific lines (true/false)'
     required: false
     default: 'true'
+  review_enable_dialogue:
+    description: 'Group comments into threaded dialogues in AI prompt'
+    required: false
+    default: 'true'
 
 runs:
   using: 'docker'
@@ -56,4 +60,5 @@ runs:
     AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS: ${{ inputs.review_max_comment_chars }}
     AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS: ${{ inputs.review_include_bot_comments }}
     AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS: ${{ inputs.review_post_inline_comments }}
+    AI_REVIEWER_REVIEW_ENABLE_DIALOGUE: ${{ inputs.review_enable_dialogue }}
     GITHUB_ACTIONS: 'true'

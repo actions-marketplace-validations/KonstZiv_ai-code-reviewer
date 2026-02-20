@@ -22,6 +22,32 @@ from ai_reviewer.utils.retry import (
 )
 
 
+def _setup_mock_pr(client: GitHubClient) -> Mock:
+    """Set up a minimal mock PR for testing.
+
+    Returns:
+        The mock PR object, pre-configured with minimal data.
+    """
+    mock_repo = Mock()
+    mock_pr = Mock()
+    client.github.get_repo.return_value = mock_repo
+    mock_repo.get_pull.return_value = mock_pr
+
+    mock_pr.number = 1
+    mock_pr.title = "Test"
+    mock_pr.body = ""
+    mock_pr.user.login = "author"
+    mock_pr.head.ref = "head"
+    mock_pr.base.ref = "base"
+    mock_pr.html_url = "url"
+    mock_pr.created_at = datetime.now(UTC)
+    mock_pr.updated_at = datetime.now(UTC)
+    mock_pr.get_issue_comments.return_value = []
+    mock_pr.get_review_comments.return_value = []
+    mock_pr.get_files.return_value = []
+    return mock_pr
+
+
 class TestGitHubClient:
     """Tests for GitHubClient."""
 
@@ -70,6 +96,7 @@ class TestGitHubClient:
         mock_issue_comment.user.type = "User"
         mock_issue_comment.body = "LGTM"
         mock_issue_comment.created_at = datetime.now(UTC)
+        mock_issue_comment.id = 999
         mock_pr.get_issue_comments.return_value = [mock_issue_comment]
 
         # Mock Review Comments
@@ -80,6 +107,8 @@ class TestGitHubClient:
         mock_review_comment.created_at = datetime.now(UTC)
         mock_review_comment.path = "test.py"
         mock_review_comment.line = 42
+        mock_review_comment.id = 100
+        mock_review_comment.in_reply_to_id = None
         mock_pr.get_review_comments.return_value = [mock_review_comment]
 
         # Mock Files
@@ -132,6 +161,8 @@ class TestGitHubClient:
         mock_review_comment.created_at = datetime.now(UTC)
         mock_review_comment.path = "src/main.py"
         mock_review_comment.line = 99
+        mock_review_comment.id = 200
+        mock_review_comment.in_reply_to_id = None
         mock_pr.get_review_comments.return_value = [mock_review_comment]
         mock_pr.get_files.return_value = []
 
@@ -139,6 +170,59 @@ class TestGitHubClient:
 
         assert mr.comments[0].file_path == "src/main.py"
         assert mr.comments[0].line_number == 99
+
+    def test_get_merge_request_captures_threading_fields(self, client: GitHubClient) -> None:
+        """Test that comment_id, thread_id, parent_comment_id are captured."""
+        mock_pr = _setup_mock_pr(client)
+
+        # Issue comment — has id, no threading
+        mock_issue = Mock()
+        mock_issue.user.login = "u1"
+        mock_issue.user.type = "User"
+        mock_issue.body = "General"
+        mock_issue.created_at = datetime.now(UTC)
+        mock_issue.id = 500
+        mock_pr.get_issue_comments.return_value = [mock_issue]
+
+        # Review comments — root + reply
+        root = Mock()
+        root.user.login = "u2"
+        root.user.type = "User"
+        root.body = "Root"
+        root.created_at = datetime.now(UTC)
+        root.path = "a.py"
+        root.line = 10
+        root.id = 100
+        root.in_reply_to_id = None
+
+        reply = Mock()
+        reply.user.login = "u3"
+        reply.user.type = "User"
+        reply.body = "Reply"
+        reply.created_at = datetime.now(UTC)
+        reply.path = "a.py"
+        reply.line = 10
+        reply.id = 200
+        reply.in_reply_to_id = 100
+
+        mock_pr.get_review_comments.return_value = [root, reply]
+
+        mr = client.get_merge_request("owner/repo", 1)
+
+        # Issue comment: id captured, no threading
+        assert mr.comments[0].comment_id == "500"
+        assert mr.comments[0].thread_id is None
+        assert mr.comments[0].parent_comment_id is None
+
+        # Root review comment: thread_id = own id
+        assert mr.comments[1].comment_id == "100"
+        assert mr.comments[1].thread_id == "100"
+        assert mr.comments[1].parent_comment_id is None
+
+        # Reply review comment: thread_id = root id
+        assert mr.comments[2].comment_id == "200"
+        assert mr.comments[2].thread_id == "100"
+        assert mr.comments[2].parent_comment_id == "100"
 
     def test_get_merge_request_binary_file(self, client: GitHubClient) -> None:
         """Test fetching MR with binary file (no patch)."""

@@ -111,6 +111,27 @@ class TestComment:
                 line_number=0,
             )
 
+    def test_comment_with_threading_fields(self) -> None:
+        """Test creating a comment with all threading fields."""
+        comment = Comment(
+            author="user1",
+            body="Reply",
+            type=CommentType.REVIEW,
+            comment_id="123",
+            parent_comment_id="100",
+            thread_id="100",
+        )
+        assert comment.comment_id == "123"
+        assert comment.parent_comment_id == "100"
+        assert comment.thread_id == "100"
+
+    def test_comment_threading_fields_default_none(self) -> None:
+        """Test that threading fields default to None."""
+        comment = Comment(author="user1", body="Hi", type=CommentType.ISSUE)
+        assert comment.comment_id is None
+        assert comment.parent_comment_id is None
+        assert comment.thread_id is None
+
 
 class TestFileChange:
     """Tests for FileChange model."""

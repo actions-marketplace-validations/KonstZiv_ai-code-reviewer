@@ -83,6 +83,7 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 | `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Maks. karaktera komentara MR u promptu | `3000` | 0-20000 |
 | `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Uključi bot komentare u prompt | `true` | true/false |
 | `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Postavljanje inline komentara na linije | `true` | true/false |
+| `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE` | Grupisanje komentara u dijalog niti | `true` | true/false |
 
 !!! info "Kontekst diskusije"
     AI revizor čita postojeće komentare MR/PR kako ne bi ponavljao prijedloge
@@ -90,6 +91,10 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 
 !!! info "Inline komentari"
     Kada je `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (podrazumijevano), issue-i sa informacijama o fajlu/liniji se postavljaju kao inline komentari na kodu, sa kratkim sažetkom kao tijelom revizije. Postavite na `false` za jedan sažetak komentar.
+
+!!! info "Dijalog niti"
+    Kada je `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (podrazumijevano), komentari se grupišu u
+    konverzacijske niti kako bi AI razumio lance odgovora. Postavite na `false` za ravno prikazivanje.
 
 ### GitLab
 

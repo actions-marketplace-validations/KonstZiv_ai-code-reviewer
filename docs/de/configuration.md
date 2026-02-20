@@ -83,6 +83,7 @@ Alle Einstellungen werden über Umgebungsvariablen konfiguriert.
 | `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Max. Zeichen der MR-Kommentare im Prompt | `3000` | 0-20000 |
 | `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Bot-Kommentare im Prompt einschließen | `true` | true/false |
 | `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Inline-Kommentare an Codezeilen posten | `true` | true/false |
+| `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE` | Kommentare in Dialog-Threads gruppieren | `true` | true/false |
 
 !!! info "Diskussionskontext"
     Der AI-Reviewer liest bestehende MR/PR-Kommentare, um bereits besprochene
@@ -90,6 +91,10 @@ Alle Einstellungen werden über Umgebungsvariablen konfiguriert.
 
 !!! info "Inline-Kommentare"
     Wenn `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (Standard), werden Issues mit Datei-/Zeileninformationen als Inline-Kommentare am Code gepostet, mit einer kurzen Zusammenfassung als Review-Body. Setzen Sie auf `false` für einen einzelnen Zusammenfassungskommentar.
+
+!!! info "Dialog-Threads"
+    Wenn `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (Standard), werden Kommentare in
+    Konversations-Threads gruppiert, damit die KI Antwort-Ketten versteht. Setzen Sie auf `false` für flache Darstellung.
 
 ### GitLab
 

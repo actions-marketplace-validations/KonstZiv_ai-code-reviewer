@@ -84,6 +84,9 @@ Return valid JSON matching this structure:
 - Be context-aware: Read the "Existing Discussion" section carefully. Do NOT repeat \
 issues that were already discussed or intentionally rejected. Comments marked [BOT] \
 are from previous AI reviews
+- Be dialogue-aware: Comments may be grouped into threaded conversations (replies \
+indented with "> "). Understand the full thread context before commenting. If a \
+discussion thread already reached a resolution, do not reopen it
 - Respond in the language specified in the user prompt
 """
 
@@ -215,14 +218,168 @@ def _render_inline_comments(
     return lines, omitted, chars_used
 
 
+def _group_comments_into_threads(
+    comments: list[Comment],
+) -> list[list[Comment]]:
+    """Group comments into threads based on thread_id.
+
+    Comments with the same thread_id are grouped together and sorted by created_at.
+    Comments with no thread_id are each placed in their own single-comment thread.
+    Threads are sorted by the created_at of their first (root) comment.
+
+    Args:
+        comments: Flat list of comments.
+
+    Returns:
+        List of threads, where each thread is a list of comments sorted chronologically.
+    """
+    threads: dict[str, list[Comment]] = defaultdict(list)
+    standalone: list[list[Comment]] = []
+
+    for comment in comments:
+        if comment.thread_id:
+            threads[comment.thread_id].append(comment)
+        else:
+            standalone.append([comment])
+
+    def _sort_key(c: Comment) -> str:
+        return c.created_at.isoformat() if c.created_at else ""
+
+    # Sort comments within each thread by time
+    sorted_threads: list[list[Comment]] = []
+    for thread_comments in threads.values():
+        thread_comments.sort(key=_sort_key)
+        sorted_threads.append(thread_comments)
+
+    # Sort threads by root comment time
+    sorted_threads.sort(key=lambda t: _sort_key(t[0]))
+    standalone.sort(key=lambda t: _sort_key(t[0]))
+
+    return [*sorted_threads, *standalone]
+
+
+def _format_thread_for_prompt(
+    thread: list[Comment],
+    chars_used: int,
+    max_chars: int,
+) -> tuple[list[str], int, int]:
+    """Format a single thread for the prompt.
+
+    The root comment is rendered normally; replies are indented with "  > ".
+
+    Args:
+        thread: List of comments in one thread (sorted chronologically).
+        chars_used: Characters already consumed.
+        max_chars: Maximum total characters.
+
+    Returns:
+        Tuple of (lines, omitted_count, updated_chars_used).
+    """
+    lines: list[str] = []
+    omitted = 0
+
+    for i, comment in enumerate(thread):
+        formatted = _format_comment_for_prompt(comment)
+        if i > 0:
+            # Indent replies: strip leading "- " and prepend "  > "
+            formatted = "  > " + formatted.removeprefix("- ")
+
+        if chars_used + len(formatted) > max_chars:
+            omitted += 1
+            continue
+        lines.append(formatted)
+        chars_used += len(formatted)
+
+    return lines, omitted, chars_used
+
+
+def _render_general_comments_threaded(
+    comments: list[Comment],
+    chars_used: int,
+    max_chars: int,
+) -> tuple[list[str], int, int]:
+    """Render general discussion comments with threading within budget.
+
+    Args:
+        comments: Sorted list of general comments.
+        chars_used: Characters already consumed.
+        max_chars: Maximum total characters.
+
+    Returns:
+        Tuple of (lines, omitted_count, updated_chars_used).
+    """
+    threads = _group_comments_into_threads(comments)
+    lines: list[str] = []
+    total_omitted = 0
+
+    for thread in threads:
+        thread_lines, omitted, chars_used = _format_thread_for_prompt(thread, chars_used, max_chars)
+        lines.extend(thread_lines)
+        total_omitted += omitted
+
+    return lines, total_omitted, chars_used
+
+
+def _render_inline_comments_threaded(
+    comments: list[Comment],
+    chars_used: int,
+    max_chars: int,
+) -> tuple[list[str], int, int]:
+    """Render inline comments with threading, grouped by file, within budget.
+
+    Args:
+        comments: Sorted list of inline comments.
+        chars_used: Characters already consumed.
+        max_chars: Maximum total characters.
+
+    Returns:
+        Tuple of (lines, omitted_count, updated_chars_used).
+    """
+    by_file: dict[str, list[Comment]] = defaultdict(list)
+    no_file: list[Comment] = []
+    for c in comments:
+        if c.file_path:
+            by_file[c.file_path].append(c)
+        else:
+            no_file.append(c)
+
+    all_groups = list(by_file.items())
+    if no_file:
+        all_groups.append(("(unknown file)", no_file))
+
+    lines: list[str] = []
+    total_omitted = 0
+
+    for file_path, file_comments in all_groups:
+        file_header = f"\n**{file_path}:**"
+        if chars_used + len(file_header) > max_chars:
+            total_omitted += len(file_comments)
+            continue
+        lines.append(file_header)
+        chars_used += len(file_header)
+
+        threads = _group_comments_into_threads(file_comments)
+        for thread in threads:
+            thread_lines, omitted, chars_used = _format_thread_for_prompt(
+                thread, chars_used, max_chars
+            )
+            lines.extend(thread_lines)
+            total_omitted += omitted
+
+    return lines, total_omitted, chars_used
+
+
 def _build_comments_section(
     comments: tuple[Comment, ...],
     max_total_chars: int,
     include_bot: bool,
+    *,
+    enable_dialogue: bool = True,
 ) -> str | None:
     """Build the comments section for the review prompt.
 
     Groups comments into General Discussion and Inline Code Discussion.
+    When enable_dialogue is True, comments are grouped into threads.
     Applies truncation: individual comments capped at 500 chars,
     total capped at max_total_chars, oldest dropped first.
 
@@ -230,6 +387,7 @@ def _build_comments_section(
         comments: Tuple of Comment objects from the MR.
         max_total_chars: Maximum total characters for the section.
         include_bot: Whether to include bot comments.
+        enable_dialogue: Group comments into threaded dialogues.
 
     Returns:
         Formatted comments section string, or None if no comments to show.
@@ -257,7 +415,10 @@ def _build_comments_section(
     section_parts: list[str] = []
 
     if general:
-        lines, omitted, chars_used = _render_general_comments(general, chars_used, max_total_chars)
+        render_general = (
+            _render_general_comments_threaded if enable_dialogue else _render_general_comments
+        )
+        lines, omitted, chars_used = render_general(general, chars_used, max_total_chars)
         if lines or omitted:
             section_parts.append("### General Discussion")
             if omitted:
@@ -265,7 +426,10 @@ def _build_comments_section(
             section_parts.extend(lines)
 
     if inline:
-        lines, omitted, chars_used = _render_inline_comments(inline, chars_used, max_total_chars)
+        render_inline = (
+            _render_inline_comments_threaded if enable_dialogue else _render_inline_comments
+        )
+        lines, omitted, chars_used = render_inline(inline, chars_used, max_total_chars)
         if lines or omitted:
             section_parts.append("\n### Inline Code Discussion")
             if omitted:
@@ -342,6 +506,7 @@ def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
         context.mr.comments,
         max_total_chars=settings.review_max_comment_chars,
         include_bot=settings.review_include_bot_comments,
+        enable_dialogue=settings.review_enable_dialogue,
     )
     if comments_section:
         parts.append(f"\n{comments_section}")

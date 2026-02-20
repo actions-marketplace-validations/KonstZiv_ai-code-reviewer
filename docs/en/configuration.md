@@ -87,6 +87,7 @@ All settings are configured via environment variables.
 | `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Max MR comment chars in AI prompt | `3000` | 0-20000 |
 | `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Include bot comments in prompt | `true` | true/false |
 | `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Post inline comments on lines | `true` | true/false |
+| `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE` | Group comments into dialogue threads | `true` | true/false |
 
 !!! info "Discussion context"
     The AI reviewer reads existing MR/PR comments to avoid repeating suggestions
@@ -94,6 +95,10 @@ All settings are configured via environment variables.
 
 !!! info "Inline comments"
     When `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (default), issues with file/line info are posted as inline comments on the code, with a short summary as the review body. Set to `false` for a single summary comment.
+
+!!! info "Dialogue threads"
+    When `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (default), comments are grouped into
+    conversation threads so the AI understands reply chains. Set to `false` for flat rendering.
 
 ### GitLab
 

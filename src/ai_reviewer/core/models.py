@@ -68,6 +68,9 @@ class Comment(BaseModel):
         created_at: When the comment was created (must be timezone-aware).
         file_path: File path for inline comments (None for general comments).
         line_number: Line number for inline comments (None for general comments).
+        comment_id: Platform-specific comment ID (str for portability).
+        parent_comment_id: ID of the parent comment for threading.
+        thread_id: Thread/discussion ID grouping related comments.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -82,6 +85,13 @@ class Comment(BaseModel):
     file_path: str | None = Field(default=None, description="File path for inline comments")
     line_number: int | None = Field(
         default=None, ge=1, description="Line number for inline comments"
+    )
+    comment_id: str | None = Field(default=None, description="Platform-specific comment ID")
+    parent_comment_id: str | None = Field(
+        default=None, description="ID of the parent comment (for threading)"
+    )
+    thread_id: str | None = Field(
+        default=None, description="Thread/discussion ID grouping related comments"
     )
 
     @field_validator("created_at")

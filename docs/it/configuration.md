@@ -83,6 +83,7 @@ Tutte le impostazioni vengono configurate tramite variabili d'ambiente.
 | `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Max caratteri commenti MR nel prompt | `3000` | 0-20000 |
 | `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Includi commenti bot nel prompt | `true` | true/false |
 | `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Pubblica commenti inline sulle righe | `true` | true/false |
+| `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE` | Raggruppa commenti in thread di dialogo | `true` | true/false |
 
 !!! info "Contesto della discussione"
     Il revisore AI legge i commenti esistenti della MR/PR per evitare di ripetere suggerimenti
@@ -90,6 +91,10 @@ Tutte le impostazioni vengono configurate tramite variabili d'ambiente.
 
 !!! info "Commenti inline"
     Quando `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (default), gli issue con informazioni su file/riga vengono pubblicati come commenti inline sul codice, con un breve riepilogo come corpo della review. Imposta `false` per un singolo commento di riepilogo.
+
+!!! info "Thread di dialogo"
+    Quando `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (default), i commenti vengono raggruppati in
+    thread di conversazione in modo che l'AI comprenda le catene di risposte. Imposta `false` per il rendering piatto.
 
 ### GitLab
 

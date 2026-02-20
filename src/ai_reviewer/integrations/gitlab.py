@@ -86,6 +86,77 @@ def _convert_gitlab_exception(e: GitlabError) -> Exception:
     return e
 
 
+def _parse_discussion_notes(
+    notes: list[dict[str, object]],
+    discussion_id: str,
+) -> list[Comment]:
+    """Parse notes from a GitLab discussion into Comment objects.
+
+    Args:
+        notes: List of note dicts from discussion.attributes["notes"].
+        discussion_id: The discussion ID for thread grouping.
+
+    Returns:
+        List of Comment objects with threading fields populated.
+    """
+    comments: list[Comment] = []
+    first_note_id: str | None = None
+
+    for note_data in notes:
+        # Skip system notes (e.g., "merged", "assigned", etc.)
+        if note_data.get("system", False):
+            continue
+
+        author_data: dict[str, object] = note_data.get("author", {})  # type: ignore[assignment]
+
+        # Determine if it's a bot
+        author_type = CommentAuthorType.USER
+        is_bot = author_data.get("bot", False) or (
+            "bot" in str(author_data.get("username", "")).lower()
+        )
+        if is_bot:
+            author_type = CommentAuthorType.BOT
+
+        # Determine comment type from position
+        position = note_data.get("position")
+        comment_type = CommentType.REVIEW if position else CommentType.ISSUE
+
+        # Extract file path and line number from position dict
+        file_path: str | None = None
+        line_number: int | None = None
+        if position and isinstance(position, dict):
+            file_path = position.get("new_path")
+            raw_line = position.get("new_line")
+            if raw_line is not None:
+                line_number = int(raw_line)
+
+        note_id = str(note_data.get("id", ""))
+
+        # Threading: first note is root, subsequent reply to root
+        parent_id: str | None = None
+        if first_note_id is None:
+            first_note_id = note_id
+        else:
+            parent_id = first_note_id
+
+        comments.append(
+            Comment(
+                author=str(author_data.get("username", "unknown")),
+                author_type=author_type,
+                body=str(note_data.get("body", "")),
+                type=comment_type,
+                created_at=note_data.get("created_at"),  # type: ignore[arg-type]
+                file_path=file_path,
+                line_number=line_number,
+                comment_id=note_id,
+                parent_comment_id=parent_id,
+                thread_id=discussion_id,
+            )
+        )
+
+    return comments
+
+
 class GitLabClient(GitProvider):
     """Client for interacting with GitLab API.
 
@@ -130,48 +201,12 @@ class GitLabClient(GitProvider):
             logger.warning("GitLab API error for MR !%s in %s: %s", mr_id, repo_name, e)
             raise _convert_gitlab_exception(e) from e
 
-        # Fetch notes (comments)
+        # Fetch comments via discussions API (provides threading)
         comments: list[Comment] = []
-
-        # GitLab notes include both general and inline comments
-        for note in mr.notes.list(iterator=True):
-            # Skip system notes (e.g., "merged", "assigned", etc.)
-            if note.system:
-                continue
-
-            # Determine if it's a bot
-            author_type = CommentAuthorType.USER
-            is_bot = (
-                hasattr(note.author, "bot") and note.author.get("bot")
-            ) or "bot" in note.author.get("username", "").lower()
-            if is_bot:
-                author_type = CommentAuthorType.BOT
-
-            # Determine comment type (position indicates inline comment).
-            # notes.list() may return objects without the 'position' attribute.
-            position = getattr(note, "position", None)
-            comment_type = CommentType.REVIEW if position else CommentType.ISSUE
-
-            # Extract file path and line number from position dict
-            file_path: str | None = None
-            line_number: int | None = None
-            if position and isinstance(position, dict):
-                file_path = position.get("new_path")
-                raw_line = position.get("new_line")
-                if raw_line is not None:
-                    line_number = int(raw_line)
-
-            comments.append(
-                Comment(
-                    author=note.author.get("username", "unknown"),
-                    author_type=author_type,
-                    body=note.body,
-                    type=comment_type,
-                    created_at=note.created_at,
-                    file_path=file_path,
-                    line_number=line_number,
-                )
-            )
+        for discussion in mr.discussions.list(iterator=True):
+            discussion_id = str(discussion.id)
+            notes = discussion.attributes.get("notes", [])
+            comments.extend(_parse_discussion_notes(notes, discussion_id))
 
         # Fetch file changes
         changes: list[FileChange] = []

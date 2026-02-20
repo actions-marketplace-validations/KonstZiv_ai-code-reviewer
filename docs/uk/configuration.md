@@ -87,6 +87,7 @@
 | `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Макс. символів коментарів MR у промпті | `3000` | 0-20000 |
 | `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Включати коментарі ботів у промпт | `true` | true/false |
 | `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Публікувати inline коментарі на рядках | `true` | true/false |
+| `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE` | Групувати коментарі у діалогові потоки | `true` | true/false |
 
 !!! info "Контекст обговорення"
     AI-рев'ювер читає існуючі коментарі MR/PR, щоб не повторювати пропозиції,
@@ -94,6 +95,10 @@
 
 !!! info "Inline коментарі"
     Коли `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (default), issues з інформацією про файл/рядок публікуються як inline коментарі до коду, з коротким summary як тілом ревʼю. Встановіть `false` для одного summary коментаря.
+
+!!! info "Діалогові потоки"
+    Коли `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (default), коментарі групуються у
+    діалогові потоки, щоб AI розумів ланцюжки відповідей. Встановіть `false` для плоского відображення.
 
 ### GitLab
 

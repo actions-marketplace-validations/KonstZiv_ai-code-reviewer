@@ -22,6 +22,25 @@ from ai_reviewer.utils.retry import (
 )
 
 
+def _make_discussion(
+    discussion_id: str,
+    notes: list[dict[str, object]],
+) -> Mock:
+    """Create a mock GitLab discussion object.
+
+    Args:
+        discussion_id: Discussion ID (hex string).
+        notes: List of note dicts with keys: id, system, author, body, position, created_at.
+
+    Returns:
+        Mock discussion object with attributes["notes"].
+    """
+    discussion = Mock()
+    discussion.id = discussion_id
+    discussion.attributes = {"notes": notes}
+    return discussion
+
+
 class TestGitLabClient:
     """Tests for GitLabClient."""
 
@@ -71,14 +90,21 @@ class TestGitLabClient:
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
 
-        # Mock Notes
-        mock_note = Mock()
-        mock_note.system = False
-        mock_note.author = {"username": "user1", "bot": False}
-        mock_note.body = "LGTM"
-        mock_note.position = None
-        mock_note.created_at = "2024-01-01T00:00:00Z"
-        mock_mr.notes.list.return_value = [mock_note]
+        # Mock Discussions (replaces notes.list)
+        discussion = _make_discussion(
+            "disc1",
+            [
+                {
+                    "id": 1,
+                    "system": False,
+                    "author": {"username": "user1", "bot": False},
+                    "body": "LGTM",
+                    "position": None,
+                    "created_at": "2024-01-01T00:00:00Z",
+                }
+            ],
+        )
+        mock_mr.discussions.list.return_value = [discussion]
 
         # Mock Diffs
         mock_diff = Mock()
@@ -133,14 +159,21 @@ class TestGitLabClient:
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
         mock_mr.diffs.list.return_value = []
 
-        # Mock bot note
-        mock_note = Mock()
-        mock_note.system = False
-        mock_note.author = {"username": "review-bot", "bot": True}
-        mock_note.body = "Auto review"
-        mock_note.position = {"new_line": 10, "new_path": "src/main.py"}
-        mock_note.created_at = "2024-01-01T00:00:00Z"
-        mock_mr.notes.list.return_value = [mock_note]
+        # Mock discussion with bot note
+        discussion = _make_discussion(
+            "disc2",
+            [
+                {
+                    "id": 10,
+                    "system": False,
+                    "author": {"username": "review-bot", "bot": True},
+                    "body": "Auto review",
+                    "position": {"new_line": 10, "new_path": "src/main.py"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                }
+            ],
+        )
+        mock_mr.discussions.list.return_value = [discussion]
 
         mr = client.get_merge_request("owner/repo", 1)
 
@@ -169,24 +202,28 @@ class TestGitLabClient:
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
         mock_mr.diffs.list.return_value = []
 
-        # Mock system note
-        mock_note = Mock()
-        mock_note.system = True  # System note - should be skipped
-        mock_note.author = {"username": "gitlab"}
-        mock_note.body = "merged"
-        mock_mr.notes.list.return_value = [mock_note]
+        # Mock discussion with system note
+        discussion = _make_discussion(
+            "disc3",
+            [
+                {
+                    "id": 20,
+                    "system": True,  # System note - should be skipped
+                    "author": {"username": "gitlab"},
+                    "body": "merged",
+                    "position": None,
+                    "created_at": "2024-01-01T00:00:00Z",
+                }
+            ],
+        )
+        mock_mr.discussions.list.return_value = [discussion]
 
         mr = client.get_merge_request("owner/repo", 1)
 
         assert len(mr.comments) == 0
 
-    def test_get_merge_request_note_without_position_attr(self, client: GitLabClient) -> None:
-        """Test MR fetching when note has no 'position' attribute at all.
-
-        python-gitlab's notes.list() may return ProjectMergeRequestNote
-        objects without the 'position' attribute (only a subset of data).
-        This must not raise AttributeError (issue #54).
-        """
+    def test_get_merge_request_note_without_position(self, client: GitLabClient) -> None:
+        """Test MR fetching when note has no position (general comment)."""
         mock_project = Mock()
         mock_mr = Mock()
         client.gitlab.projects.get.return_value = mock_project
@@ -204,19 +241,80 @@ class TestGitLabClient:
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
         mock_mr.diffs.list.return_value = []
 
-        # Mock note WITHOUT 'position' attribute — simulates notes.list() behavior
-        mock_note = Mock(spec=["system", "author", "body", "created_at"])
-        mock_note.system = False
-        mock_note.author = {"username": "user1"}
-        mock_note.body = "General comment"
-        mock_note.created_at = "2024-01-01T00:00:00Z"
-        mock_mr.notes.list.return_value = [mock_note]
+        # Discussion with note that has no position key
+        discussion = _make_discussion(
+            "disc4",
+            [
+                {
+                    "id": 30,
+                    "system": False,
+                    "author": {"username": "user1"},
+                    "body": "General comment",
+                    "created_at": "2024-01-01T00:00:00Z",
+                }
+            ],
+        )
+        mock_mr.discussions.list.return_value = [discussion]
 
         mr = client.get_merge_request("owner/repo", 1)
 
         assert len(mr.comments) == 1
         assert mr.comments[0].type == CommentType.ISSUE
         assert mr.comments[0].body == "General comment"
+
+    def test_get_merge_request_discussion_threading(self, client: GitLabClient) -> None:
+        """Test that discussions provide proper threading fields."""
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+
+        mock_mr.iid = 1
+        mock_mr.title = "Test"
+        mock_mr.description = ""
+        mock_mr.author = {"username": "author"}
+        mock_mr.source_branch = "head"
+        mock_mr.target_branch = "base"
+        mock_mr.web_url = "url"
+        mock_mr.created_at = "2024-01-01T00:00:00Z"
+        mock_mr.updated_at = "2024-01-01T00:00:00Z"
+        mock_mr.diffs.list.return_value = []
+
+        # Discussion with 2 notes (root + reply)
+        discussion = _make_discussion(
+            "abc123",
+            [
+                {
+                    "id": 1,
+                    "system": False,
+                    "author": {"username": "user1"},
+                    "body": "Root comment",
+                    "position": None,
+                    "created_at": "2024-01-01T10:00:00Z",
+                },
+                {
+                    "id": 2,
+                    "system": False,
+                    "author": {"username": "user2"},
+                    "body": "Reply",
+                    "position": None,
+                    "created_at": "2024-01-01T11:00:00Z",
+                },
+            ],
+        )
+        mock_mr.discussions.list.return_value = [discussion]
+
+        mr = client.get_merge_request("owner/repo", 1)
+
+        assert len(mr.comments) == 2
+        # Root
+        assert mr.comments[0].thread_id == "abc123"
+        assert mr.comments[0].comment_id == "1"
+        assert mr.comments[0].parent_comment_id is None
+        # Reply
+        assert mr.comments[1].thread_id == "abc123"
+        assert mr.comments[1].comment_id == "2"
+        assert mr.comments[1].parent_comment_id == "1"
 
     def test_get_linked_task_found(self, client: GitLabClient) -> None:
         """Test finding linked issue."""

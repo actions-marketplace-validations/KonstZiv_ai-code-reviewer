@@ -83,6 +83,7 @@ Todas las configuraciones se hacen mediante variables de entorno.
 | `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Máx. caracteres de comentarios MR en prompt | `3000` | 0-20000 |
 | `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Incluir comentarios de bots en prompt | `true` | true/false |
 | `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Publicar comentarios inline en líneas | `true` | true/false |
+| `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE` | Agrupar comentarios en hilos de diálogo | `true` | true/false |
 
 !!! info "Contexto de discusión"
     El revisor AI lee los comentarios existentes del MR/PR para evitar repetir sugerencias
@@ -90,6 +91,10 @@ Todas las configuraciones se hacen mediante variables de entorno.
 
 !!! info "Comentarios inline"
     Cuando `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (por defecto), los issues con información de archivo/línea se publican como comentarios inline en el código, con un resumen corto como cuerpo de la revisión. Configura `false` para un único comentario de resumen.
+
+!!! info "Hilos de diálogo"
+    Cuando `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (por defecto), los comentarios se agrupan en
+    hilos de conversación para que la IA entienda las cadenas de respuestas. Configura `false` para renderizado plano.
 
 ### GitLab
 

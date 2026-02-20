@@ -177,6 +177,7 @@ class Settings(BaseSettings):
         AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS / REVIEW_MAX_COMMENT_CHARS: Max comment chars
         AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS / REVIEW_INCLUDE_BOT_COMMENTS: Include bots
         AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS / REVIEW_POST_INLINE_COMMENTS: Inline comments
+        AI_REVIEWER_REVIEW_ENABLE_DIALOGUE / REVIEW_ENABLE_DIALOGUE: Dialogue threading
     """
 
     model_config = SettingsConfigDict(
@@ -276,6 +277,15 @@ class Settings(BaseSettings):
             "AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS", "REVIEW_INCLUDE_BOT_COMMENTS"
         ),
         description="Include bot comments in review prompt (to avoid repeating AI suggestions)",
+    )
+
+    # Dialogue threading
+    review_enable_dialogue: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "AI_REVIEWER_REVIEW_ENABLE_DIALOGUE", "REVIEW_ENABLE_DIALOGUE"
+        ),
+        description="Group comments into threaded dialogues in AI prompt",
     )
 
     # Inline comments

@@ -127,7 +127,7 @@ class GitHubClient(GitProvider):
         # Fetch comments (both issue comments and review comments)
         comments: list[Comment] = []
 
-        # 1. Issue comments (general discussion)
+        # 1. Issue comments (general discussion — no threading)
         for issue_comment in pr.get_issue_comments():
             comments.append(
                 Comment(
@@ -140,14 +140,21 @@ class GitHubClient(GitProvider):
                     body=issue_comment.body,
                     type=CommentType.ISSUE,
                     created_at=issue_comment.created_at,
+                    comment_id=str(issue_comment.id),
                 )
             )
 
-        # 2. Review comments (code specific)
+        # 2. Review comments (code specific — with threading)
         for review_comment in pr.get_review_comments():
             # Extract line number (may be None for outdated comments)
             raw_line = getattr(review_comment, "line", None)
             line_number: int | None = int(raw_line) if raw_line is not None else None
+
+            # Threading: in_reply_to_id points to the root comment of the thread
+            comment_id_str = str(review_comment.id)
+            raw_in_reply_to = getattr(review_comment, "in_reply_to_id", None)
+            parent_id: str | None = str(raw_in_reply_to) if raw_in_reply_to is not None else None
+            thread_id = str(raw_in_reply_to) if raw_in_reply_to is not None else comment_id_str
 
             comments.append(
                 Comment(
@@ -162,6 +169,9 @@ class GitHubClient(GitProvider):
                     created_at=review_comment.created_at,
                     file_path=getattr(review_comment, "path", None),
                     line_number=line_number,
+                    comment_id=comment_id_str,
+                    parent_comment_id=parent_id,
+                    thread_id=thread_id,
                 )
             )
 

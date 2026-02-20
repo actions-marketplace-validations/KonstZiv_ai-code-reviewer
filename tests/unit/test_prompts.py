@@ -19,6 +19,8 @@ from ai_reviewer.core.models import (
 from ai_reviewer.integrations.prompts import (
     _build_comments_section,
     _format_comment_for_prompt,
+    _format_thread_for_prompt,
+    _group_comments_into_threads,
     _truncate_comment_body,
     build_review_prompt,
 )
@@ -37,6 +39,7 @@ class TestBuildReviewPrompt:
         settings.language_mode = LanguageMode.FIXED
         settings.review_max_comment_chars = 3000
         settings.review_include_bot_comments = True
+        settings.review_enable_dialogue = True
         return settings
 
     @pytest.fixture
@@ -471,3 +474,219 @@ class TestBuildCommentsSection:
         assert result is not None
         assert "### General Discussion" in result
         assert "### Inline Code Discussion" in result
+
+
+class TestGroupCommentsIntoThreads:
+    """Tests for _group_comments_into_threads."""
+
+    def test_empty_list(self) -> None:
+        """Test grouping empty list returns empty list."""
+        result = _group_comments_into_threads([])
+        assert result == []
+
+    def test_no_thread_ids_each_standalone(self) -> None:
+        """Test comments without thread_id become standalone threads."""
+        c1 = Comment(author="u1", body="A", type=CommentType.ISSUE)
+        c2 = Comment(author="u2", body="B", type=CommentType.ISSUE)
+        result = _group_comments_into_threads([c1, c2])
+        assert len(result) == 2
+        assert all(len(t) == 1 for t in result)
+
+    def test_comments_grouped_by_thread_id(self) -> None:
+        """Test comments with same thread_id are grouped and sorted."""
+        dt1 = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+        dt2 = datetime(2024, 1, 15, 11, 0, tzinfo=UTC)
+        c1 = Comment(
+            author="u1",
+            body="Root",
+            type=CommentType.REVIEW,
+            comment_id="1",
+            thread_id="1",
+            created_at=dt1,
+        )
+        c2 = Comment(
+            author="u2",
+            body="Reply",
+            type=CommentType.REVIEW,
+            comment_id="2",
+            parent_comment_id="1",
+            thread_id="1",
+            created_at=dt2,
+        )
+        # Intentionally reversed
+        result = _group_comments_into_threads([c2, c1])
+        assert len(result) == 1
+        assert result[0][0].body == "Root"
+        assert result[0][1].body == "Reply"
+
+    def test_multiple_threads_sorted_by_root_time(self) -> None:
+        """Test threads are sorted by root comment time."""
+        dt1 = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+        dt2 = datetime(2024, 1, 15, 9, 0, tzinfo=UTC)
+        c1 = Comment(
+            author="u1",
+            body="Thread A",
+            type=CommentType.ISSUE,
+            thread_id="A",
+            created_at=dt1,
+        )
+        c2 = Comment(
+            author="u2",
+            body="Thread B",
+            type=CommentType.ISSUE,
+            thread_id="B",
+            created_at=dt2,
+        )
+        result = _group_comments_into_threads([c1, c2])
+        assert result[0][0].thread_id == "B"  # earlier thread first
+
+
+class TestFormatThreadForPrompt:
+    """Tests for _format_thread_for_prompt."""
+
+    def test_single_comment_thread(self) -> None:
+        """Test formatting a single-comment thread."""
+        c = Comment(
+            author="u1",
+            body="Hello",
+            type=CommentType.ISSUE,
+            thread_id="1",
+        )
+        lines, omitted, _used = _format_thread_for_prompt([c], 0, 3000)
+        assert len(lines) == 1
+        assert lines[0].startswith("- @u1")
+        assert omitted == 0
+
+    def test_replies_indented(self) -> None:
+        """Test that replies are indented with '  > '."""
+        root = Comment(
+            author="u1",
+            body="Root",
+            type=CommentType.ISSUE,
+            comment_id="1",
+            thread_id="1",
+        )
+        reply = Comment(
+            author="u2",
+            body="Reply",
+            type=CommentType.ISSUE,
+            comment_id="2",
+            parent_comment_id="1",
+            thread_id="1",
+        )
+        lines, _omitted, _used = _format_thread_for_prompt([root, reply], 0, 3000)
+        assert len(lines) == 2
+        assert lines[0].startswith("- @u1")
+        assert lines[1].startswith("  > @u2")
+
+    def test_budget_overflow_omits_replies(self) -> None:
+        """Test that budget overflow omits comments."""
+        root = Comment(
+            author="u1",
+            body="x" * 100,
+            type=CommentType.ISSUE,
+            thread_id="1",
+        )
+        reply = Comment(
+            author="u2",
+            body="y" * 100,
+            type=CommentType.ISSUE,
+            thread_id="1",
+        )
+        _lines, omitted, _used = _format_thread_for_prompt([root, reply], 0, 150)
+        assert omitted >= 1
+
+
+class TestBuildCommentsSectionThreaded:
+    """Tests for _build_comments_section with dialogue enabled/disabled."""
+
+    def test_threaded_rendering_groups_replies(self) -> None:
+        """Test threaded rendering shows indented replies."""
+        dt1 = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+        dt2 = datetime(2024, 1, 15, 11, 0, tzinfo=UTC)
+        comments = (
+            Comment(
+                author="u1",
+                body="Root",
+                type=CommentType.ISSUE,
+                comment_id="1",
+                thread_id="1",
+                created_at=dt1,
+            ),
+            Comment(
+                author="u2",
+                body="Reply",
+                type=CommentType.ISSUE,
+                comment_id="2",
+                parent_comment_id="1",
+                thread_id="1",
+                created_at=dt2,
+            ),
+        )
+        result = _build_comments_section(
+            comments,
+            3000,
+            True,
+            enable_dialogue=True,
+        )
+        assert result is not None
+        assert "  > @u2" in result
+
+    def test_flat_rendering_when_dialogue_disabled(self) -> None:
+        """Test flat rendering when dialogue is disabled."""
+        dt1 = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+        comments = (
+            Comment(
+                author="u1",
+                body="Root",
+                type=CommentType.ISSUE,
+                comment_id="1",
+                thread_id="1",
+                created_at=dt1,
+            ),
+        )
+        result = _build_comments_section(
+            comments,
+            3000,
+            True,
+            enable_dialogue=False,
+        )
+        assert result is not None
+        assert "  >" not in result
+
+    def test_inline_threaded_grouped_by_file(self) -> None:
+        """Test inline threaded comments are grouped by file."""
+        dt = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+        dt2 = datetime(2024, 1, 15, 11, 0, tzinfo=UTC)
+        comments = (
+            Comment(
+                author="u1",
+                body="Fix",
+                type=CommentType.REVIEW,
+                file_path="a.py",
+                line_number=10,
+                comment_id="1",
+                thread_id="t1",
+                created_at=dt,
+            ),
+            Comment(
+                author="u2",
+                body="Done",
+                type=CommentType.REVIEW,
+                file_path="a.py",
+                line_number=10,
+                comment_id="2",
+                parent_comment_id="1",
+                thread_id="t1",
+                created_at=dt2,
+            ),
+        )
+        result = _build_comments_section(
+            comments,
+            3000,
+            True,
+            enable_dialogue=True,
+        )
+        assert result is not None
+        assert "**a.py:**" in result
+        assert "  > @u2" in result
