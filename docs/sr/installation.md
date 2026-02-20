@@ -146,7 +146,7 @@ Dodatne varijable su dostupne za fino podešavanje:
 |----------|---------|--------|
 | `LANGUAGE` | `en` | Jezik odgovora (ISO 639) |
 | `LANGUAGE_MODE` | `adaptive` | Režim detekcije jezika |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model |
+| `GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model |
 | `LOG_LEVEL` | `INFO` | Nivo logovanja |
 
 :point_right: [Puna lista varijabli →](configuration.md#optional)

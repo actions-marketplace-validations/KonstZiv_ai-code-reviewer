@@ -54,13 +54,14 @@
 
 | Змінна | Опис | Default |
 |--------|------|---------|
-| `GEMINI_MODEL` | Модель Gemini | `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Модель Gemini | `gemini-3-flash-preview` |
 
 **Доступні моделі:**
 
 | Модель | Опис | Вартість |
 |--------|------|----------|
-| `gemini-2.5-flash` | Швидка, дешева | $0.075 / 1M input |
+| `gemini-3-flash-preview` | Найновіша Flash (preview) | $0.075 / 1M input |
+| `gemini-2.5-flash` | Швидка, дешева, стабільна | $0.075 / 1M input |
 | `gemini-2.0-flash` | Попередня версія | $0.075 / 1M input |
 | `gemini-1.5-pro` | Потужніша | $1.25 / 1M input |
 
@@ -113,7 +114,7 @@ GITHUB_TOKEN=ghp_...
 # Optional
 LANGUAGE=uk
 LANGUAGE_MODE=adaptive
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3-flash-preview
 LOG_LEVEL=INFO
 ```
 

@@ -146,7 +146,7 @@ export GITHUB_TOKEN=your_token  # або GITLAB_TOKEN для GitLab
 |--------|---------|-------|
 | `LANGUAGE` | `en` | Мова відповідей (ISO 639) |
 | `LANGUAGE_MODE` | `adaptive` | Режим визначення мови |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Модель Gemini |
+| `GEMINI_MODEL` | `gemini-3-flash-preview` | Модель Gemini |
 | `LOG_LEVEL` | `INFO` | Рівень логування |
 
 :point_right: [Повний список змінних →](configuration.md#optional)

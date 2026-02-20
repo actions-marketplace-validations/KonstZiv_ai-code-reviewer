@@ -108,7 +108,7 @@ CLI čita konfiguraciju iz varijabli okruženja:
 |----------|-------------|---------|
 | `LANGUAGE` | Jezik odgovora | `en` |
 | `LANGUAGE_MODE` | Jezički režim | `adaptive` |
-| `GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
 | `LOG_LEVEL` | Nivo logova | `INFO` |
 | `GITLAB_URL` | GitLab URL | `https://gitlab.com` |
 

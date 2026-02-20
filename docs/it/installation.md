@@ -145,8 +145,8 @@ Variabili aggiuntive disponibili per la personalizzazione:
 | Variabile | Default | Effetto |
 |-----------|---------|---------|
 | `LANGUAGE` | `en` | Lingua delle risposte (ISO 639) |
-| `LANGUAGE_MODE` | `adaptive` | Modalita di rilevamento lingua |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Modello Gemini |
+| `LANGUAGE_MODE` | `adaptive` | Modalità di rilevamento lingua |
+| `GEMINI_MODEL` | `gemini-3-flash-preview` | Modello Gemini |
 | `LOG_LEVEL` | `INFO` | Livello di logging |
 
 :point_right: [Lista completa delle variabili →](configuration.md#optional)

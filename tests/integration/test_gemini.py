@@ -221,6 +221,7 @@ class TestCalculateCost:
     def test_gemini_pricing_has_expected_models(self) -> None:
         """Test that GEMINI_PRICING contains expected models."""
         expected_models = [
+            "gemini-3-flash-preview",
             "gemini-2.5-flash",
             "gemini-2.0-flash",
             "gemini-1.5-flash",

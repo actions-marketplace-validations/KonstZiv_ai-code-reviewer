@@ -108,7 +108,7 @@ CLI читає конфігурацію з environment variables:
 |--------|------|---------|
 | `LANGUAGE` | Мова відповідей | `en` |
 | `LANGUAGE_MODE` | Режим мови | `adaptive` |
-| `GEMINI_MODEL` | Модель Gemini | `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Модель Gemini | `gemini-3-flash-preview` |
 | `LOG_LEVEL` | Рівень логування | `INFO` |
 | `GITLAB_URL` | URL GitLab | `https://gitlab.com` |
 
