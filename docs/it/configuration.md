@@ -32,9 +32,9 @@ Tutte le impostazioni vengono configurate tramite variabili d'ambiente.
 | Variabile | Descrizione | Default | Esempi |
 |-----------|-------------|---------|--------|
 | `LANGUAGE` | Lingua delle risposte | `en` | `uk`, `de`, `es`, `it`, `me` |
-| `LANGUAGE_MODE` | Modalita di rilevamento | `adaptive` | `adaptive`, `fixed` |
+| `LANGUAGE_MODE` | Modalità di rilevamento | `adaptive` | `adaptive`, `fixed` |
 
-**Modalita lingua:**
+**Modalità lingua:**
 
 - **`adaptive`** (default) — rileva automaticamente la lingua dal contesto PR/MR (descrizione, commenti, task collegato)
 - **`fixed`** — usa sempre la lingua da `LANGUAGE`
@@ -50,13 +50,14 @@ Tutte le impostazioni vengono configurate tramite variabili d'ambiente.
 
 | Variabile | Descrizione | Default |
 |-----------|-------------|---------|
-| `GEMINI_MODEL` | Modello Gemini | `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Modello Gemini | `gemini-3-flash-preview` |
 
 **Modelli disponibili:**
 
 | Modello | Descrizione | Costo |
 |---------|-------------|-------|
-| `gemini-2.5-flash` | Veloce, economico | $0.075 / 1M input |
+| `gemini-3-flash-preview` | Ultimo Flash (preview) | $0.075 / 1M input |
+| `gemini-2.5-flash` | Veloce, economico, stabile | $0.075 / 1M input |
 | `gemini-2.0-flash` | Versione precedente | $0.075 / 1M input |
 | `gemini-1.5-pro` | Piu potente | $1.25 / 1M input |
 
@@ -109,7 +110,7 @@ GITHUB_TOKEN=ghp_...
 # Opzionali
 LANGUAGE=uk
 LANGUAGE_MODE=adaptive
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3-flash-preview
 LOG_LEVEL=INFO
 ```
 
@@ -207,7 +208,7 @@ export GITLAB_TOKEN=glpat-...
 export GITLAB_URL=https://gitlab.mycompany.com
 ```
 
-### Modalita debug
+### Modalità debug
 
 ```bash
 export GOOGLE_API_KEY=AIza...

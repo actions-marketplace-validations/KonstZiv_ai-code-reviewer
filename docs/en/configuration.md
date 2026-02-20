@@ -54,13 +54,14 @@ All settings are configured via environment variables.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
 
 **Available models:**
 
 | Model | Description | Cost |
 |-------|-------------|------|
-| `gemini-2.5-flash` | Fast, cheap | $0.075 / 1M input |
+| `gemini-3-flash-preview` | Latest Flash (preview) | $0.075 / 1M input |
+| `gemini-2.5-flash` | Fast, cheap, stable | $0.075 / 1M input |
 | `gemini-2.0-flash` | Previous version | $0.075 / 1M input |
 | `gemini-1.5-pro` | More powerful | $1.25 / 1M input |
 
@@ -113,7 +114,7 @@ GITHUB_TOKEN=ghp_...
 # Optional
 LANGUAGE=uk
 LANGUAGE_MODE=adaptive
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3-flash-preview
 LOG_LEVEL=INFO
 ```
 

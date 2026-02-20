@@ -44,7 +44,7 @@ class TestSettings:
             assert settings.github_token is None
             assert settings.google_api_key.get_secret_value() == "AIza_test_key_12345"
             # Check defaults
-            assert settings.gemini_model == "gemini-2.5-flash"
+            assert settings.gemini_model == "gemini-3-flash-preview"
             assert settings.log_level == "INFO"
             assert settings.review_max_files == 20
             assert settings.review_max_diff_lines == 500
