@@ -146,7 +146,7 @@ Additional variables are available for fine-tuning:
 |----------|---------|--------|
 | `LANGUAGE` | `en` | Response language (ISO 639) |
 | `LANGUAGE_MODE` | `adaptive` | Language detection mode |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model |
+| `GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model |
 | `LOG_LEVEL` | `INFO` | Logging level |
 
 :point_right: [Full list of variables →](configuration.md#optional)

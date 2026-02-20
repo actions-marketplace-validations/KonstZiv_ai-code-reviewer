@@ -50,13 +50,14 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 
 | Varijabla | Opis | Podrazumijevano |
 |----------|-------------|---------|
-| `GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
 
 **Dostupni modeli:**
 
 | Model | Opis | Cijena |
 |-------|-------------|------|
-| `gemini-2.5-flash` | Brz, jeftin | $0.075 / 1M ulaz |
+| `gemini-3-flash-preview` | Najnoviji Flash (preview) | $0.075 / 1M ulaz |
+| `gemini-2.5-flash` | Brz, jeftin, stabilan | $0.075 / 1M ulaz |
 | `gemini-2.0-flash` | Prethodna verzija | $0.075 / 1M ulaz |
 | `gemini-1.5-pro` | Moćniji | $1.25 / 1M ulaz |
 
@@ -109,7 +110,7 @@ GITHUB_TOKEN=ghp_...
 # Opciono
 LANGUAGE=uk
 LANGUAGE_MODE=adaptive
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3-flash-preview
 LOG_LEVEL=INFO
 ```
 

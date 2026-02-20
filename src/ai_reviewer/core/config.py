@@ -146,7 +146,7 @@ class Settings(BaseSettings):
         google_api_key: Google API key for Gemini access.
             Required for AI-powered code analysis.
         gemini_model: Gemini model to use for analysis.
-            Defaults to gemini-2.5-flash for cost efficiency.
+            Defaults to gemini-3-flash-preview for cost efficiency.
         log_level: Logging level for the application.
             One of: DEBUG, INFO, WARNING, ERROR, CRITICAL.
         review_max_files: Maximum number of files to include in review context.
@@ -165,7 +165,7 @@ class Settings(BaseSettings):
         GITLAB_TOKEN: GitLab personal access token (required for GitLab)
         GITLAB_URL: GitLab server URL (default: https://gitlab.com)
         GOOGLE_API_KEY: Google Gemini API key (required)
-        GEMINI_MODEL: Model name (default: gemini-2.5-flash)
+        GEMINI_MODEL: Model name (default: gemini-3-flash-preview)
         LOG_LEVEL: Logging level (default: INFO)
         REVIEW_MAX_FILES: Max files in context (default: 20)
         REVIEW_MAX_DIFF_LINES: Max diff lines per file (default: 500)
@@ -207,7 +207,7 @@ class Settings(BaseSettings):
 
     # Optional configuration with defaults
     gemini_model: str = Field(
-        default="gemini-2.5-flash",
+        default="gemini-3-flash-preview",
         description="Gemini model to use for analysis",
     )
     log_level: LogLevel = Field(
@@ -276,7 +276,7 @@ def get_settings() -> Settings:
     Example:
         >>> settings = get_settings()  # doctest: +SKIP
         >>> print(settings.gemini_model)  # doctest: +SKIP
-        gemini-2.5-flash
+        gemini-3-flash-preview
     """
     # pydantic-settings loads required fields from environment variables
     return Settings()
