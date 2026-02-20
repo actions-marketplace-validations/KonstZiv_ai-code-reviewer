@@ -270,8 +270,8 @@ class TestFormatInlineComment:
 
         assert "🔴 **SQL Injection**" in comment
         assert "Use parameterized query" in comment
-        assert "```suggestion" in comment
-        assert 'cursor.execute("SELECT * FROM users WHERE id = ?", (id,))' in comment
+        # Suggestion is appended by LineComment.format_body_with_suggestion()
+        assert "```suggestion" not in comment
 
     def test_format_inline_with_learn_more(self) -> None:
         """Test formatting inline comment with learn_more_url."""
@@ -306,8 +306,8 @@ class TestFormatInlineComment:
         # Should NOT include collapsible why_matters
         assert "<details>" not in comment
         assert "Why is this important?" not in comment
-        # But SHOULD include the suggestion
-        assert "```suggestion" in comment
+        # Suggestion is NOT in body — appended by LineComment.format_body_with_suggestion()
+        assert "```suggestion" not in comment
 
     def test_format_inline_russian_disclaimer(self) -> None:
         """Test that inline comment includes Russian disclaimer when needed."""

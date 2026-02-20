@@ -456,10 +456,8 @@ def format_inline_comment(issue: CodeIssue, language: str | None = None) -> str:
     parts.append("")
     parts.append(issue.description)
 
-    # Suggestion (most important for inline comments!)
-    if issue.proposed_code:
-        parts.append("")
-        parts.append(_format_suggestion_block(issue.proposed_code))
+    # Note: suggestion block is NOT added here — it is appended by
+    # LineComment.format_body_with_suggestion() to avoid duplication.
 
     # Compact learning hint (just the URL if available)
     if issue.learn_more_url:
