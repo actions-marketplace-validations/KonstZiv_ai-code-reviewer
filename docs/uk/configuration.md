@@ -2,18 +2,21 @@
 
 Всі налаштування через environment variables.
 
+!!! tip "Міграція: префікс `AI_REVIEWER_`"
+    Починаючи з v1.0.0a7, всі змінні оточення підтримують префікс `AI_REVIEWER_` (напр., `AI_REVIEWER_GOOGLE_API_KEY`). Старі імена (напр., `GOOGLE_API_KEY`) працюють як fallback. Рекомендуємо мігрувати на нові імена для уникнення конфліктів з іншими інструментами в CI/CD конфігураціях на рівні організації.
+
 ---
 
 ## Обов'язкові змінні
 
 | Змінна | Опис | Приклад | Як отримати |
 |--------|------|---------|-------------|
-| `GOOGLE_API_KEY` | API ключ Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
-| `GITHUB_TOKEN` | GitHub токен (для GitHub) | `ghp_...` | [Інструкція](github.md#get-token) |
-| `GITLAB_TOKEN` | GitLab токен (для GitLab) | `glpat-...` | [Інструкція](gitlab.md#get-token) |
+| `AI_REVIEWER_GOOGLE_API_KEY` | API ключ Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
+| `AI_REVIEWER_GITHUB_TOKEN` | GitHub токен (для GitHub) | `ghp_...` | [Інструкція](github.md#get-token) |
+| `AI_REVIEWER_GITLAB_TOKEN` | GitLab токен (для GitLab) | `glpat-...` | [Інструкція](gitlab.md#get-token) |
 
 !!! warning "Мінімум один токен провайдера"
-    Потрібен `GITHUB_TOKEN` **або** `GITLAB_TOKEN` залежно від платформи.
+    Потрібен `AI_REVIEWER_GITHUB_TOKEN` **або** `AI_REVIEWER_GITLAB_TOKEN` залежно від платформи.
     Ці токени **специфічні для провайдера** — потрібен лише один, відповідний до платформи, яку ви використовуєте.
 
 !!! info "Типи токенів GitLab"
@@ -28,23 +31,23 @@
 
 | Змінна | Опис | Default | Діапазон |
 |--------|------|---------|----------|
-| `LOG_LEVEL` | Рівень логування | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
-| `API_TIMEOUT` | Таймаут запитів (сек) | `60` | 1-300 |
+| `AI_REVIEWER_LOG_LEVEL` | Рівень логування | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `AI_REVIEWER_API_TIMEOUT` | Таймаут запитів (сек) | `60` | 1-300 |
 
 ### Мова
 
 | Змінна | Опис | Default | Приклади |
 |--------|------|---------|----------|
-| `LANGUAGE` | Мова відповідей | `en` | `uk`, `de`, `es`, `it`, `me` |
-| `LANGUAGE_MODE` | Режим визначення | `adaptive` | `adaptive`, `fixed` |
+| `AI_REVIEWER_LANGUAGE` | Мова відповідей | `en` | `uk`, `de`, `es`, `it`, `me` |
+| `AI_REVIEWER_LANGUAGE_MODE` | Режим визначення | `adaptive` | `adaptive`, `fixed` |
 
 **Режими мови:**
 
 - **`adaptive`** (default) — автоматично визначає мову з контексту PR/MR (опис, коментарі, linked task)
-- **`fixed`** — завжди використовує мову з `LANGUAGE`
+- **`fixed`** — завжди використовує мову з `AI_REVIEWER_LANGUAGE`
 
 !!! tip "ISO 639"
-    `LANGUAGE` приймає будь-який валідний ISO 639 код:
+    `AI_REVIEWER_LANGUAGE` приймає будь-який валідний ISO 639 код:
 
     - 2-літерні: `en`, `uk`, `de`, `es`, `it`
     - 3-літерні: `ukr`, `deu`, `spa`
@@ -54,7 +57,7 @@
 
 | Змінна | Опис | Default |
 |--------|------|---------|
-| `GEMINI_MODEL` | Модель Gemini | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Модель Gemini | `gemini-3-flash-preview` |
 
 **Доступні моделі:**
 
@@ -79,25 +82,29 @@
 
 | Змінна | Опис | Default | Діапазон |
 |--------|------|---------|----------|
-| `REVIEW_MAX_FILES` | Макс. файлів у контексті | `20` | 1-100 |
-| `REVIEW_MAX_DIFF_LINES` | Макс. рядків diff на файл | `500` | 1-5000 |
-| `REVIEW_MAX_COMMENT_CHARS` | Макс. символів коментарів MR у промпті | `3000` | 0-20000 |
-| `REVIEW_INCLUDE_BOT_COMMENTS` | Включати коментарі ботів у промпт | `true` | true/false |
+| `AI_REVIEWER_REVIEW_MAX_FILES` | Макс. файлів у контексті | `20` | 1-100 |
+| `AI_REVIEWER_REVIEW_MAX_DIFF_LINES` | Макс. рядків diff на файл | `500` | 1-5000 |
+| `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Макс. символів коментарів MR у промпті | `3000` | 0-20000 |
+| `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Включати коментарі ботів у промпт | `true` | true/false |
+| `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Публікувати inline коментарі на рядках | `true` | true/false |
 
 !!! info "Контекст обговорення"
     AI-рев'ювер читає існуючі коментарі MR/PR, щоб не повторювати пропозиції,
-    які вже обговорювались. Встановіть `REVIEW_MAX_COMMENT_CHARS=0` для вимкнення.
+    які вже обговорювались. Встановіть `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS=0` для вимкнення.
+
+!!! info "Inline коментарі"
+    Коли `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (default), issues з інформацією про файл/рядок публікуються як inline коментарі до коду, з коротким summary як тілом ревʼю. Встановіть `false` для одного summary коментаря.
 
 ### GitLab
 
 | Змінна | Опис | Default |
 |--------|------|---------|
-| `GITLAB_URL` | URL GitLab сервера | `https://gitlab.com` |
+| `AI_REVIEWER_GITLAB_URL` | URL GitLab сервера | `https://gitlab.com` |
 
 !!! info "Self-hosted GitLab"
-    Для self-hosted GitLab встановіть `GITLAB_URL`:
+    Для self-hosted GitLab встановіть `AI_REVIEWER_GITLAB_URL`:
     ```bash
-    export GITLAB_URL=https://gitlab.mycompany.com
+    export AI_REVIEWER_GITLAB_URL=https://gitlab.mycompany.com
     ```
 
 ---
@@ -108,14 +115,14 @@
 
 ```bash
 # .env
-GOOGLE_API_KEY=AIza...
-GITHUB_TOKEN=ghp_...
+AI_REVIEWER_GOOGLE_API_KEY=AIza...
+AI_REVIEWER_GITHUB_TOKEN=ghp_...
 
 # Optional
-LANGUAGE=uk
-LANGUAGE_MODE=adaptive
-GEMINI_MODEL=gemini-3-flash-preview
-LOG_LEVEL=INFO
+AI_REVIEWER_LANGUAGE=uk
+AI_REVIEWER_LANGUAGE_MODE=adaptive
+AI_REVIEWER_GEMINI_MODEL=gemini-3-flash-preview
+AI_REVIEWER_LOG_LEVEL=INFO
 ```
 
 !!! danger "Безпека"
@@ -135,20 +142,20 @@ LOG_LEVEL=INFO
 
 ```yaml
 env:
-  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-  GITHUB_TOKEN: ${{ github.token }}  # Автоматичний
-  LANGUAGE: uk
-  LANGUAGE_MODE: adaptive
+  AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  AI_REVIEWER_GITHUB_TOKEN: ${{ github.token }}  # Автоматичний
+  AI_REVIEWER_LANGUAGE: uk
+  AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ### GitLab CI
 
 ```yaml
 variables:
-  GOOGLE_API_KEY: $GOOGLE_API_KEY  # З CI/CD Variables
-  GITLAB_TOKEN: $GITLAB_TOKEN      # Project Access Token
-  LANGUAGE: uk
-  LANGUAGE_MODE: adaptive
+  AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY  # З CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN      # Project Access Token
+  AI_REVIEWER_LANGUAGE: uk
+  AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ---
@@ -184,40 +191,40 @@ ValidationError: LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
 ### Мінімальна (GitHub)
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
 ```
 
 ### Мінімальна (GitLab)
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITLAB_TOKEN=glpat-...
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITLAB_TOKEN=glpat-...
 ```
 
 ### Українська мова, фіксована
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
-export LANGUAGE=uk
-export LANGUAGE_MODE=fixed
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_LANGUAGE=uk
+export AI_REVIEWER_LANGUAGE_MODE=fixed
 ```
 
 ### Self-hosted GitLab
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITLAB_TOKEN=glpat-...
-export GITLAB_URL=https://gitlab.mycompany.com
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITLAB_TOKEN=glpat-...
+export AI_REVIEWER_GITLAB_URL=https://gitlab.mycompany.com
 ```
 
 ### Debug режим
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
-export LOG_LEVEL=DEBUG
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_LOG_LEVEL=DEBUG
 ```
 
 ---

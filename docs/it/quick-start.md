@@ -82,6 +82,10 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
     | `GOOGLE_API_KEY` | La tua chiave Gemini (`AIza...`) | :white_check_mark: Mask variable |
     | `GITLAB_TOKEN` | Token dal passo 2a | :white_check_mark: Mask variable |
 
+    !!! tip "Prefisso AI_REVIEWER_"
+        Puoi anche usare `AI_REVIEWER_GOOGLE_API_KEY` e `AI_REVIEWER_GITLAB_TOKEN` come nomi di variabili.
+        Sia i nomi vecchi che quelli nuovi sono supportati.
+
     ??? info "Istruzioni dettagliate"
         1. Apri il tuo progetto su GitLab
         2. Vai su **Settings** → **CI/CD**

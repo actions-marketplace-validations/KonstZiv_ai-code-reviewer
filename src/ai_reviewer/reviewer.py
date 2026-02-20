@@ -13,15 +13,67 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from ai_reviewer.core.formatter import format_review_comment
+from ai_reviewer.core.formatter import (
+    format_inline_comment,
+    format_review_comment,
+    format_review_summary,
+)
 from ai_reviewer.core.models import CommentAuthorType, ReviewContext
+from ai_reviewer.integrations.base import LineComment, ReviewSubmission
 from ai_reviewer.integrations.gemini import analyze_code_changes
 
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
+    from ai_reviewer.core.models import CodeIssue, ReviewResult
     from ai_reviewer.integrations.base import GitProvider
 
 logger = logging.getLogger(__name__)
+
+
+def _build_review_submission(
+    result: ReviewResult,
+    language: str | None,
+) -> ReviewSubmission:
+    """Build a ReviewSubmission by partitioning issues into inline and fallback.
+
+    Issues with both file_path and line_number (>= 1) become inline comments.
+    Remaining issues are included in the summary body as fallback.
+
+    Args:
+        result: The structured review result from AI analysis.
+        language: ISO 639 language code for formatting.
+
+    Returns:
+        ReviewSubmission with summary and inline line comments.
+    """
+    inline_issues: list[CodeIssue] = []
+    fallback_issues: list[CodeIssue] = []
+
+    for issue in result.issues:
+        if issue.file_path and issue.line_number and issue.line_number >= 1:
+            inline_issues.append(issue)
+        else:
+            fallback_issues.append(issue)
+
+    # Build inline line comments
+    line_comments: list[LineComment] = []
+    for issue in inline_issues:
+        body = format_inline_comment(issue, language)
+        line_comments.append(
+            LineComment(
+                path=issue.file_path,  # type: ignore[arg-type]  # guarded above
+                line=issue.line_number,  # type: ignore[arg-type]  # guarded above
+                body=body,
+                suggestion=issue.proposed_code,
+            )
+        )
+
+    summary = format_review_summary(result, tuple(fallback_issues), language)
+
+    return ReviewSubmission(
+        summary=summary,
+        line_comments=tuple(line_comments),
+    )
 
 
 def review_pull_request(
@@ -66,30 +118,34 @@ def review_pull_request(
         # 4. Analyze with AI
         result = analyze_code_changes(context, settings)
 
-        # 5. Format comment (pass detected language for Russian disclaimer)
-        comment_body = format_review_comment(result, language=result.detected_language)
-
-        # 6. Check for duplicates
-        # We check the last comment by a bot. If it matches our new comment, we skip.
-        # Note: This assumes we are the only bot or we want to avoid repeating
-        # any bot's identical comment.
-        # Ideally, we should check if the author is US, but we don't know our own
-        # username easily via API without an extra call.
-        # Checking CommentAuthorType.BOT is a reasonable proxy for MVP.
-
+        # 5. Find last bot comment for duplicate detection
         last_bot_comment = None
         for comment in reversed(mr.comments):
             if comment.author_type == CommentAuthorType.BOT:
                 last_bot_comment = comment
                 break
 
-        if last_bot_comment and last_bot_comment.body.strip() == comment_body.strip():
-            logger.info("Duplicate comment detected. Skipping publication.")
-            return
+        # 6. Post results
+        if settings.review_post_inline_comments:
+            submission = _build_review_submission(result, result.detected_language)
 
-        # 7. Post comment
-        provider.post_comment(repo_name, mr_id, comment_body)
-        logger.info("Review completed successfully")
+            # Duplicate detection: compare summary only
+            if last_bot_comment and last_bot_comment.body.strip() == submission.summary.strip():
+                logger.info("Duplicate summary detected. Skipping publication.")
+                return
+
+            provider.submit_review(repo_name, mr_id, submission)
+            logger.info("Review completed successfully (inline comments)")
+        else:
+            # Legacy behavior: single summary comment via post_comment
+            comment_body = format_review_comment(result, language=result.detected_language)
+
+            if last_bot_comment and last_bot_comment.body.strip() == comment_body.strip():
+                logger.info("Duplicate comment detected. Skipping publication.")
+                return
+
+            provider.post_comment(repo_name, mr_id, comment_body)
+            logger.info("Review completed successfully")
 
     except Exception as e:
         logger.exception("AI Review failed")

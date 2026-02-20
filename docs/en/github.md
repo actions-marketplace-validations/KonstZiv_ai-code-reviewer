@@ -223,6 +223,12 @@ jobs:
 | `language_mode` | Language mode | `adaptive` |
 | `gemini_model` | Gemini model | `gemini-3-flash-preview` |
 | `log_level` | Log level | `INFO` |
+| `review_max_comment_chars` | Max MR comment chars in prompt | `3000` |
+| `review_include_bot_comments` | Include bot comments in prompt | `true` |
+| `review_post_inline_comments` | Post inline comments on lines | `true` |
+
+!!! tip "Environment variables"
+    The Action maps inputs to `AI_REVIEWER_*` environment variables internally. When running outside the Action, use `AI_REVIEWER_*` env vars directly (old names like `GOOGLE_API_KEY` still work as fallback).
 
 ---
 

@@ -170,7 +170,10 @@ def validate_gemini_setup(
             logger.exception("Gemini API key validation failed")
             return GeminiValidationResult(
                 status=ValidationStatus.INVALID_API_KEY,
-                message="Invalid Google API key. Please check your GOOGLE_API_KEY.",
+                message=(
+                    "Invalid Google API key. "
+                    "Please check your AI_REVIEWER_GOOGLE_API_KEY (or GOOGLE_API_KEY)."
+                ),
                 error_details=str(e),
             )
 

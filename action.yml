@@ -37,18 +37,23 @@ inputs:
     description: 'Include bot comments in AI prompt'
     required: false
     default: 'true'
+  review_post_inline_comments:
+    description: 'Post inline comments on specific lines (true/false)'
+    required: false
+    default: 'true'
 
 runs:
   using: 'docker'
   image: 'docker://ghcr.io/konstziv/ai-code-reviewer:1'
   args: []  # Override CMD to run ai-review without --help
   env:
-    GITHUB_TOKEN: ${{ inputs.github_token }}
-    GOOGLE_API_KEY: ${{ inputs.google_api_key }}
-    LANGUAGE: ${{ inputs.language }}
-    LANGUAGE_MODE: ${{ inputs.language_mode }}
-    GEMINI_MODEL: ${{ inputs.gemini_model }}
-    LOG_LEVEL: ${{ inputs.log_level }}
-    REVIEW_MAX_COMMENT_CHARS: ${{ inputs.review_max_comment_chars }}
-    REVIEW_INCLUDE_BOT_COMMENTS: ${{ inputs.review_include_bot_comments }}
+    AI_REVIEWER_GITHUB_TOKEN: ${{ inputs.github_token }}
+    AI_REVIEWER_GOOGLE_API_KEY: ${{ inputs.google_api_key }}
+    AI_REVIEWER_LANGUAGE: ${{ inputs.language }}
+    AI_REVIEWER_LANGUAGE_MODE: ${{ inputs.language_mode }}
+    AI_REVIEWER_GEMINI_MODEL: ${{ inputs.gemini_model }}
+    AI_REVIEWER_LOG_LEVEL: ${{ inputs.log_level }}
+    AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS: ${{ inputs.review_max_comment_chars }}
+    AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS: ${{ inputs.review_include_bot_comments }}
+    AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS: ${{ inputs.review_post_inline_comments }}
     GITHUB_ACTIONS: 'true'

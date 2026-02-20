@@ -12,7 +12,7 @@ U GitLab CI, `CI_JOB_TOKEN` je automatski dostupan:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $CI_JOB_TOKEN
+  AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN
 ```
 
 **Ograničenja `CI_JOB_TOKEN`:**
@@ -48,14 +48,14 @@ Za **sve GitLab planove** (uključujući Free). Preporučeno za lokalno pokretan
 
 1. Idite na **Settings → CI/CD → Variables → Add variable**
 2. Dodajte varijablu:
-    - **Key:** `GITLAB_TOKEN`
+    - **Key:** `AI_REVIEWER_GITLAB_TOKEN` (ili `GITLAB_TOKEN`)
     - **Value:** nalijepite vaš token
     - **Flags:** označite **Masked** i **Protected**
 3. Koristite u `.gitlab-ci.yml`:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token iz CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token iz CI/CD Variables
 ```
 
 !!! warning "Sačuvajte token"
@@ -84,11 +84,11 @@ Dostupan samo na **GitLab Premium** i **Ultimate** planovima. Dobar izbor ako pr
 
 **Kako koristiti u CI-ju:**
 
-Isto kao PAT — dodajte kao `GITLAB_TOKEN` u CI/CD Variables:
+Isto kao PAT — dodajte kao `AI_REVIEWER_GITLAB_TOKEN` u CI/CD Variables:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token iz CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token iz CI/CD Variables
 ```
 
 !!! info "Koji token odabrati?"
@@ -110,8 +110,8 @@ variables:
 
 | Varijabla | Vrijednost | Opcije |
 |----------|-------|---------|
-| `GOOGLE_API_KEY` | Gemini API ključ | Masked |
-| `GITLAB_TOKEN` | PAT (ako je potreban) | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API ključ | Masked |
+| `AI_REVIEWER_GITLAB_TOKEN` | PAT (ako je potreban) | Masked |
 
 !!! tip "Masked"
     Uvijek omogućite **Masked** za tajne — neće se prikazivati u logovima.
@@ -153,8 +153,8 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatski, ne zahtijeva podešavanje
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatski, ne zahtijeva podešavanje
 ```
 
 ### Puni (preporučeno)
@@ -170,11 +170,11 @@ ai-review:
   allow_failure: true
   timeout: 10m
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     # CI_JOB_TOKEN (automatski) ili Personal Access Token za pune dozvole:
-    GITLAB_TOKEN: $CI_JOB_TOKEN    # ili: $GITLAB_PAT (vidi "Dobijanje tokena")
-    LANGUAGE: uk
-    LANGUAGE_MODE: adaptive
+    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN    # ili: $GITLAB_PAT (vidi "Dobijanje tokena")
+    AI_REVIEWER_LANGUAGE: uk
+    AI_REVIEWER_LANGUAGE_MODE: adaptive
   interruptible: true
 ```
 
@@ -210,9 +210,9 @@ ai-review:
 
 ```yaml
 variables:
-  GITLAB_URL: https://gitlab.mycompany.com
-  GOOGLE_API_KEY: $GOOGLE_API_KEY
-  GITLAB_TOKEN: $GITLAB_TOKEN
+  AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
+  AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Docker registar
@@ -277,8 +277,8 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 **Provjerite:**
 
-1. `GOOGLE_API_KEY` varijabla je podešena
-2. `GITLAB_TOKEN` ima dovoljne dozvole (scope: `api`)
+1. `AI_REVIEWER_GOOGLE_API_KEY` (ili `GOOGLE_API_KEY`) varijabla je podešena
+2. `AI_REVIEWER_GITLAB_TOKEN` (ili `GITLAB_TOKEN`) ima dovoljne dozvole (scope: `api`)
 3. Pipeline se pokreće za MR (ne za granu)
 
 ### "401 Unauthorized"
@@ -325,7 +325,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, ne CI_JOB_TOKEN
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, ne CI_JOB_TOKEN
 ```
 
 ### 2. Dodajte allow_failure

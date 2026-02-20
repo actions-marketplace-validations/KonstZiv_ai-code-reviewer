@@ -53,8 +53,8 @@ ai-review
 ### Manual for GitHub
 
 ```bash
-export GOOGLE_API_KEY=your_key
-export GITHUB_TOKEN=your_token
+export AI_REVIEWER_GOOGLE_API_KEY=your_key
+export AI_REVIEWER_GITHUB_TOKEN=your_token
 
 ai-review --provider github --repo owner/repo --pr 123
 ```
@@ -69,8 +69,8 @@ ai-review --provider github --repo owner/repo --pr 123
 ### Manual for GitLab
 
 ```bash
-export GOOGLE_API_KEY=your_key
-export GITLAB_TOKEN=your_token
+export AI_REVIEWER_GOOGLE_API_KEY=your_key
+export AI_REVIEWER_GITLAB_TOKEN=your_token
 
 ai-review --provider gitlab --repo owner/repo --pr 456
 ```
@@ -98,19 +98,22 @@ CLI reads configuration from environment variables:
 
 | Variable | Description |
 |----------|-------------|
-| `GOOGLE_API_KEY` | Gemini API key |
-| `GITHUB_TOKEN` | GitHub token (for GitHub) |
-| `GITLAB_TOKEN` | GitLab token (for GitLab) |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API key |
+| `AI_REVIEWER_GITHUB_TOKEN` | GitHub token (for GitHub) |
+| `AI_REVIEWER_GITLAB_TOKEN` | GitLab token (for GitLab) |
+
+!!! tip "Fallback"
+    Old names without prefix (e.g., `GOOGLE_API_KEY`) still work as fallback.
 
 ### Optional
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `LANGUAGE` | Response language | `en` |
-| `LANGUAGE_MODE` | Language mode | `adaptive` |
-| `GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
-| `LOG_LEVEL` | Log level | `INFO` |
-| `GITLAB_URL` | GitLab URL | `https://gitlab.com` |
+| `AI_REVIEWER_LANGUAGE` | Response language | `en` |
+| `AI_REVIEWER_LANGUAGE_MODE` | Language mode | `adaptive` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_LOG_LEVEL` | Log level | `INFO` |
+| `AI_REVIEWER_GITLAB_URL` | GitLab URL | `https://gitlab.com` |
 
 :point_right: [Full list →](configuration.md)
 
@@ -166,7 +169,7 @@ CLI automatically uses:
 ### Configuration
 
 ```bash
-export LOG_LEVEL=DEBUG
+export AI_REVIEWER_LOG_LEVEL=DEBUG
 ai-review
 ```
 
@@ -225,8 +228,8 @@ Run via Docker:
 
 ```bash
 docker run --rm \
-  -e GOOGLE_API_KEY=your_key \
-  -e GITHUB_TOKEN=your_token \
+  -e AI_REVIEWER_GOOGLE_API_KEY=your_key \
+  -e AI_REVIEWER_GITHUB_TOKEN=your_token \
   ghcr.io/konstziv/ai-code-reviewer:1 \
   --provider github \
   --repo owner/repo \

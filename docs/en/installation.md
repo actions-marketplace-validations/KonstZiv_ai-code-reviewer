@@ -40,9 +40,12 @@ CLI and Docker image allow running AI Code Reviewer outside the standard CI pipe
 
 | Variable | Description | When needed | How to get |
 |----------|-------------|-------------|------------|
-| `GOOGLE_API_KEY` | Gemini API key | **Always** | [Google AI Studio](https://aistudio.google.com/) |
-| `GITHUB_TOKEN` | GitHub Personal Access Token | For GitHub | [Instructions](github.md#get-token) |
-| `GITLAB_TOKEN` | GitLab Personal Access Token | For GitLab | [Instructions](gitlab.md#get-token) |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API key | **Always** | [Google AI Studio](https://aistudio.google.com/) |
+| `AI_REVIEWER_GITHUB_TOKEN` | GitHub Personal Access Token | For GitHub | [Instructions](github.md#get-token) |
+| `AI_REVIEWER_GITLAB_TOKEN` | GitLab Personal Access Token | For GitLab | [Instructions](gitlab.md#get-token) |
+
+!!! tip "Fallback"
+    Old names without prefix (e.g., `GOOGLE_API_KEY`) still work as fallback.
 
 ---
 
@@ -66,8 +69,8 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
 
     ```bash
     docker run --rm \
-      -e GOOGLE_API_KEY=your_api_key \
-      -e GITHUB_TOKEN=your_token \
+      -e AI_REVIEWER_GOOGLE_API_KEY=your_api_key \
+      -e AI_REVIEWER_GITHUB_TOKEN=your_token \
       ghcr.io/konstziv/ai-code-reviewer:1 \
       --repo owner/repo --pr-number 123
     ```
@@ -76,8 +79,8 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
 
     ```bash
     docker run --rm \
-      -e GOOGLE_API_KEY=your_api_key \
-      -e GITLAB_TOKEN=your_token \
+      -e AI_REVIEWER_GOOGLE_API_KEY=your_api_key \
+      -e AI_REVIEWER_GITLAB_TOKEN=your_token \
       ghcr.io/konstziv/ai-code-reviewer:1 \
       --provider gitlab --project owner/repo --mr-iid 123
     ```
@@ -118,8 +121,8 @@ Installation as a Python package.
 **Step 2: Set up variables**
 
 ```bash
-export GOOGLE_API_KEY=your_api_key
-export GITHUB_TOKEN=your_token  # or GITLAB_TOKEN for GitLab
+export AI_REVIEWER_GOOGLE_API_KEY=your_api_key
+export AI_REVIEWER_GITHUB_TOKEN=your_token  # or AI_REVIEWER_GITLAB_TOKEN for GitLab
 ```
 
 **Step 3: Run**
@@ -144,10 +147,10 @@ Additional variables are available for fine-tuning:
 
 | Variable | Default | Effect |
 |----------|---------|--------|
-| `LANGUAGE` | `en` | Response language (ISO 639) |
-| `LANGUAGE_MODE` | `adaptive` | Language detection mode |
-| `GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model |
-| `LOG_LEVEL` | `INFO` | Logging level |
+| `AI_REVIEWER_LANGUAGE` | `en` | Response language (ISO 639) |
+| `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` | Language detection mode |
+| `AI_REVIEWER_GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model |
+| `AI_REVIEWER_LOG_LEVEL` | `INFO` | Logging level |
 
 :point_right: [Full list of variables →](configuration.md#optional)
 
@@ -178,8 +181,8 @@ Running reviews on a schedule — for resource savings or when instant feedback 
       rules:
         - if: $CI_PIPELINE_SOURCE == "schedule"
       variables:
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
-        GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     ```
 
     **Schedule setup:** Project → Build → Pipeline schedules → New schedule
@@ -238,8 +241,8 @@ For deployment on your own infrastructure with Git API access.
 ```bash
 #!/bin/bash
 # /usr/local/bin/review-all-mrs.sh
-export GOOGLE_API_KEY="your_key"
-export GITLAB_TOKEN="your_token"
+export AI_REVIEWER_GOOGLE_API_KEY="your_key"
+export AI_REVIEWER_GITLAB_TOKEN="your_token"
 
 MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   "https://gitlab.company.com/api/v4/projects/123/merge_requests?state=opened" \
@@ -247,17 +250,17 @@ MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
 
 for MR_IID in $MR_LIST; do
   docker run --rm \
-    -e GOOGLE_API_KEY -e GITLAB_TOKEN \
+    -e AI_REVIEWER_GOOGLE_API_KEY -e AI_REVIEWER_GITLAB_TOKEN \
     ghcr.io/konstziv/ai-code-reviewer:1 \
     --provider gitlab --project group/repo --pr $MR_IID
 done
 ```
 
 !!! tip "Self-hosted GitLab"
-    For self-hosted GitLab add the `GITLAB_URL` variable:
+    For self-hosted GitLab add the `AI_REVIEWER_GITLAB_URL` variable:
 
     ```bash
-    -e GITLAB_URL=https://gitlab.company.com
+    -e AI_REVIEWER_GITLAB_URL=https://gitlab.company.com
     ```
 
 ---

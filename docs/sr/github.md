@@ -223,6 +223,12 @@ jobs:
 | `language_mode` | Jezički režim | `adaptive` |
 | `gemini_model` | Gemini model | `gemini-3-flash-preview` |
 | `log_level` | Nivo logova | `INFO` |
+| `review_max_comment_chars` | Maks. znakova komentara MR-a u promptu | `3000` |
+| `review_include_bot_comments` | Uključi komentare botova u prompt | `true` |
+| `review_post_inline_comments` | Objavi inline komentare na linijama | `true` |
+
+!!! tip "Varijable okruženja"
+    Action interno mapira inpute na `AI_REVIEWER_*` varijable okruženja. Kada pokrećete van Action-a, koristite `AI_REVIEWER_*` varijable direktno (stara imena poput `GOOGLE_API_KEY` i dalje rade kao fallback).
 
 ---
 

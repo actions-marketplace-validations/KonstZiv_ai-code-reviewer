@@ -82,6 +82,10 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
     | `GOOGLE_API_KEY` | Vaš Gemini ključ (`AIza...`) | :white_check_mark: Mask variable |
     | `GITLAB_TOKEN` | Token iz koraka 2a | :white_check_mark: Mask variable |
 
+    !!! tip "AI_REVIEWER_ prefiks"
+        Možete koristiti i `AI_REVIEWER_GOOGLE_API_KEY` i `AI_REVIEWER_GITLAB_TOKEN` kao nazive varijabli.
+        Podržani su i stari i novi nazivi.
+
     ??? info "Detaljna uputstva"
         1. Otvorite vaš projekat na GitLab-u
         2. Idite na **Settings** → **CI/CD**

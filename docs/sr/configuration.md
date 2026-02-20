@@ -2,19 +2,22 @@
 
 Sva podešavanja se konfigurišu putem varijabli okruženja.
 
+!!! tip "Migracija: prefiks `AI_REVIEWER_`"
+    Od v1.0.0a7, sve varijable okruženja podržavaju prefiks `AI_REVIEWER_` (npr., `AI_REVIEWER_GOOGLE_API_KEY`). Stara imena (npr., `GOOGLE_API_KEY`) i dalje rade kao fallback. Preporučujemo migraciju na nova imena kako bi se izbjegli konflikti sa drugim alatima u CI/CD konfiguracijama na nivou organizacije.
+
 ---
 
 ## Obavezne varijable
 
 | Varijabla | Opis | Primjer | Kako dobiti |
 |----------|-------------|---------|------------|
-| `GOOGLE_API_KEY` | Google Gemini API ključ | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
-| `GITHUB_TOKEN` | GitHub PAT (za GitHub) | `ghp_...` | [Instrukcije](github.md#get-token) |
-| `GITLAB_TOKEN` | GitLab PAT (za GitLab) | `glpat-...` | [Instrukcije](gitlab.md#get-token) |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Google Gemini API ključ | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
+| `AI_REVIEWER_GITHUB_TOKEN` | GitHub PAT (za GitHub) | `ghp_...` | [Instrukcije](github.md#get-token) |
+| `AI_REVIEWER_GITLAB_TOKEN` | GitLab PAT (za GitLab) | `glpat-...` | [Instrukcije](gitlab.md#get-token) |
 
 !!! warning "Potreban je barem jedan provajder"
-    Trebate `GITHUB_TOKEN` **ili** `GITLAB_TOKEN` zavisno od platforme.
-    Tokeni su specifični za provajdera: `GITHUB_TOKEN` je potreban samo za GitHub, `GITLAB_TOKEN` samo za GitLab.
+    Trebate `AI_REVIEWER_GITHUB_TOKEN` **ili** `AI_REVIEWER_GITLAB_TOKEN` zavisno od platforme.
+    Tokeni su specifični za provajdera: `AI_REVIEWER_GITHUB_TOKEN` je potreban samo za GitHub, `AI_REVIEWER_GITLAB_TOKEN` samo za GitLab.
 
 ---
 
@@ -24,23 +27,23 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 
 | Varijabla | Opis | Podrazumijevano | Opseg |
 |----------|-------------|---------|-------|
-| `LOG_LEVEL` | Nivo logovanja | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
-| `API_TIMEOUT` | Timeout zahtjeva (sek) | `60` | 1-300 |
+| `AI_REVIEWER_LOG_LEVEL` | Nivo logovanja | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `AI_REVIEWER_API_TIMEOUT` | Timeout zahtjeva (sek) | `60` | 1-300 |
 
 ### Jezik
 
 | Varijabla | Opis | Podrazumijevano | Primjeri |
 |----------|-------------|---------|----------|
-| `LANGUAGE` | Jezik odgovora | `en` | `uk`, `de`, `es`, `it`, `me` |
-| `LANGUAGE_MODE` | Režim detekcije | `adaptive` | `adaptive`, `fixed` |
+| `AI_REVIEWER_LANGUAGE` | Jezik odgovora | `en` | `uk`, `de`, `es`, `it`, `me` |
+| `AI_REVIEWER_LANGUAGE_MODE` | Režim detekcije | `adaptive` | `adaptive`, `fixed` |
 
 **Jezički režimi:**
 
 - **`adaptive`** (podrazumijevano) — automatski prepoznaje jezik iz konteksta PR/MR (opis, komentari, povezani zadatak)
-- **`fixed`** — uvijek koristi jezik iz `LANGUAGE`
+- **`fixed`** — uvijek koristi jezik iz `AI_REVIEWER_LANGUAGE`
 
 !!! tip "ISO 639"
-    `LANGUAGE` prihvata bilo koji validan ISO 639 kod:
+    `AI_REVIEWER_LANGUAGE` prihvata bilo koji validan ISO 639 kod:
 
     - 2-slovna: `en`, `uk`, `de`, `es`, `it`
     - 3-slovna: `ukr`, `deu`, `spa`
@@ -50,7 +53,7 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 
 | Varijabla | Opis | Podrazumijevano |
 |----------|-------------|---------|
-| `GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
 
 **Dostupni modeli:**
 
@@ -75,25 +78,29 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 
 | Varijabla | Opis | Podrazumijevano | Opseg |
 |----------|-------------|---------|-------|
-| `REVIEW_MAX_FILES` | Maksimalno fajlova u kontekstu | `20` | 1-100 |
-| `REVIEW_MAX_DIFF_LINES` | Maksimalno linija diff-a po fajlu | `500` | 1-5000 |
-| `REVIEW_MAX_COMMENT_CHARS` | Maks. karaktera komentara MR u promptu | `3000` | 0-20000 |
-| `REVIEW_INCLUDE_BOT_COMMENTS` | Uključi bot komentare u prompt | `true` | true/false |
+| `AI_REVIEWER_REVIEW_MAX_FILES` | Maksimalno fajlova u kontekstu | `20` | 1-100 |
+| `AI_REVIEWER_REVIEW_MAX_DIFF_LINES` | Maksimalno linija diff-a po fajlu | `500` | 1-5000 |
+| `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Maks. karaktera komentara MR u promptu | `3000` | 0-20000 |
+| `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Uključi bot komentare u prompt | `true` | true/false |
+| `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Postavljanje inline komentara na linije | `true` | true/false |
 
 !!! info "Kontekst diskusije"
     AI revizor čita postojeće komentare MR/PR kako ne bi ponavljao prijedloge
-    koji su već razmatrani. Postavite `REVIEW_MAX_COMMENT_CHARS=0` za deaktivaciju.
+    koji su već razmatrani. Postavite `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS=0` za deaktivaciju.
+
+!!! info "Inline komentari"
+    Kada je `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (podrazumijevano), issue-i sa informacijama o fajlu/liniji se postavljaju kao inline komentari na kodu, sa kratkim sažetkom kao tijelom revizije. Postavite na `false` za jedan sažetak komentar.
 
 ### GitLab
 
 | Varijabla | Opis | Podrazumijevano |
 |----------|-------------|---------|
-| `GITLAB_URL` | URL GitLab servera | `https://gitlab.com` |
+| `AI_REVIEWER_GITLAB_URL` | URL GitLab servera | `https://gitlab.com` |
 
 !!! info "Self-hosted GitLab"
-    Za self-hosted GitLab, podesite `GITLAB_URL`:
+    Za self-hosted GitLab, podesite `AI_REVIEWER_GITLAB_URL`:
     ```bash
-    export GITLAB_URL=https://gitlab.mycompany.com
+    export AI_REVIEWER_GITLAB_URL=https://gitlab.mycompany.com
     ```
 
 ---
@@ -104,14 +111,14 @@ Praktično je čuvati konfiguraciju u `.env`:
 
 ```bash
 # .env
-GOOGLE_API_KEY=AIza...
-GITHUB_TOKEN=ghp_...
+AI_REVIEWER_GOOGLE_API_KEY=AIza...
+AI_REVIEWER_GITHUB_TOKEN=ghp_...
 
 # Opciono
-LANGUAGE=uk
-LANGUAGE_MODE=adaptive
-GEMINI_MODEL=gemini-3-flash-preview
-LOG_LEVEL=INFO
+AI_REVIEWER_LANGUAGE=uk
+AI_REVIEWER_LANGUAGE_MODE=adaptive
+AI_REVIEWER_GEMINI_MODEL=gemini-3-flash-preview
+AI_REVIEWER_LOG_LEVEL=INFO
 ```
 
 !!! danger "Bezbjednost"
@@ -131,20 +138,20 @@ LOG_LEVEL=INFO
 
 ```yaml
 env:
-  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-  GITHUB_TOKEN: ${{ github.token }}  # Automatski
-  LANGUAGE: uk
-  LANGUAGE_MODE: adaptive
+  AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
+  AI_REVIEWER_GITHUB_TOKEN: ${{ github.token }}  # Automatski
+  AI_REVIEWER_LANGUAGE: uk
+  AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ### GitLab CI
 
 ```yaml
 variables:
-  GOOGLE_API_KEY: $GOOGLE_API_KEY  # Iz CI/CD Variables
-  GITLAB_TOKEN: $GITLAB_TOKEN      # Project Access Token
-  LANGUAGE: uk
-  LANGUAGE_MODE: adaptive
+  AI_REVIEWER_GOOGLE_API_KEY: $AI_REVIEWER_GOOGLE_API_KEY  # Iz CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $AI_REVIEWER_GITLAB_TOKEN      # Project Access Token
+  AI_REVIEWER_LANGUAGE: uk
+  AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ---
@@ -156,7 +163,7 @@ AI Code Reviewer validira konfiguraciju pri pokretanju:
 ### Greške validacije
 
 ```
-ValidationError: GOOGLE_API_KEY is too short (minimum 10 characters)
+ValidationError: AI_REVIEWER_GOOGLE_API_KEY is too short (minimum 10 characters)
 ```
 
 **Rješenje:** Provjerite da je varijabla ispravno podešena.
@@ -168,7 +175,7 @@ ValidationError: Invalid language code 'xyz'
 **Rješenje:** Koristite validan ISO 639 kod.
 
 ```
-ValidationError: LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
+ValidationError: AI_REVIEWER_LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
 ```
 
 **Rješenje:** Koristite jedan od dozvoljenih nivoa.
@@ -180,40 +187,40 @@ ValidationError: LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
 ### Minimalna (GitHub)
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
 ```
 
 ### Minimalna (GitLab)
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITLAB_TOKEN=glpat-...
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITLAB_TOKEN=glpat-...
 ```
 
 ### Ukrajinski jezik, fiksiran
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
-export LANGUAGE=uk
-export LANGUAGE_MODE=fixed
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_LANGUAGE=uk
+export AI_REVIEWER_LANGUAGE_MODE=fixed
 ```
 
 ### Self-hosted GitLab
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITLAB_TOKEN=glpat-...
-export GITLAB_URL=https://gitlab.mycompany.com
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITLAB_TOKEN=glpat-...
+export AI_REVIEWER_GITLAB_URL=https://gitlab.mycompany.com
 ```
 
 ### Debug režim
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
-export LOG_LEVEL=DEBUG
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_LOG_LEVEL=DEBUG
 ```
 
 ---

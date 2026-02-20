@@ -47,13 +47,21 @@ _ERR_GITLAB_MR_NOT_FOUND = (
     "Ensure this job runs on merge request pipelines."
 )
 _ERR_GITHUB_TOKEN_MISSING = (
-    "GITHUB_TOKEN environment variable not found. Please provide a GitHub personal access token."
+    "AI_REVIEWER_GITHUB_TOKEN (or GITHUB_TOKEN) environment variable not found. "
+    "Please provide a GitHub personal access token."
 )
-_ERR_GITHUB_TOKEN_SHORT = f"GITHUB_TOKEN is too short (minimum {MIN_SECRET_LENGTH} characters)."
+_ERR_GITHUB_TOKEN_SHORT = (
+    f"AI_REVIEWER_GITHUB_TOKEN (or GITHUB_TOKEN) is too short "
+    f"(minimum {MIN_SECRET_LENGTH} characters)."
+)
 _ERR_GITLAB_TOKEN_MISSING = (
-    "GITLAB_TOKEN environment variable not found. Please provide a GitLab personal access token."
+    "AI_REVIEWER_GITLAB_TOKEN (or GITLAB_TOKEN) environment variable not found. "
+    "Please provide a GitLab personal access token."
 )
-_ERR_GITLAB_TOKEN_SHORT = f"GITLAB_TOKEN is too short (minimum {MIN_SECRET_LENGTH} characters)."
+_ERR_GITLAB_TOKEN_SHORT = (
+    f"AI_REVIEWER_GITLAB_TOKEN (or GITLAB_TOKEN) is too short "
+    f"(minimum {MIN_SECRET_LENGTH} characters)."
+)
 _MIN_REF_PARTS = 3
 
 

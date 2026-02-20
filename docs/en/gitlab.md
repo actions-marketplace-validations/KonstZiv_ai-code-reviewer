@@ -12,7 +12,7 @@ In GitLab CI, `CI_JOB_TOKEN` is automatically available:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $CI_JOB_TOKEN
+  AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN
 ```
 
 **`CI_JOB_TOKEN` limitations:**
@@ -48,14 +48,14 @@ For **all GitLab plans** (including Free). Recommended for local runs or full CI
 
 1. Go to **Settings → CI/CD → Variables → Add variable**
 2. Add variable:
-    - **Key:** `GITLAB_TOKEN`
+    - **Key:** `AI_REVIEWER_GITLAB_TOKEN` (or `GITLAB_TOKEN`)
     - **Value:** paste your token
     - **Flags:** check **Masked** and **Protected**
 3. Use in `.gitlab-ci.yml`:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token from CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token from CI/CD Variables
 ```
 
 !!! warning "Save the token"
@@ -84,11 +84,11 @@ Available only on **GitLab Premium** and **Ultimate** plans. A good choice if yo
 
 **How to use in CI:**
 
-Same as PAT — add as `GITLAB_TOKEN` in CI/CD Variables:
+Same as PAT — add as `AI_REVIEWER_GITLAB_TOKEN` in CI/CD Variables:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token from CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token from CI/CD Variables
 ```
 
 !!! info "Which token to choose?"
@@ -110,8 +110,8 @@ variables:
 
 | Variable | Value | Options |
 |----------|-------|---------|
-| `GOOGLE_API_KEY` | Gemini API key | Masked |
-| `GITLAB_TOKEN` | PAT (if needed) | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API key | Masked |
+| `AI_REVIEWER_GITLAB_TOKEN` | PAT (if needed) | Masked |
 
 !!! tip "Masked"
     Always enable **Masked** for secrets — they won't be shown in logs.
@@ -153,8 +153,8 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatic, no setup needed
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatic, no setup needed
 ```
 
 ### Full (recommended)
@@ -170,11 +170,11 @@ ai-review:
   allow_failure: true
   timeout: 10m
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     # Use CI_JOB_TOKEN (automatic) or a Personal Access Token for full permissions:
-    GITLAB_TOKEN: $CI_JOB_TOKEN    # or: $GITLAB_PAT (see "Get Token" above)
-    LANGUAGE: uk
-    LANGUAGE_MODE: adaptive
+    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN    # or: $GITLAB_PAT (see "Get Token" above)
+    AI_REVIEWER_LANGUAGE: uk
+    AI_REVIEWER_LANGUAGE_MODE: adaptive
   interruptible: true
 ```
 
@@ -210,9 +210,9 @@ ai-review:
 
 ```yaml
 variables:
-  GITLAB_URL: https://gitlab.mycompany.com
-  GOOGLE_API_KEY: $GOOGLE_API_KEY
-  GITLAB_TOKEN: $GITLAB_TOKEN
+  AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
+  AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Docker Registry
@@ -277,8 +277,8 @@ At the end of the review, a Summary note is posted with:
 
 **Check:**
 
-1. `GOOGLE_API_KEY` variable is set
-2. `GITLAB_TOKEN` has sufficient permissions (scope: `api`)
+1. `AI_REVIEWER_GOOGLE_API_KEY` (or `GOOGLE_API_KEY`) variable is set
+2. `AI_REVIEWER_GITLAB_TOKEN` (or `GITLAB_TOKEN`) has sufficient permissions (scope: `api`)
 3. Pipeline is running for MR (not for a branch)
 
 ### "401 Unauthorized"
@@ -325,7 +325,7 @@ At the end of the review, a Summary note is posted with:
 
 ```yaml
 variables:
-  GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, not CI_JOB_TOKEN
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, not CI_JOB_TOKEN
 ```
 
 ### 2. Add allow_failure

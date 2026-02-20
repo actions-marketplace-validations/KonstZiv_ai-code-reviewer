@@ -82,6 +82,10 @@
     | `GOOGLE_API_KEY` | Ваш Gemini ключ (`AIza...`) | :white_check_mark: Mask variable |
     | `GITLAB_TOKEN` | Токен з кроку 2a | :white_check_mark: Mask variable |
 
+    !!! tip "Префікс AI_REVIEWER_"
+        Ви також можете використовувати `AI_REVIEWER_GOOGLE_API_KEY` та `AI_REVIEWER_GITLAB_TOKEN` як назви змінних.
+        Обидва старі та нові назви підтримуються.
+
     ??? info "Детальна інструкція"
         1. Відкрийте ваш проєкт на GitLab
         2. Перейдіть **Settings** → **CI/CD**

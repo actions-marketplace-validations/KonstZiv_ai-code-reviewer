@@ -2,19 +2,22 @@
 
 Todas las configuraciones se hacen mediante variables de entorno.
 
+!!! tip "Migración: prefijo `AI_REVIEWER_`"
+    Desde v1.0.0a7, todas las variables de entorno admiten el prefijo `AI_REVIEWER_` (ej., `AI_REVIEWER_GOOGLE_API_KEY`). Los nombres antiguos (ej., `GOOGLE_API_KEY`) siguen funcionando como fallback. Recomendamos migrar a los nuevos nombres para evitar conflictos con otras herramientas en configuraciones CI/CD a nivel de organización.
+
 ---
 
 ## Variables Requeridas
 
 | Variable | Descripción | Ejemplo | Cómo obtener |
 |----------|-------------|---------|--------------|
-| `GOOGLE_API_KEY` | Clave API de Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
-| `GITHUB_TOKEN` | GitHub PAT (para GitHub) | `ghp_...` | [Instrucciones](github.md#get-token) |
-| `GITLAB_TOKEN` | GitLab PAT (para GitLab) | `glpat-...` | [Instrucciones](gitlab.md#get-token) |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Clave API de Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
+| `AI_REVIEWER_GITHUB_TOKEN` | GitHub PAT (para GitHub) | `ghp_...` | [Instrucciones](github.md#get-token) |
+| `AI_REVIEWER_GITLAB_TOKEN` | GitLab PAT (para GitLab) | `glpat-...` | [Instrucciones](gitlab.md#get-token) |
 
 !!! warning "Se requiere al menos un proveedor"
-    Necesitas `GITHUB_TOKEN` **o** `GITLAB_TOKEN` dependiendo de la plataforma.
-    Los tokens son específicos del proveedor: `GITHUB_TOKEN` solo se necesita para GitHub, `GITLAB_TOKEN` solo para GitLab.
+    Necesitas `AI_REVIEWER_GITHUB_TOKEN` **o** `AI_REVIEWER_GITLAB_TOKEN` dependiendo de la plataforma.
+    Los tokens son específicos del proveedor: `AI_REVIEWER_GITHUB_TOKEN` solo se necesita para GitHub, `AI_REVIEWER_GITLAB_TOKEN` solo para GitLab.
 
 ---
 
@@ -24,23 +27,23 @@ Todas las configuraciones se hacen mediante variables de entorno.
 
 | Variable | Descripción | Por defecto | Rango |
 |----------|-------------|-------------|-------|
-| `LOG_LEVEL` | Nivel de logging | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
-| `API_TIMEOUT` | Timeout de solicitud (seg) | `60` | 1-300 |
+| `AI_REVIEWER_LOG_LEVEL` | Nivel de logging | `INFO` | DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `AI_REVIEWER_API_TIMEOUT` | Timeout de solicitud (seg) | `60` | 1-300 |
 
 ### Idioma
 
 | Variable | Descripción | Por defecto | Ejemplos |
 |----------|-------------|-------------|----------|
-| `LANGUAGE` | Idioma de respuesta | `en` | `uk`, `de`, `es`, `it`, `me` |
-| `LANGUAGE_MODE` | Modo de detección | `adaptive` | `adaptive`, `fixed` |
+| `AI_REVIEWER_LANGUAGE` | Idioma de respuesta | `en` | `uk`, `de`, `es`, `it`, `me` |
+| `AI_REVIEWER_LANGUAGE_MODE` | Modo de detección | `adaptive` | `adaptive`, `fixed` |
 
 **Modos de idioma:**
 
 - **`adaptive`** (por defecto) — detecta automáticamente el idioma del contexto del PR/MR (descripción, comentarios, tarea vinculada)
-- **`fixed`** — siempre usa el idioma de `LANGUAGE`
+- **`fixed`** — siempre usa el idioma de `AI_REVIEWER_LANGUAGE`
 
 !!! tip "ISO 639"
-    `LANGUAGE` acepta cualquier código ISO 639 válido:
+    `AI_REVIEWER_LANGUAGE` acepta cualquier código ISO 639 válido:
 
     - 2 letras: `en`, `uk`, `de`, `es`, `it`
     - 3 letras: `ukr`, `deu`, `spa`
@@ -50,7 +53,7 @@ Todas las configuraciones se hacen mediante variables de entorno.
 
 | Variable | Descripción | Por defecto |
 |----------|-------------|-------------|
-| `GEMINI_MODEL` | Modelo Gemini | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Modelo Gemini | `gemini-3-flash-preview` |
 
 **Modelos disponibles:**
 
@@ -75,25 +78,29 @@ Todas las configuraciones se hacen mediante variables de entorno.
 
 | Variable | Descripción | Por defecto | Rango |
 |----------|-------------|-------------|-------|
-| `REVIEW_MAX_FILES` | Máximo de archivos en contexto | `20` | 1-100 |
-| `REVIEW_MAX_DIFF_LINES` | Máximo de líneas de diff por archivo | `500` | 1-5000 |
-| `REVIEW_MAX_COMMENT_CHARS` | Máx. caracteres de comentarios MR en prompt | `3000` | 0-20000 |
-| `REVIEW_INCLUDE_BOT_COMMENTS` | Incluir comentarios de bots en prompt | `true` | true/false |
+| `AI_REVIEWER_REVIEW_MAX_FILES` | Máximo de archivos en contexto | `20` | 1-100 |
+| `AI_REVIEWER_REVIEW_MAX_DIFF_LINES` | Máximo de líneas de diff por archivo | `500` | 1-5000 |
+| `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | Máx. caracteres de comentarios MR en prompt | `3000` | 0-20000 |
+| `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | Incluir comentarios de bots en prompt | `true` | true/false |
+| `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | Publicar comentarios inline en líneas | `true` | true/false |
 
 !!! info "Contexto de discusión"
     El revisor AI lee los comentarios existentes del MR/PR para evitar repetir sugerencias
-    que ya fueron discutidas. Configure `REVIEW_MAX_COMMENT_CHARS=0` para desactivar.
+    que ya fueron discutidas. Configure `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS=0` para desactivar.
+
+!!! info "Comentarios inline"
+    Cuando `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS=true` (por defecto), los issues con información de archivo/línea se publican como comentarios inline en el código, con un resumen corto como cuerpo de la revisión. Configura `false` para un único comentario de resumen.
 
 ### GitLab
 
 | Variable | Descripción | Por defecto |
 |----------|-------------|-------------|
-| `GITLAB_URL` | URL del servidor GitLab | `https://gitlab.com` |
+| `AI_REVIEWER_GITLAB_URL` | URL del servidor GitLab | `https://gitlab.com` |
 
 !!! info "GitLab Self-hosted"
-    Para GitLab self-hosted, configura `GITLAB_URL`:
+    Para GitLab self-hosted, configura `AI_REVIEWER_GITLAB_URL`:
     ```bash
-    export GITLAB_URL=https://gitlab.mycompany.com
+    export AI_REVIEWER_GITLAB_URL=https://gitlab.mycompany.com
     ```
 
 ---
@@ -104,14 +111,14 @@ Es conveniente almacenar la configuración en `.env`:
 
 ```bash
 # .env
-GOOGLE_API_KEY=AIza...
-GITHUB_TOKEN=ghp_...
+AI_REVIEWER_GOOGLE_API_KEY=AIza...
+AI_REVIEWER_GITHUB_TOKEN=ghp_...
 
 # Opcional
-LANGUAGE=uk
-LANGUAGE_MODE=adaptive
-GEMINI_MODEL=gemini-3-flash-preview
-LOG_LEVEL=INFO
+AI_REVIEWER_LANGUAGE=uk
+AI_REVIEWER_LANGUAGE_MODE=adaptive
+AI_REVIEWER_GEMINI_MODEL=gemini-3-flash-preview
+AI_REVIEWER_LOG_LEVEL=INFO
 ```
 
 !!! danger "Seguridad"
@@ -131,20 +138,20 @@ LOG_LEVEL=INFO
 
 ```yaml
 env:
-  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-  GITHUB_TOKEN: ${{ github.token }}  # Automático
-  LANGUAGE: uk
-  LANGUAGE_MODE: adaptive
+  AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
+  AI_REVIEWER_GITHUB_TOKEN: ${{ github.token }}  # Automático
+  AI_REVIEWER_LANGUAGE: uk
+  AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ### GitLab CI
 
 ```yaml
 variables:
-  GOOGLE_API_KEY: $GOOGLE_API_KEY  # Desde CI/CD Variables
-  GITLAB_TOKEN: $GITLAB_TOKEN      # Project Access Token
-  LANGUAGE: uk
-  LANGUAGE_MODE: adaptive
+  AI_REVIEWER_GOOGLE_API_KEY: $AI_REVIEWER_GOOGLE_API_KEY  # Desde CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $AI_REVIEWER_GITLAB_TOKEN      # Project Access Token
+  AI_REVIEWER_LANGUAGE: uk
+  AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ---
@@ -180,40 +187,40 @@ ValidationError: LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
 ### Mínima (GitHub)
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
 ```
 
 ### Mínima (GitLab)
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITLAB_TOKEN=glpat-...
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITLAB_TOKEN=glpat-...
 ```
 
 ### Idioma ucraniano, fijo
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
-export LANGUAGE=uk
-export LANGUAGE_MODE=fixed
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_LANGUAGE=uk
+export AI_REVIEWER_LANGUAGE_MODE=fixed
 ```
 
 ### GitLab Self-hosted
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITLAB_TOKEN=glpat-...
-export GITLAB_URL=https://gitlab.mycompany.com
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITLAB_TOKEN=glpat-...
+export AI_REVIEWER_GITLAB_URL=https://gitlab.mycompany.com
 ```
 
 ### Modo debug
 
 ```bash
-export GOOGLE_API_KEY=AIza...
-export GITHUB_TOKEN=ghp_...
-export LOG_LEVEL=DEBUG
+export AI_REVIEWER_GOOGLE_API_KEY=AIza...
+export AI_REVIEWER_GITHUB_TOKEN=ghp_...
+export AI_REVIEWER_LOG_LEVEL=DEBUG
 ```
 
 ---

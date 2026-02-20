@@ -223,6 +223,12 @@ jobs:
 | `language_mode` | Modo de idioma | `adaptive` |
 | `gemini_model` | Modelo Gemini | `gemini-3-flash-preview` |
 | `log_level` | Nivel de log | `INFO` |
+| `review_max_comment_chars` | Máx. caracteres de comentario MR en el prompt | `3000` |
+| `review_include_bot_comments` | Incluir comentarios de bots en el prompt | `true` |
+| `review_post_inline_comments` | Publicar comentarios inline en líneas | `true` |
+
+!!! tip "Variables de entorno"
+    La Action mapea los inputs a variables de entorno `AI_REVIEWER_*` internamente. Al ejecutar fuera de la Action, usa las variables `AI_REVIEWER_*` directamente (los nombres antiguos como `GOOGLE_API_KEY` siguen funcionando como fallback).
 
 ---
 

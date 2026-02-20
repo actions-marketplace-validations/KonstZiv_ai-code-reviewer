@@ -45,3 +45,4 @@ jobs:
           # log_level: 'INFO'
           # review_max_comment_chars: '3000'
           # review_include_bot_comments: 'true'
+          # review_post_inline_comments: 'true'

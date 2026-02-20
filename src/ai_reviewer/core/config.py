@@ -23,7 +23,7 @@ from functools import lru_cache
 from typing import Annotated
 
 import iso639
-from pydantic import AfterValidator, Field, SecretStr
+from pydantic import AfterValidator, AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -159,21 +159,24 @@ class Settings(BaseSettings):
             Uses ISO 639-1 codes (en, uk, de, es, etc.).
         language_mode: Language detection mode.
             ADAPTIVE auto-detects from context, FIXED uses the language setting.
+        review_post_inline_comments: Post inline comments on specific lines.
+            When True, issues with file/line info are posted as inline comments.
 
-    Environment Variables:
-        GITHUB_TOKEN: GitHub personal access token (optional, required for GitHub)
-        GITLAB_TOKEN: GitLab personal access token (required for GitLab)
-        GITLAB_URL: GitLab server URL (default: https://gitlab.com)
-        GOOGLE_API_KEY: Google Gemini API key (required)
-        GEMINI_MODEL: Model name (default: gemini-3-flash-preview)
-        LOG_LEVEL: Logging level (default: INFO)
-        REVIEW_MAX_FILES: Max files in context (default: 20)
-        REVIEW_MAX_DIFF_LINES: Max diff lines per file (default: 500)
-        API_TIMEOUT: Request timeout in seconds (default: 60)
-        LANGUAGE: Default response language (default: en)
-        LANGUAGE_MODE: Detection mode - adaptive or fixed (default: adaptive)
-        REVIEW_MAX_COMMENT_CHARS: Max comment chars in prompt (default: 3000, 0 to disable)
-        REVIEW_INCLUDE_BOT_COMMENTS: Include bot comments in prompt (default: True)
+    Environment Variables (AI_REVIEWER_* preferred, old names as fallback):
+        AI_REVIEWER_GOOGLE_API_KEY / GOOGLE_API_KEY: Google Gemini API key (required)
+        AI_REVIEWER_GITHUB_TOKEN / GITHUB_TOKEN: GitHub personal access token
+        AI_REVIEWER_GITLAB_TOKEN / GITLAB_TOKEN: GitLab personal access token
+        AI_REVIEWER_GITLAB_URL / GITLAB_URL: GitLab server URL
+        AI_REVIEWER_GEMINI_MODEL / GEMINI_MODEL: Model name
+        AI_REVIEWER_LOG_LEVEL / LOG_LEVEL: Logging level
+        AI_REVIEWER_REVIEW_MAX_FILES / REVIEW_MAX_FILES: Max files in context
+        AI_REVIEWER_REVIEW_MAX_DIFF_LINES / REVIEW_MAX_DIFF_LINES: Max diff lines
+        AI_REVIEWER_API_TIMEOUT / API_TIMEOUT: Request timeout in seconds
+        AI_REVIEWER_LANGUAGE / LANGUAGE: Default response language
+        AI_REVIEWER_LANGUAGE_MODE / LANGUAGE_MODE: Detection mode
+        AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS / REVIEW_MAX_COMMENT_CHARS: Max comment chars
+        AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS / REVIEW_INCLUDE_BOT_COMMENTS: Include bots
+        AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS / REVIEW_POST_INLINE_COMMENTS: Inline comments
     """
 
     model_config = SettingsConfigDict(
@@ -181,11 +184,13 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        populate_by_name=True,
     )
 
     # Required credentials (validated for minimum length)
     google_api_key: GoogleApiKey = Field(
         ...,
+        validation_alias=AliasChoices("AI_REVIEWER_GOOGLE_API_KEY", "GOOGLE_API_KEY"),
         description="Google API key for Gemini access",
     )
 
@@ -194,36 +199,43 @@ class Settings(BaseSettings):
     # Validation is done at CLI level when the corresponding provider is selected.
     github_token: SecretStr | None = Field(
         default=None,
+        validation_alias=AliasChoices("AI_REVIEWER_GITHUB_TOKEN", "GITHUB_TOKEN"),
         description="GitHub personal access token for API access",
     )
     gitlab_token: SecretStr | None = Field(
         default=None,
+        validation_alias=AliasChoices("AI_REVIEWER_GITLAB_TOKEN", "GITLAB_TOKEN"),
         description="GitLab personal access token for API access",
     )
     gitlab_url: str = Field(
         default="https://gitlab.com",
+        validation_alias=AliasChoices("AI_REVIEWER_GITLAB_URL", "GITLAB_URL"),
         description="GitLab server URL (for self-hosted instances)",
     )
 
     # Optional configuration with defaults
     gemini_model: str = Field(
         default="gemini-3-flash-preview",
+        validation_alias=AliasChoices("AI_REVIEWER_GEMINI_MODEL", "GEMINI_MODEL"),
         description="Gemini model to use for analysis",
     )
     log_level: LogLevel = Field(
         default="INFO",
+        validation_alias=AliasChoices("AI_REVIEWER_LOG_LEVEL", "LOG_LEVEL"),
         description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
     )
     review_max_files: int = Field(
         default=20,
         gt=0,
         le=100,
+        validation_alias=AliasChoices("AI_REVIEWER_REVIEW_MAX_FILES", "REVIEW_MAX_FILES"),
         description="Maximum number of files to include in review context",
     )
     review_max_diff_lines: int = Field(
         default=500,
         gt=0,
         le=5000,
+        validation_alias=AliasChoices("AI_REVIEWER_REVIEW_MAX_DIFF_LINES", "REVIEW_MAX_DIFF_LINES"),
         description="Maximum diff lines per file to include",
     )
 
@@ -232,16 +244,19 @@ class Settings(BaseSettings):
         default=60,
         gt=0,
         le=300,
+        validation_alias=AliasChoices("AI_REVIEWER_API_TIMEOUT", "API_TIMEOUT"),
         description="API request timeout in seconds",
     )
 
     # Language configuration
     language: LanguageCode = Field(
         default="en",
+        validation_alias=AliasChoices("AI_REVIEWER_LANGUAGE", "LANGUAGE"),
         description="Default language for review responses (ISO 639 code or language name)",
     )
     language_mode: LanguageMode = Field(
         default=LanguageMode.ADAPTIVE,
+        validation_alias=AliasChoices("AI_REVIEWER_LANGUAGE_MODE", "LANGUAGE_MODE"),
         description="Language detection mode: adaptive (auto-detect) or fixed (use LANGUAGE)",
     )
 
@@ -250,11 +265,26 @@ class Settings(BaseSettings):
         default=3000,
         ge=0,
         le=20000,
+        validation_alias=AliasChoices(
+            "AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS", "REVIEW_MAX_COMMENT_CHARS"
+        ),
         description="Max total chars of MR comments in review prompt (0 to disable)",
     )
     review_include_bot_comments: bool = Field(
         default=True,
+        validation_alias=AliasChoices(
+            "AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS", "REVIEW_INCLUDE_BOT_COMMENTS"
+        ),
         description="Include bot comments in review prompt (to avoid repeating AI suggestions)",
+    )
+
+    # Inline comments
+    review_post_inline_comments: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS", "REVIEW_POST_INLINE_COMMENTS"
+        ),
+        description="Post inline comments on specific lines instead of a single summary",
     )
 
 

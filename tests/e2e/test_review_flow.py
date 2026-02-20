@@ -6,11 +6,14 @@ import pytest
 from pydantic import SecretStr
 
 from ai_reviewer.core.config import Settings
-from ai_reviewer.core.formatter import format_review_comment
+from ai_reviewer.core.formatter import format_review_summary
 from ai_reviewer.core.models import (
+    CodeIssue,
     Comment,
     CommentAuthorType,
     CommentType,
+    IssueCategory,
+    IssueSeverity,
     LinkedTask,
     MergeRequest,
     ReviewResult,
@@ -32,6 +35,9 @@ class TestReviewFlow:
         settings.gemini_model = "gemini-pro"
         settings.review_max_files = 5
         settings.review_max_diff_lines = 10
+        settings.review_max_comment_chars = 3000
+        settings.review_include_bot_comments = True
+        settings.review_post_inline_comments = True
         return settings
 
     @pytest.fixture
@@ -61,7 +67,7 @@ class TestReviewFlow:
         mock_mr: MergeRequest,
         mock_settings: Settings,
     ) -> None:
-        """Test a successful review flow."""
+        """Test a successful review flow with inline comments enabled."""
         # Setup provider mock
         mock_provider.get_merge_request.return_value = mock_mr
         mock_provider.get_linked_task.return_value = LinkedTask(identifier="123", title="Task")
@@ -79,13 +85,14 @@ class TestReviewFlow:
         mock_provider.get_merge_request.assert_called_once_with("owner/repo", 1)
         mock_provider.get_linked_task.assert_called_once()
         mock_analyze.assert_called_once()
-        mock_provider.post_comment.assert_called_once()
+        mock_provider.submit_review.assert_called_once()
 
-        # Check comment content
-        args, _ = mock_provider.post_comment.call_args
-        assert "AI Code Review" in args[2]
-        assert "LGTM" in args[2]
-        assert "✅ Aligned" in args[2]
+        # Check submission content
+        args, _ = mock_provider.submit_review.call_args
+        submission = args[2]
+        assert "AI Code Review" in submission.summary
+        assert "LGTM" in submission.summary
+        assert "✅ Aligned" in submission.summary
 
     @patch("ai_reviewer.reviewer.analyze_code_changes")
     def test_duplicate_comment_skipped(
@@ -95,18 +102,18 @@ class TestReviewFlow:
         mock_mr: MergeRequest,
         mock_settings: Settings,
     ) -> None:
-        """Test that duplicate comments are skipped."""
+        """Test that duplicate summary is skipped (inline mode)."""
         # Setup analysis result
         result = ReviewResult(summary="LGTM")
         mock_analyze.return_value = result
 
-        # Setup existing comment that matches the result
-        expected_body = format_review_comment(result)
+        # Build expected summary (inline mode: no issues → all fallback → empty)
+        expected_summary = format_review_summary(result, (), None)
 
         existing_comment = Comment(
             author="bot",
             author_type=CommentAuthorType.BOT,
-            body=expected_body,
+            body=expected_summary,
             type=CommentType.ISSUE,
         )
 
@@ -127,8 +134,8 @@ class TestReviewFlow:
         # Execute
         review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
 
-        # Verify post_comment was NOT called
-        mock_provider.post_comment.assert_not_called()
+        # Verify submit_review was NOT called
+        mock_provider.submit_review.assert_not_called()
 
     @patch("ai_reviewer.reviewer.analyze_code_changes")
     def test_error_handling_posts_comment(
@@ -154,6 +161,81 @@ class TestReviewFlow:
         args, _ = mock_provider.post_comment.call_args
         assert "❌ AI Review Failed" in args[2]
         assert "Gemini API Error" in args[2]
+
+    @patch("ai_reviewer.reviewer.analyze_code_changes")
+    def test_inline_disabled_uses_post_comment(
+        self,
+        mock_analyze: MagicMock,
+        mock_provider: MagicMock,
+        mock_mr: MergeRequest,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that disabling inline comments falls back to post_comment."""
+        mock_settings.review_post_inline_comments = False
+        mock_provider.get_merge_request.return_value = mock_mr
+        mock_provider.get_linked_task.return_value = None
+
+        mock_analyze.return_value = ReviewResult(
+            summary="LGTM",
+            task_alignment=TaskAlignmentStatus.ALIGNED,
+        )
+
+        review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
+
+        mock_provider.post_comment.assert_called_once()
+        mock_provider.submit_review.assert_not_called()
+
+        args, _ = mock_provider.post_comment.call_args
+        assert "AI Code Review" in args[2]
+
+    @patch("ai_reviewer.reviewer.analyze_code_changes")
+    def test_successful_review_with_inline_issues(
+        self,
+        mock_analyze: MagicMock,
+        mock_provider: MagicMock,
+        mock_mr: MergeRequest,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that issues with file/line become inline comments."""
+        mock_provider.get_merge_request.return_value = mock_mr
+        mock_provider.get_linked_task.return_value = None
+
+        issue_inline = CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
+            title="SQL Injection",
+            description="Use parameterized query",
+            file_path="db.py",
+            line_number=10,
+            proposed_code="cursor.execute(sql, params)",
+        )
+        issue_fallback = CodeIssue(
+            category=IssueCategory.CODE_QUALITY,
+            severity=IssueSeverity.INFO,
+            title="General note",
+            description="Consider refactoring",
+        )
+
+        mock_analyze.return_value = ReviewResult(
+            summary="Found issues",
+            issues=(issue_inline, issue_fallback),
+        )
+
+        review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
+
+        mock_provider.submit_review.assert_called_once()
+        args, _ = mock_provider.submit_review.call_args
+        submission = args[2]
+
+        # Inline issue becomes a line comment
+        assert len(submission.line_comments) == 1
+        assert submission.line_comments[0].path == "db.py"
+        assert submission.line_comments[0].line == 10
+
+        # Fallback issue is in summary, not inline
+        assert "General note" in submission.summary
+        # Inline issue should NOT be in summary
+        assert "SQL Injection" not in submission.summary
 
     def test_rate_limit_abort(
         self,

@@ -12,6 +12,9 @@
 #   - GOOGLE_API_KEY: Your Google API key for Gemini (masked, protected)
 #
 # The CI_JOB_TOKEN is automatically provided by GitLab CI.
+#
+# Migration note: Environment variables now use the AI_REVIEWER_ prefix.
+# Old names (e.g. GOOGLE_API_KEY) still work as fallback.
 # =============================================================================
 
 # AI Code Review job
@@ -25,16 +28,17 @@ ai-review:
 
   variables:
     # GitLab token (automatically provided)
-    GITLAB_TOKEN: $CI_JOB_TOKEN
+    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN
     # Google API key (set in CI/CD settings)
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     # Optional: customize settings
-    # LANGUAGE: "en"
-    # LANGUAGE_MODE: "adaptive"
-    # GEMINI_MODEL: "gemini-2.5-flash"
-    # LOG_LEVEL: "INFO"
-    # REVIEW_MAX_COMMENT_CHARS: "3000"
-    # REVIEW_INCLUDE_BOT_COMMENTS: "true"
+    # AI_REVIEWER_LANGUAGE: "en"
+    # AI_REVIEWER_LANGUAGE_MODE: "adaptive"
+    # AI_REVIEWER_GEMINI_MODEL: "gemini-2.5-flash"
+    # AI_REVIEWER_LOG_LEVEL: "INFO"
+    # AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS: "3000"
+    # AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS: "true"
+    # AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS: "true"
 
   script:
     - ai-review
@@ -64,8 +68,8 @@ ai-review:
 #   rules:
 #     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 #   variables:
-#     GITLAB_TOKEN: $GITLAB_API_TOKEN
-#     GOOGLE_API_KEY: $GOOGLE_API_KEY
+#     AI_REVIEWER_GITLAB_TOKEN: $GITLAB_API_TOKEN
+#     AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
 #   script:
 #     - ai-review
 #   allow_failure: true

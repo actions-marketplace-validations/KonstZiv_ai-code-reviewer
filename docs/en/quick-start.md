@@ -31,7 +31,7 @@ The key needs to be added as a secret variable in your repository.
 
     | Field | Value |
     |-------|-------|
-    | **Name** | `GOOGLE_API_KEY` |
+    | **Name** | `GOOGLE_API_KEY` (used by the Action automatically) |
     | **Secret** | Your key (`AIza...`) |
 
     Click **"Add secret"**.
@@ -81,6 +81,10 @@ The key needs to be added as a secret variable in your repository.
     |-----|-------|-------|
     | `GOOGLE_API_KEY` | Your Gemini key (`AIza...`) | :white_check_mark: Mask variable |
     | `GITLAB_TOKEN` | Token from step 2a | :white_check_mark: Mask variable |
+
+    !!! tip "AI_REVIEWER_ prefix"
+        You can also use `AI_REVIEWER_GOOGLE_API_KEY` and `AI_REVIEWER_GITLAB_TOKEN` as variable names.
+        Both old and new names are supported.
 
     ??? info "Detailed instructions"
         1. Open your project on GitLab

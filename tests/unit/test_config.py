@@ -562,3 +562,140 @@ class TestCommentSettings:
         with patch.dict(os.environ, env, clear=True):
             settings = Settings()
             assert settings.review_include_bot_comments is True
+
+
+class TestInlineCommentsSetting:
+    """Tests for review_post_inline_comments setting."""
+
+    @pytest.fixture
+    def minimal_env(self) -> dict[str, str]:
+        """Return minimal required environment variables."""
+        return {
+            "GOOGLE_API_KEY": "AIza_test_key_12345",
+        }
+
+    def test_review_post_inline_comments_default(self, minimal_env: dict[str, str]) -> None:
+        """Test review_post_inline_comments has default value of True."""
+        with patch.dict(os.environ, minimal_env, clear=True):
+            settings = Settings()
+            assert settings.review_post_inline_comments is True
+
+    def test_review_post_inline_comments_from_env_false(self, minimal_env: dict[str, str]) -> None:
+        """Test review_post_inline_comments can be set to False."""
+        env = {**minimal_env, "REVIEW_POST_INLINE_COMMENTS": "false"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_post_inline_comments is False
+
+    def test_review_post_inline_comments_prefixed(self, minimal_env: dict[str, str]) -> None:
+        """Test review_post_inline_comments with AI_REVIEWER_ prefix."""
+        env = {**minimal_env, "AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS": "false"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.review_post_inline_comments is False
+
+
+class TestEnvVarPrefix:
+    """Tests for AI_REVIEWER_ prefix and old name fallback."""
+
+    @pytest.fixture
+    def minimal_env_prefixed(self) -> dict[str, str]:
+        """Return minimal required environment variables with AI_REVIEWER_ prefix."""
+        return {
+            "AI_REVIEWER_GOOGLE_API_KEY": "AIza_test_key_12345",
+        }
+
+    def test_prefixed_google_api_key(self, minimal_env_prefixed: dict[str, str]) -> None:
+        """Test AI_REVIEWER_GOOGLE_API_KEY is accepted."""
+        with patch.dict(os.environ, minimal_env_prefixed, clear=True):
+            settings = Settings()
+            assert settings.google_api_key.get_secret_value() == "AIza_test_key_12345"
+
+    def test_old_google_api_key_still_works(self) -> None:
+        """Test old GOOGLE_API_KEY still works as fallback."""
+        env = {"GOOGLE_API_KEY": "AIza_test_key_12345"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.google_api_key.get_secret_value() == "AIza_test_key_12345"
+
+    def test_prefixed_takes_priority(self) -> None:
+        """Test AI_REVIEWER_* takes priority over old name."""
+        env = {
+            "AI_REVIEWER_GOOGLE_API_KEY": "AIza_new_key_12345",
+            "GOOGLE_API_KEY": "AIza_old_key_12345",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.google_api_key.get_secret_value() == "AIza_new_key_12345"
+
+    def test_prefixed_github_token(self, minimal_env_prefixed: dict[str, str]) -> None:
+        """Test AI_REVIEWER_GITHUB_TOKEN is accepted."""
+        env = {**minimal_env_prefixed, "AI_REVIEWER_GITHUB_TOKEN": "ghp_test_12345"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.github_token is not None
+            assert settings.github_token.get_secret_value() == "ghp_test_12345"
+
+    def test_prefixed_gitlab_token(self, minimal_env_prefixed: dict[str, str]) -> None:
+        """Test AI_REVIEWER_GITLAB_TOKEN is accepted."""
+        env = {**minimal_env_prefixed, "AI_REVIEWER_GITLAB_TOKEN": "glpat-test_12345"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.gitlab_token is not None
+            assert settings.gitlab_token.get_secret_value() == "glpat-test_12345"
+
+    def test_prefixed_gemini_model(self, minimal_env_prefixed: dict[str, str]) -> None:
+        """Test AI_REVIEWER_GEMINI_MODEL is accepted."""
+        env = {**minimal_env_prefixed, "AI_REVIEWER_GEMINI_MODEL": "gemini-1.5-pro"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.gemini_model == "gemini-1.5-pro"
+
+    def test_prefixed_log_level(self, minimal_env_prefixed: dict[str, str]) -> None:
+        """Test AI_REVIEWER_LOG_LEVEL is accepted."""
+        env = {**minimal_env_prefixed, "AI_REVIEWER_LOG_LEVEL": "DEBUG"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.log_level == "DEBUG"
+
+    def test_prefixed_language(self, minimal_env_prefixed: dict[str, str]) -> None:
+        """Test AI_REVIEWER_LANGUAGE is accepted."""
+        env = {**minimal_env_prefixed, "AI_REVIEWER_LANGUAGE": "uk"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.language == "uk"
+
+    def test_all_old_names_still_work(self) -> None:
+        """Test that all old env var names still work as fallback."""
+        env = {
+            "GOOGLE_API_KEY": "AIza_test_key_12345",
+            "GITHUB_TOKEN": "ghp_test_token_12345",
+            "GITLAB_TOKEN": "glpat-test_token_12345",
+            "GITLAB_URL": "https://gitlab.example.com",
+            "GEMINI_MODEL": "gemini-1.5-pro",
+            "LOG_LEVEL": "DEBUG",
+            "REVIEW_MAX_FILES": "50",
+            "REVIEW_MAX_DIFF_LINES": "1000",
+            "API_TIMEOUT": "120",
+            "LANGUAGE": "uk",
+            "LANGUAGE_MODE": "fixed",
+            "REVIEW_MAX_COMMENT_CHARS": "5000",
+            "REVIEW_INCLUDE_BOT_COMMENTS": "false",
+            "REVIEW_POST_INLINE_COMMENTS": "false",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.google_api_key.get_secret_value() == "AIza_test_key_12345"
+            assert settings.github_token is not None
+            assert settings.gitlab_token is not None
+            assert settings.gitlab_url == "https://gitlab.example.com"
+            assert settings.gemini_model == "gemini-1.5-pro"
+            assert settings.log_level == "DEBUG"
+            assert settings.review_max_files == 50
+            assert settings.review_max_diff_lines == 1000
+            assert settings.api_timeout == 120
+            assert settings.language == "uk"
+            assert settings.language_mode == LanguageMode.FIXED
+            assert settings.review_max_comment_chars == 5000
+            assert settings.review_include_bot_comments is False
+            assert settings.review_post_inline_comments is False
