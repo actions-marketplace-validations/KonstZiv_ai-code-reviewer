@@ -107,7 +107,7 @@ CLI legge la configurazione dalle variabili d'ambiente:
 | Variabile | Descrizione | Default |
 |-----------|-------------|---------|
 | `LANGUAGE` | Lingua risposte | `en` |
-| `LANGUAGE_MODE` | Modalita lingua | `adaptive` |
+| `LANGUAGE_MODE` | Modalità lingua | `adaptive` |
 | `GEMINI_MODEL` | Modello Gemini | `gemini-3-flash-preview` |
 | `LOG_LEVEL` | Livello log | `INFO` |
 | `GITLAB_URL` | URL GitLab | `https://gitlab.com` |

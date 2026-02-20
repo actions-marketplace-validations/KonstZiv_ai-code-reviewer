@@ -220,7 +220,7 @@ jobs:
 | `google_api_key` | Chiave API Gemini | **necessario** |
 | `github_token` | Token GitHub | `${{ github.token }}` |
 | `language` | Lingua risposte | `en` |
-| `language_mode` | Modalita lingua | `adaptive` |
+| `language_mode` | Modalità lingua | `adaptive` |
 | `gemini_model` | Modello Gemini | `gemini-2.0-flash` |
 | `log_level` | Livello log | `INFO` |
 

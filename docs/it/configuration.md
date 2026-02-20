@@ -32,9 +32,9 @@ Tutte le impostazioni vengono configurate tramite variabili d'ambiente.
 | Variabile | Descrizione | Default | Esempi |
 |-----------|-------------|---------|--------|
 | `LANGUAGE` | Lingua delle risposte | `en` | `uk`, `de`, `es`, `it`, `me` |
-| `LANGUAGE_MODE` | Modalita di rilevamento | `adaptive` | `adaptive`, `fixed` |
+| `LANGUAGE_MODE` | Modalità di rilevamento | `adaptive` | `adaptive`, `fixed` |
 
-**Modalita lingua:**
+**Modalità lingua:**
 
 - **`adaptive`** (default) — rileva automaticamente la lingua dal contesto PR/MR (descrizione, commenti, task collegato)
 - **`fixed`** — usa sempre la lingua da `LANGUAGE`
@@ -208,7 +208,7 @@ export GITLAB_TOKEN=glpat-...
 export GITLAB_URL=https://gitlab.mycompany.com
 ```
 
-### Modalita debug
+### Modalità debug
 
 ```bash
 export GOOGLE_API_KEY=AIza...
