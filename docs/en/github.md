@@ -221,7 +221,7 @@ jobs:
 | `github_token` | GitHub token | `${{ github.token }}` |
 | `language` | Response language | `en` |
 | `language_mode` | Language mode | `adaptive` |
-| `gemini_model` | Gemini model | `gemini-2.0-flash` |
+| `gemini_model` | Gemini model | `gemini-3-flash-preview` |
 | `log_level` | Log level | `INFO` |
 
 ---
