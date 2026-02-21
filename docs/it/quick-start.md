@@ -49,27 +49,48 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
 
 === "GitLab"
 
-    Per GitLab devi creare un **Project Access Token** e aggiungere due variabili.
+    Per GitLab devi creare un **token GitLab** e aggiungere due variabili.
 
-    ### Passo 2a: Crea un Project Access Token
+    ### Passo 2a: Crea un token GitLab
 
-    !!! note "Servono i permessi Maintainer"
-        Per creare un Project Access Token serve il ruolo **Maintainer** o **Owner** nel progetto.
+    === "Project Access Token (Premium/Ultimate)"
 
-        :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
+        !!! note "Servono i permessi Maintainer"
+            Per creare un Project Access Token serve il ruolo **Maintainer** o **Owner** nel progetto.
 
-    **Percorso:** Project → `Settings` → `Access Tokens`
+            :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
 
-    | Campo | Valore |
-    |-------|--------|
-    | **Token name** | `ai-reviewer` |
-    | **Expiration date** | Scegli una data (max 1 anno) |
-    | **Role** | `Developer` |
-    | **Scopes** | :white_check_mark: `api` |
+        **Percorso:** Project → `Settings` → `Access Tokens`
 
-    Clicca **"Create project access token"** → **Copia il token** (viene mostrato una sola volta!)
+        | Campo | Valore |
+        |-------|--------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Scegli una data (max 1 anno) |
+        | **Role** | `Developer` |
+        | **Scopes** | :white_check_mark: `api` |
 
-    :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+        Clicca **"Create project access token"** → **Copia il token** (viene mostrato una sola volta!)
+
+        :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+
+    === "Personal Access Token (Tutti i piani)"
+
+        Usa questa opzione se i Project Access Token non sono disponibili nel tuo piano (es. GitLab Free).
+
+        **Percorso:** Avatar utente → `Edit profile` → `Access Tokens`
+
+        | Campo | Valore |
+        |-------|--------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Scegli una data (max 1 anno) |
+        | **Scopes** | :white_check_mark: `api` |
+
+        Clicca **"Create personal access token"** → **Copia il token** (viene mostrato una sola volta!)
+
+        !!! warning "I commenti appariranno sotto il tuo nome utente"
+            A differenza dei Project Access Token, un Personal Access Token e legato al tuo account. Tutti i commenti della revisione saranno pubblicati a tuo nome.
+
+        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
 
     ### Passo 2b: Aggiungi le Variabili in CI/CD
 

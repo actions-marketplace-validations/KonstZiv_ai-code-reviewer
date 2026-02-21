@@ -107,13 +107,19 @@ Full documentation available in **6 languages**:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GOOGLE_API_KEY` | — | **Required.** Google Gemini API key |
-| `GITHUB_TOKEN` | — | GitHub token (for GitHub) |
-| `GITLAB_TOKEN` | — | GitLab token (for GitLab) |
-| `LANGUAGE` | `en` | Response language (ISO 639 code) |
-| `LANGUAGE_MODE` | `adaptive` | `adaptive` (detect from PR) or `fixed` |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model to use |
-| `LOG_LEVEL` | `INFO` | Logging level |
+| `AI_REVIEWER_GOOGLE_API_KEY` | — | **Required.** Google Gemini API key |
+| `AI_REVIEWER_GITHUB_TOKEN` | — | GitHub token (for GitHub) |
+| `AI_REVIEWER_GITLAB_TOKEN` | — | GitLab token (for GitLab) |
+| `AI_REVIEWER_LANGUAGE` | `en` | Response language (ISO 639 code) |
+| `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` | `adaptive` (detect from PR) or `fixed` |
+| `AI_REVIEWER_GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model to use |
+| `AI_REVIEWER_LOG_LEVEL` | `INFO` | Logging level |
+| `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | `3000` | Max characters per comment |
+| `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | `true` | Include bot comments in context |
+| `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | `true` | Post inline comments on code lines |
+| `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE` | `true` | Enable dialogue threading |
+
+> **Note:** Old variable names without `AI_REVIEWER_` prefix still work as fallback.
 
 See [Configuration Guide](https://konstziv.github.io/ai-code-reviewer/configuration/) for all options.
 

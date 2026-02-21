@@ -9,7 +9,7 @@
 AI Code Reviewer is a tool that automatically analyzes your Pull Requests (GitHub) and Merge Requests (GitLab), finds issues and suggests fixes with an **"Apply Suggestion"** button.
 Essentially, you get an unbiased senior developer's perspective on your code along with suggestions for improvement.
 
-Integration with a wide range of existing LLM providers is possible (by default **Google Gemini**, model **gemini-2.5-flash** — at the time of the current release, the free tier usage limits on requests per minute and per day are sufficient for a normal workflow of a team of 4-8 full-time developers).
+Integration with a wide range of existing LLM providers is possible (by default **Google Gemini**, model **gemini-3-flash-preview** — at the time of the current release, the free tier usage limits on requests per minute and per day are sufficient for a normal workflow of a team of 4-8 full-time developers).
 
 
 ---
@@ -32,7 +32,7 @@ Integration with a wide range of existing LLM providers is possible (by default 
 
 Important: to follow the next steps you'll need your personal Google API key. You can get it for free either at [Google AI Studio](https://aistudio.google.com/api-keys) or [Google Cloud Console](https://console.cloud.google.com/).
 
-*AI Code Reviewer can be configured to use different LLM providers and models, both free and paid. The following examples use the* **gemini-2.5-flash** *model. Other documentation sections explain how to connect other providers and use other models. We're interested in your opinion about the differences between various models — we'd love to read about your experience in the comments.*
+*AI Code Reviewer can be configured to use different LLM providers and models, both free and paid. The following examples use the* **gemini-3-flash-preview** *model. Other documentation sections explain how to connect other providers and use other models. We're interested in your opinion about the differences between various models — we'd love to read about your experience in the comments.*
 
 
 ### GitHub
@@ -67,9 +67,9 @@ jobs:
 
 In your repository, create:
 
-1. **Project Access Token** (required for posting comments):
-    - Go to `Settings` → `Access Tokens`
-    - Create token with name `ai-reviewer`, role `Developer`, scope `api`
+1. **GitLab Token** (required for posting comments):
+    - **Project Access Token** (Premium/Ultimate) — go to `Settings` → `Access Tokens`, create token with name `ai-reviewer`, role `Developer`, scope `api`
+    - **Personal Access Token** (all plans, including Free) — go to your `User Settings` → `Access Tokens`, create token with scope `api`. Comments will appear under your username.
     - Copy the token (shown only once!)
 
 2. **CI/CD Variables**:
@@ -206,10 +206,13 @@ Additional options:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `LANGUAGE` | Response language (ISO 639) | `en` |
-| `LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `GEMINI_MODEL` | Gemini model | `gemini-2.0-flash` |
-| `LOG_LEVEL` | Logging level | `INFO` |
+| `AI_REVIEWER_LANGUAGE` | Response language (ISO 639) | `en` |
+| `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_LOG_LEVEL` | Logging level | `INFO` |
+
+!!! tip "Legacy names"
+    Old variable names without `AI_REVIEWER_` prefix still work as fallback.
 
 :point_right: [All options →](configuration.md)
 
@@ -249,16 +252,13 @@ Additional options:
 
 ## Cost
 
-AI Code Reviewer uses **Google Gemini 2.5 Flash** — in Free Tier mode. Limits (at release date) are 500 RPD. This is sufficient for serving PR/MRs for a team of 4-8 full-time developers, including both reviews and meaningful comments (without flood and off-topic).
-If using the paid tier (Pay-as-you-go), the cost of a typical review and unlimited conversations:
+AI Code Reviewer uses **Google Gemini 3 Flash** — in Free Tier mode. The free tier limits are sufficient for serving PR/MRs for a team of 4-8 full-time developers, including both reviews and meaningful comments (without flood and off-topic).
 
-| Metric | Cost |
-|--------|------|
-| Input tokens | $0.30 / 1M |
-| Output tokens | $2.5 / 1M |
-| **Typical review** | **~$0.003 - $0.01** |
+If using the paid tier (Pay-as-you-go), a typical review costs **~$0.003–$0.01**.
 
 :bulb: ~1000 reviews = ~$3 ... ~$10
+
+:point_right: [Current pricing →](https://ai.google.dev/gemini-api/docs/pricing)
 
 ---
 

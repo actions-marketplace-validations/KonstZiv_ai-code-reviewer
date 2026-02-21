@@ -49,27 +49,48 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
 
 === "GitLab"
 
-    Za GitLab trebate kreirati **Project Access Token** i dodati dvije varijable.
+    Za GitLab trebate kreirati **GitLab token** i dodati dvije varijable.
 
-    ### Korak 2a: Kreirajte Project Access Token
+    ### Korak 2a: Kreirajte GitLab token
 
-    !!! note "Potrebna Maintainer prava"
-        Za kreiranje Project Access Token-a potrebna je uloga **Maintainer** ili **Owner** u projektu.
+    === "Project Access Token (Premium/Ultimate)"
 
-        :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
+        !!! note "Potrebna Maintainer prava"
+            Za kreiranje Project Access Token-a potrebna je uloga **Maintainer** ili **Owner** u projektu.
 
-    **Putanja:** Project → `Settings` → `Access Tokens`
+            :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
 
-    | Polje | Vrijednost |
-    |------|----------|
-    | **Token name** | `ai-reviewer` |
-    | **Expiration date** | Izaberite datum (maks. 1 godina) |
-    | **Role** | `Developer` |
-    | **Scopes** | :white_check_mark: `api` |
+        **Putanja:** Project → `Settings` → `Access Tokens`
 
-    Kliknite **"Create project access token"** → **Kopirajte token** (prikazuje se samo jednom!)
+        | Polje | Vrijednost |
+        |------|----------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Izaberite datum (maks. 1 godina) |
+        | **Role** | `Developer` |
+        | **Scopes** | :white_check_mark: `api` |
 
-    :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+        Kliknite **"Create project access token"** → **Kopirajte token** (prikazuje se samo jednom!)
+
+        :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+
+    === "Personal Access Token (Svi planovi)"
+
+        Koristite ovu opciju ako Project Access Tokeni nisu dostupni na vašem planu (npr. GitLab Free).
+
+        **Putanja:** Korisnički avatar → `Edit profile` → `Access Tokens`
+
+        | Polje | Vrijednost |
+        |------|----------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Izaberite datum (maks. 1 godina) |
+        | **Scopes** | :white_check_mark: `api` |
+
+        Kliknite **"Create personal access token"** → **Kopirajte token** (prikazuje se samo jednom!)
+
+        !!! warning "Komentari će se pojavljivati pod vašim korisničkim imenom"
+            Za razliku od Project Access Tokena, Personal Access Token je vezan za vaš nalog. Svi komentari revizije biće objavljeni u vaše ime.
+
+        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
 
     ### Korak 2b: Dodajte varijable u CI/CD
 

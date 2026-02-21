@@ -49,27 +49,48 @@
 
 === "GitLab"
 
-    Для GitLab потрібно створити **Project Access Token** та додати дві змінні.
+    Для GitLab потрібно створити **GitLab токен** та додати дві змінні.
 
-    ### Крок 2a: Створіть Project Access Token
+    ### Крок 2a: Створіть GitLab токен
 
-    !!! note "Потрібні права Maintainer"
-        Для створення Project Access Token потрібна роль **Maintainer** або **Owner** у проєкті.
+    === "Project Access Token (Premium/Ultimate)"
 
-        :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
+        !!! note "Потрібні права Maintainer"
+            Для створення Project Access Token потрібна роль **Maintainer** або **Owner** у проєкті.
 
-    **Шлях:** Project → `Settings` → `Access Tokens`
+            :material-book-open-variant: [GitLab Docs: Roles and permissions](https://docs.gitlab.com/ee/user/permissions/)
 
-    | Поле | Значення |
-    |------|----------|
-    | **Token name** | `ai-reviewer` |
-    | **Expiration date** | Оберіть дату (макс. 1 рік) |
-    | **Role** | `Developer` |
-    | **Scopes** | :white_check_mark: `api` |
+        **Шлях:** Project → `Settings` → `Access Tokens`
 
-    Натисніть **"Create project access token"** → **Скопіюйте токен** (показується лише раз!)
+        | Поле | Значення |
+        |------|----------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Оберіть дату (макс. 1 рік) |
+        | **Role** | `Developer` |
+        | **Scopes** | :white_check_mark: `api` |
 
-    :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+        Натисніть **"Create project access token"** → **Скопіюйте токен** (показується лише раз!)
+
+        :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+
+    === "Personal Access Token (всі плани)"
+
+        Використовуйте цю опцію, якщо Project Access Token недоступний на вашому плані (напр., GitLab Free).
+
+        **Шлях:** Аватар користувача → `Edit profile` → `Access Tokens`
+
+        | Поле | Значення |
+        |------|----------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Оберіть дату (макс. 1 рік) |
+        | **Scopes** | :white_check_mark: `api` |
+
+        Натисніть **"Create personal access token"** → **Скопіюйте токен** (показується лише раз!)
+
+        !!! warning "Коментарі будуть від вашого імені"
+            На відміну від Project Access Token, Personal Access Token прив'язаний до вашого облікового запису. Всі коментарі ревʼю будуть опубліковані від вашого імені.
+
+        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
 
     ### Крок 2b: Додайте змінні в CI/CD
 

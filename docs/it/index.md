@@ -9,7 +9,7 @@
 AI Code Reviewer e uno strumento che analizza automaticamente le tue Pull Request (GitHub) e Merge Request (GitLab), trova problemi e suggerisce correzioni con un pulsante **"Apply Suggestion"**.
 In sostanza, ottieni il punto di vista imparziale di uno sviluppatore senior sul tuo codice insieme a suggerimenti per migliorarlo.
 
-E possibile l'integrazione con un'ampia gamma di provider LLM esistenti (di default **Google Gemini**, modello **gemini-2.5-flash** — al momento dell'attuale release, i limiti di utilizzo del tier gratuito per richieste al minuto e al giorno sono sufficienti per un flusso di lavoro normale di un team di 4-8 sviluppatori a tempo pieno).
+E possibile l'integrazione con un'ampia gamma di provider LLM esistenti (di default **Google Gemini**, modello **gemini-3-flash-preview** — al momento dell'attuale release, i limiti di utilizzo del tier gratuito per richieste al minuto e al giorno sono sufficienti per un flusso di lavoro normale di un team di 4-8 sviluppatori a tempo pieno).
 
 
 ---
@@ -148,10 +148,13 @@ Opzioni aggiuntive:
 
 | Variabile | Descrizione | Default |
 |-----------|-------------|---------|
-| `LANGUAGE` | Lingua delle risposte (ISO 639) | `en` |
-| `LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `GEMINI_MODEL` | Modello Gemini | `gemini-2.0-flash` |
-| `LOG_LEVEL` | Livello di logging | `INFO` |
+| `AI_REVIEWER_LANGUAGE` | Lingua delle risposte (ISO 639) | `en` |
+| `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
+| `AI_REVIEWER_GEMINI_MODEL` | Modello Gemini | `gemini-3-flash-preview` |
+| `AI_REVIEWER_LOG_LEVEL` | Livello di logging | `INFO` |
+
+!!! tip "Nomi legacy"
+    I vecchi nomi delle variabili senza il prefisso `AI_REVIEWER_` funzionano ancora come fallback.
 
 :point_right: [Tutte le opzioni →](configuration.md)
 
@@ -191,16 +194,13 @@ Opzioni aggiuntive:
 
 ## Costi
 
-AI Code Reviewer usa **Google Gemini 2.5 Flash** — in modalita Free Tier. I limiti (alla data di release) sono 500 RPD. Questo e sufficiente per servire PR/MR per un team di 4-8 sviluppatori a tempo pieno, incluse sia revisioni che commenti significativi (senza flood e off-topic).
-Se usi il tier a pagamento (Pay-as-you-go), il costo di una revisione tipica e conversazioni illimitate:
+AI Code Reviewer usa **Google Gemini 3 Flash** — in modalita Free Tier. I limiti del tier gratuito sono sufficienti per servire PR/MR per un team di 4-8 sviluppatori a tempo pieno, incluse sia revisioni che commenti significativi (senza flood e off-topic).
 
-| Metrica | Costo |
-|---------|-------|
-| Token in input | $0.30 / 1M |
-| Token in output | $2.5 / 1M |
-| **Revisione tipica** | **~$0.003 - $0.01** |
+Se usi il tier a pagamento (Pay-as-you-go), il costo di una revisione tipica e **~$0.003–$0.01**.
 
 :bulb: ~1000 revisioni = ~$3 ... ~$10
+
+:point_right: [Prezzi attuali →](https://ai.google.dev/gemini-api/docs/pricing)
 
 ---
 

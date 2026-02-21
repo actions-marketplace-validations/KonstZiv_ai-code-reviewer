@@ -9,7 +9,7 @@
 AI Code Reviewer je alat koji automatski analizira vaše Pull Request-e (GitHub) i Merge Request-e (GitLab), pronalazi probleme i predlaže ispravke sa dugmetom **"Apply Suggestion"**.
 U suštini, dobijate nepristrasan pogled senior programera na vaš kod zajedno sa prijedlozima za poboljšanje.
 
-Moguća je integracija sa širokim spektrom postojećih LLM provajdera (podrazumijevano **Google Gemini**, model **gemini-2.5-flash** — u trenutku ovog izdanja, besplatni nivo ograničenja zahtjeva po minuti i po danu je dovoljan za normalan radni tok tima od 4-8 programera sa punim radnim vremenom).
+Moguća je integracija sa širokim spektrom postojećih LLM provajdera (podrazumijevano **Google Gemini**, model **gemini-3-flash-preview** — u trenutku ovog izdanja, besplatni nivo ograničenja zahtjeva po minuti i po danu je dovoljan za normalan radni tok tima od 4-8 programera sa punim radnim vremenom).
 
 
 ---
@@ -32,7 +32,7 @@ Moguća je integracija sa širokim spektrom postojećih LLM provajdera (podrazum
 
 Važno: da biste pratili sljedeće korake, trebat će vam lični Google API ključ. Možete ga dobiti besplatno na [Google AI Studio](https://aistudio.google.com/api-keys) ili [Google Cloud Console](https://console.cloud.google.com/).
 
-*AI Code Reviewer se može konfigurisati da koristi različite LLM provajdere i modele, besplatne i plaćene. Sljedeći primjeri koriste model* **gemini-2.5-flash**. *Drugi dijelovi dokumentacije objašnjavaju kako povezati druge provajdere i koristiti druge modele. Zainteresovani smo za vaše mišljenje o razlikama između različitih modela — rado bismo čitali o vašem iskustvu u komentarima.*
+*AI Code Reviewer se može konfigurisati da koristi različite LLM provajdere i modele, besplatne i plaćene. Sljedeći primjeri koriste model* **gemini-3-flash-preview**. *Drugi dijelovi dokumentacije objašnjavaju kako povezati druge provajdere i koristiti druge modele. Zainteresovani smo za vaše mišljenje o razlikama između različitih modela — rado bismo čitali o vašem iskustvu u komentarima.*
 
 
 ### GitHub
@@ -67,11 +67,9 @@ jobs:
 
 U vašem repozitorijumu kreirajte:
 
-1. **Project Access Token** (za pisanje komentara):
-   - `Settings` → `Access Tokens` → `Add new token`
-   - Token name: `ai-reviewer`
-   - Role: `Developer`
-   - Scopes: `api`
+1. **GitLab Token** (za pisanje komentara):
+    - **Project Access Token** (Premium/Ultimate) — `Settings` → `Access Tokens` → `Add new token`: Token name `ai-reviewer`, Role `Developer`, Scopes `api`
+    - **Personal Access Token** (svi planovi, uključujući Free) — `User Settings` → `Access Tokens`, Scope `api`. Komentari će se pojavljivati pod vašim korisničkim imenom.
 
 2. **CI/CD varijable** u `Settings` → `CI/CD` → `Variables`:
    - `GOOGLE_API_KEY`: vaš Google API ključ (Masked)
@@ -204,10 +202,13 @@ Dodatne opcije:
 
 | Varijabla | Opis | Podrazumijevano |
 |----------|-------------|---------|
-| `LANGUAGE` | Jezik odgovora (ISO 639) | `en` |
-| `LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `GEMINI_MODEL` | Gemini model | `gemini-2.0-flash` |
-| `LOG_LEVEL` | Nivo logovanja | `INFO` |
+| `AI_REVIEWER_LANGUAGE` | Jezik odgovora (ISO 639) | `en` |
+| `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_LOG_LEVEL` | Nivo logovanja | `INFO` |
+
+!!! tip "Stari nazivi"
+    Stari nazivi varijabli bez `AI_REVIEWER_` prefiksa i dalje rade kao fallback.
 
 :point_right: [Sve opcije →](configuration.md)
 
@@ -247,16 +248,13 @@ Dodatne opcije:
 
 ## Cijena
 
-AI Code Reviewer koristi **Google Gemini 2.5 Flash** — u Free Tier režimu. Ograničenja (na datum izdanja) su 500 RPD. Ovo je dovoljno za opsluživanje PR/MR-ova za tim od 4-8 programera sa punim radnim vremenom, uključujući i revizije i smislene komentare (bez flood-a i off-topic-a).
-Ako koristite plaćeni nivo (Pay-as-you-go), cijena tipične revizije i neograničenih razgovora:
+AI Code Reviewer koristi **Google Gemini 3 Flash** — u Free Tier režimu. Ograničenja besplatnog nivoa su dovoljna za opsluživanje PR/MR-ova za tim od 4-8 programera sa punim radnim vremenom, uključujući i revizije i smislene komentare (bez flood-a i off-topic-a).
 
-| Metrika | Cijena |
-|--------|------|
-| Ulazni tokeni | $0.30 / 1M |
-| Izlazni tokeni | $2.5 / 1M |
-| **Tipična revizija** | **~$0.003 - $0.01** |
+Ako koristite plaćeni nivo (Pay-as-you-go), cijena tipične revizije je **~$0.003–$0.01**.
 
 :bulb: ~1000 revizija = ~$3 ... ~$10
+
+:point_right: [Aktuelne cijene →](https://ai.google.dev/gemini-api/docs/pricing)
 
 ---
 

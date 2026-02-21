@@ -9,7 +9,7 @@
 AI Code Reviewer ist ein Tool, das automatisch Ihre Pull Requests (GitHub) und Merge Requests (GitLab) analysiert, Probleme findet und Korrekturen mit einem **"Apply Suggestion"**-Button vorschlägt.
 Im Wesentlichen erhalten Sie die unvoreingenommene Perspektive eines Senior-Entwicklers auf Ihren Code zusammen mit Verbesserungsvorschlägen.
 
-Die Integration mit einer Vielzahl bestehender LLM-Anbieter ist möglich (standardmäßig **Google Gemini**, Modell **gemini-2.5-flash** — zum Zeitpunkt der aktuellen Version sind die kostenlosen Limits für Anfragen pro Minute und pro Tag ausreichend für einen normalen Workflow eines Teams von 4-8 Vollzeit-Entwicklern).
+Die Integration mit einer Vielzahl bestehender LLM-Anbieter ist möglich (standardmäßig **Google Gemini**, Modell **gemini-3-flash-preview** — zum Zeitpunkt der aktuellen Version sind die kostenlosen Limits für Anfragen pro Minute und pro Tag ausreichend für einen normalen Workflow eines Teams von 4-8 Vollzeit-Entwicklern).
 
 
 ---
@@ -32,7 +32,7 @@ Die Integration mit einer Vielzahl bestehender LLM-Anbieter ist möglich (standa
 
 Wichtig: Um die folgenden Schritte durchzuführen, benötigen Sie Ihren persönlichen Google API-Schlüssel. Sie können ihn kostenlos entweder bei [Google AI Studio](https://aistudio.google.com/api-keys) oder [Google Cloud Console](https://console.cloud.google.com/) erhalten.
 
-*AI Code Reviewer kann für die Verwendung verschiedener LLM-Anbieter und Modelle konfiguriert werden, sowohl kostenlos als auch kostenpflichtig. Die folgenden Beispiele verwenden das* **gemini-2.5-flash** *Modell. Andere Dokumentationsabschnitte erklären, wie Sie andere Anbieter verbinden und andere Modelle verwenden können. Wir sind an Ihrer Meinung zu den Unterschieden zwischen verschiedenen Modellen interessiert — wir würden gerne in den Kommentaren über Ihre Erfahrungen lesen.*
+*AI Code Reviewer kann für die Verwendung verschiedener LLM-Anbieter und Modelle konfiguriert werden, sowohl kostenlos als auch kostenpflichtig. Die folgenden Beispiele verwenden das* **gemini-3-flash-preview** *Modell. Andere Dokumentationsabschnitte erklären, wie Sie andere Anbieter verbinden und andere Modelle verwenden können. Wir sind an Ihrer Meinung zu den Unterschieden zwischen verschiedenen Modellen interessiert — wir würden gerne in den Kommentaren über Ihre Erfahrungen lesen.*
 
 
 ### GitHub
@@ -67,11 +67,10 @@ jobs:
 
 Erstellen Sie in Ihrem Repository:
 
-1. **Project Access Token erstellen:** `Settings` → `Access Tokens` → `Add new token`:
-    - **Token name**: `ai-reviewer`
-    - **Role**: `Developer`
-    - **Scopes**: `api` ✓
-    - Klicken Sie auf **Create project access token** und kopieren Sie den Token
+1. **GitLab Token erstellen** (für das Schreiben von Kommentaren):
+    - **Project Access Token** (Premium/Ultimate) — `Settings` → `Access Tokens` → `Add new token`: Token name `ai-reviewer`, Role `Developer`, Scopes `api` ✓
+    - **Personal Access Token** (alle Pläne, einschließlich Free) — `User Settings` → `Access Tokens`, Scope `api`. Kommentare erscheinen unter Ihrem Benutzernamen.
+    - Kopieren Sie den Token (wird nur einmal angezeigt!)
 
 2. **CI/CD-Variablen hinzufügen:** `Settings` → `CI/CD` → `Variables`:
     - `GOOGLE_API_KEY`: Ihr Google API-Schlüssel (Masked ✓)
@@ -205,10 +204,13 @@ Zusätzliche Optionen:
 
 | Variable | Beschreibung | Standard |
 |----------|--------------|----------|
-| `LANGUAGE` | Antwortsprache (ISO 639) | `en` |
-| `LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `GEMINI_MODEL` | Gemini-Modell | `gemini-2.0-flash` |
-| `LOG_LEVEL` | Logging-Level | `INFO` |
+| `AI_REVIEWER_LANGUAGE` | Antwortsprache (ISO 639) | `en` |
+| `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini-Modell | `gemini-3-flash-preview` |
+| `AI_REVIEWER_LOG_LEVEL` | Logging-Level | `INFO` |
+
+!!! tip "Legacy-Namen"
+    Alte Variablennamen ohne `AI_REVIEWER_`-Präfix funktionieren weiterhin als Fallback.
 
 :point_right: [Alle Optionen →](configuration.md)
 
@@ -248,16 +250,13 @@ Zusätzliche Optionen:
 
 ## Kosten
 
-AI Code Reviewer verwendet **Google Gemini 2.5 Flash** — im Free-Tier-Modus. Limits (zum Release-Datum) sind 500 RPD. Dies ist ausreichend für die Bearbeitung von PR/MRs für ein Team von 4-8 Vollzeit-Entwicklern, einschließlich Reviews und sinnvoller Kommentare (ohne Flood und Off-Topic).
-Bei Verwendung des kostenpflichtigen Tiers (Pay-as-you-go), die Kosten eines typischen Reviews und unbegrenzter Konversationen:
+AI Code Reviewer verwendet **Google Gemini 3 Flash** — im Free-Tier-Modus. Die Limits des kostenlosen Tiers sind ausreichend für die Bearbeitung von PR/MRs für ein Team von 4-8 Vollzeit-Entwicklern, einschließlich Reviews und sinnvoller Kommentare (ohne Flood und Off-Topic).
 
-| Metrik | Kosten |
-|--------|--------|
-| Input-Tokens | $0.30 / 1M |
-| Output-Tokens | $2.5 / 1M |
-| **Typisches Review** | **~$0.003 - $0.01** |
+Bei Verwendung des kostenpflichtigen Tiers (Pay-as-you-go) kostet ein typisches Review **~$0.003–$0.01**.
 
 :bulb: ~1000 Reviews = ~$3 ... ~$10
+
+:point_right: [Aktuelle Preise →](https://ai.google.dev/gemini-api/docs/pricing)
 
 ---
 

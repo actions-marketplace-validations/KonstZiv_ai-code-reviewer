@@ -131,7 +131,7 @@ on:
 | `github_token` | GitHub token | `${{ github.token }}` |
 | `language` | Jezik odgovora | `en` |
 | `language_mode` | `adaptive` / `fixed` | `adaptive` |
-| `gemini_model` | Gemini model | `gemini-2.0-flash` |
+| `gemini_model` | Gemini model | `gemini-3-flash-preview` |
 | `log_level` | Nivo logova | `INFO` |
 
 ---
