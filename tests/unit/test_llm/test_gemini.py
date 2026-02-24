@@ -169,6 +169,18 @@ class TestGeminiProviderGenerateStructured:
         with pytest.raises(ValueError, match="could not be parsed"):
             provider.generate("test", response_schema=_TestSchema)
 
+    def test_safety_blocked_response_raises(self, provider: GeminiProvider) -> None:
+        """Test that safety-blocked response gives a specific error message."""
+        mock_response = Mock()
+        # Simulate SDK behavior: accessing .text raises ValueError with 'safety'
+        type(mock_response).text = property(
+            fget=Mock(side_effect=ValueError("response was blocked due to safety settings"))
+        )
+        provider._client.models.generate_content.return_value = mock_response
+
+        with pytest.raises(ValueError, match="blocked by safety filters"):
+            provider.generate("test", response_schema=_TestSchema)
+
     def test_system_prompt_passed_to_config(self, provider: GeminiProvider) -> None:
         """Test that system_prompt is set in GenerateContentConfig."""
         mock_response = Mock()

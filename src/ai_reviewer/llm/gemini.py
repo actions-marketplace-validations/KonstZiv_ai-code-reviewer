@@ -289,9 +289,17 @@ class GeminiProvider(LLMProvider):
             Parsed model instance or raw text string.
 
         Raises:
-            ValueError: If response text is empty or cannot be parsed.
+            ValueError: If response was blocked by safety filters,
+                text is empty, or cannot be parsed.
         """
-        text = response.text
+        try:
+            text = response.text
+        except ValueError as e:
+            if "safety" in str(e).lower():
+                msg = f"Gemini response blocked by safety filters: {e}"
+                raise ValueError(msg) from e
+            raise
+
         if not text:
             raise ValueError(_PARSING_ERROR_MSG)
 
