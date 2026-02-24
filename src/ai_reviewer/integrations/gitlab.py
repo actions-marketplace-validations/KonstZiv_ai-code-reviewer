@@ -28,6 +28,7 @@ from ai_reviewer.core.models import (
     MergeRequest,
 )
 from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.integrations.repository import RepositoryMetadata, RepositoryProvider
 from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
@@ -157,7 +158,7 @@ def _parse_discussion_notes(
     return comments
 
 
-class GitLabClient(GitProvider):
+class GitLabClient(GitProvider, RepositoryProvider):
     """Client for interacting with GitLab API.
 
     Implements the GitProvider interface for GitLab-specific operations.
@@ -409,4 +410,113 @@ class GitLabClient(GitProvider):
 
         except GitlabError as e:
             logger.warning("Failed to submit review to MR !%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_gitlab_exception(e) from e
+
+    # ── RepositoryProvider implementation ──────────────────────────────
+
+    @with_retry
+    def get_languages(self, repo_name: str) -> dict[str, float]:
+        """Get repository languages as percentages.
+
+        GitLab returns percentages natively.
+
+        Args:
+            repo_name: Project path (e.g. ``owner/repo``).
+
+        Returns:
+            Mapping of language name to percentage (0-100).
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            langs: dict[str, float] = dict(project.languages())  # type: ignore[arg-type]
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+        else:
+            return langs
+
+    @with_retry
+    def get_metadata(self, repo_name: str) -> RepositoryMetadata:
+        """Get basic repository metadata from GitLab.
+
+        Args:
+            repo_name: Project path (e.g. ``owner/repo``).
+
+        Returns:
+            RepositoryMetadata populated from the GitLab API.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            return RepositoryMetadata(
+                name=project.path_with_namespace,
+                description=project.description,
+                default_branch=project.default_branch,
+                topics=tuple(project.topics or []),
+                license=None,  # GitLab: requires separate API call
+                visibility=project.visibility,
+                ci_config_path=getattr(project, "ci_config_path", None),
+            )
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    @with_retry
+    def get_file_tree(
+        self,
+        repo_name: str,
+        *,
+        ref: str | None = None,
+    ) -> tuple[str, ...]:
+        """Get file paths in the repository (blobs only).
+
+        Uses GitLab's Repository Tree API with ``recursive=True``.
+
+        Args:
+            repo_name: Project path (e.g. ``owner/repo``).
+            ref: Git ref. Defaults to the default branch.
+
+        Returns:
+            Tuple of file paths relative to the repository root.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            kwargs: dict[str, str] = {"ref": ref} if ref else {}
+            items = project.repository_tree(
+                recursive=True,
+                get_all=True,
+                per_page=100,
+                **kwargs,
+            )
+            return tuple(item["path"] for item in items if item["type"] == "blob")
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    @with_retry
+    def get_file_content(
+        self,
+        repo_name: str,
+        path: str,
+        *,
+        ref: str | None = None,
+    ) -> str | None:
+        """Get file content as text.
+
+        Args:
+            repo_name: Project path (e.g. ``owner/repo``).
+            path: File path relative to the repository root.
+            ref: Git ref. Defaults to the default branch.
+
+        Returns:
+            File content string, or ``None`` for binary files
+            or if the file does not exist.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            file_ref = ref or project.default_branch
+            f = project.files.get(path, ref=file_ref)
+            try:
+                return f.decode().decode("utf-8")
+            except UnicodeDecodeError:
+                return None  # binary file
+        except GitlabError as e:
+            if getattr(e, "response_code", None) == HTTP_NOT_FOUND:
+                return None
             raise _convert_gitlab_exception(e) from e

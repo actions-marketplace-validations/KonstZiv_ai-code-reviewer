@@ -24,6 +24,7 @@ from ai_reviewer.core.models import (
     MergeRequest,
 )
 from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.integrations.repository import RepositoryMetadata, RepositoryProvider
 from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
@@ -77,7 +78,7 @@ def _convert_github_exception(e: GithubException) -> Exception:
     return e
 
 
-class GitHubClient(GitProvider):
+class GitHubClient(GitProvider, RepositoryProvider):
     """Client for interacting with GitHub API.
 
     Implements the GitProvider interface for GitHub-specific operations.
@@ -364,6 +365,126 @@ class GitHubClient(GitProvider):
             raise RateLimitError(msg) from e
         except GithubException as e:
             logger.warning("Failed to submit review to PR #%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_github_exception(e) from e
+
+    # ── RepositoryProvider implementation ──────────────────────────────
+
+    @with_retry
+    def get_languages(self, repo_name: str) -> dict[str, float]:
+        """Get repository languages as percentages.
+
+        GitHub returns bytes per language; this method converts to percentages.
+
+        Args:
+            repo_name: Repository name in ``owner/repo`` format.
+
+        Returns:
+            Mapping of language name to percentage (0-100).
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            langs = repo.get_languages()  # {name: bytes}
+            total = sum(langs.values())
+            if total == 0:
+                return {}
+            return {name: round(bytes_ / total * 100, 1) for name, bytes_ in langs.items()}
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def get_metadata(self, repo_name: str) -> RepositoryMetadata:
+        """Get basic repository metadata from GitHub.
+
+        Args:
+            repo_name: Repository name in ``owner/repo`` format.
+
+        Returns:
+            RepositoryMetadata populated from the GitHub API.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            return RepositoryMetadata(
+                name=repo.full_name,
+                description=repo.description,
+                default_branch=repo.default_branch,
+                topics=tuple(repo.get_topics()),
+                license=repo.license.spdx_id if repo.license else None,
+                visibility="public" if not repo.private else "private",
+            )
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def get_file_tree(
+        self,
+        repo_name: str,
+        *,
+        ref: str | None = None,
+    ) -> tuple[str, ...]:
+        """Get file paths in the repository (blobs only).
+
+        Uses GitHub's Git Trees API with ``recursive=True``.
+        Limited to ~10 000 entries by the API.
+
+        Args:
+            repo_name: Repository name in ``owner/repo`` format.
+            ref: Git ref. Defaults to the default branch.
+
+        Returns:
+            Tuple of file paths relative to the repository root.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            branch = ref or repo.default_branch
+            tree = repo.get_git_tree(branch, recursive=True)
+            return tuple(item.path for item in tree.tree if item.type == "blob")
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def get_file_content(
+        self,
+        repo_name: str,
+        path: str,
+        *,
+        ref: str | None = None,
+    ) -> str | None:
+        """Get file content as text.
+
+        Args:
+            repo_name: Repository name in ``owner/repo`` format.
+            path: File path relative to the repository root.
+            ref: Git ref. Defaults to the default branch.
+
+        Returns:
+            File content string, or ``None`` for binary files,
+            directories, or if the file does not exist.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            kwargs: dict[str, str] = {"ref": ref} if ref else {}
+            content_file = repo.get_contents(path, **kwargs)
+            if isinstance(content_file, list):
+                return None  # directory
+            try:
+                return content_file.decoded_content.decode("utf-8")
+            except UnicodeDecodeError:
+                return None  # binary file
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            if getattr(e, "status", None) == HTTP_NOT_FOUND:
+                return None
             raise _convert_github_exception(e) from e
 
     # Backward compatibility alias
