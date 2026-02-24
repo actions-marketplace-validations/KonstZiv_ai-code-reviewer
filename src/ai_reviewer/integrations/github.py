@@ -24,6 +24,14 @@ from ai_reviewer.core.models import (
     MergeRequest,
 )
 from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.integrations.conversation import (
+    BOT_QUESTION_MARKER,
+    BotThread,
+    ConversationProvider,
+    ThreadStatus,
+    format_questions_markdown,
+    parse_questions_from_markdown,
+)
 from ai_reviewer.integrations.repository import RepositoryMetadata, RepositoryProvider
 from ai_reviewer.utils.retry import (
     AuthenticationError,
@@ -35,7 +43,10 @@ from ai_reviewer.utils.retry import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from ai_reviewer.integrations.base import ReviewSubmission
+    from ai_reviewer.integrations.conversation import BotQuestion
 
 
 logger = logging.getLogger(__name__)
@@ -78,10 +89,11 @@ def _convert_github_exception(e: GithubException) -> Exception:
     return e
 
 
-class GitHubClient(GitProvider, RepositoryProvider):
+class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
     """Client for interacting with GitHub API.
 
-    Implements the GitProvider interface for GitHub-specific operations.
+    Implements GitProvider, RepositoryProvider, and ConversationProvider
+    interfaces for GitHub-specific operations.
 
     Attributes:
         github: The PyGithub instance.
@@ -491,6 +503,253 @@ class GitHubClient(GitProvider, RepositoryProvider):
             if getattr(e, "status", None) == HTTP_NOT_FOUND:
                 return None
             raise _convert_github_exception(e) from e
+
+    # ── ConversationProvider implementation ──────────────────────────
+
+    # Issue-level regex for closing keywords
+    _CLOSING_PATTERN = re.compile(
+        r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)",
+        re.IGNORECASE,
+    )
+
+    @with_retry
+    def post_question_comment(
+        self,
+        repo_name: str,
+        mr_id: int,
+        questions: Sequence[BotQuestion],
+        *,
+        intro: str = "",
+    ) -> str:
+        """Post a comment with structured bot questions.
+
+        Creates an issue comment with the bot question marker so it can
+        be found later by :meth:`get_bot_threads`.
+
+        Note:
+            GitHub issue comments have no native threading. Responses
+            are identified by temporal ordering (comments posted after
+            the question comment by non-bot users).
+
+        Args:
+            repo_name: Repository name in 'owner/repo' format.
+            mr_id: Pull request number.
+            questions: Questions to post.
+            intro: Optional introductory text.
+
+        Returns:
+            The issue comment ID as a string.
+        """
+        try:
+            body = format_questions_markdown(questions, intro)
+            repo = self.github.get_repo(repo_name)
+            pr = repo.get_pull(mr_id)
+            comment = pr.create_issue_comment(body)
+            logger.info("Posted question comment to PR #%s in %s", mr_id, repo_name)
+            return str(comment.id)
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def reply_in_thread(
+        self,
+        repo_name: str,
+        mr_id: int,
+        thread_id: str,
+        body: str,
+    ) -> str:
+        """Reply in an existing conversation thread.
+
+        Note:
+            GitHub issue comments do not support native threading.
+            This creates a new issue comment on the PR. For review
+            comment threads, use the review API instead.
+
+        Args:
+            repo_name: Repository name in 'owner/repo' format.
+            mr_id: Pull request number.
+            thread_id: Comment ID to reply to (used for context only).
+            body: Reply text (markdown supported).
+
+        Returns:
+            The new comment ID as a string.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            pr = repo.get_pull(mr_id)
+            comment = pr.create_issue_comment(body)
+            logger.info("Posted reply to PR #%s in %s (thread %s)", mr_id, repo_name, thread_id)
+            return str(comment.id)
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def get_bot_threads(
+        self,
+        repo_name: str,
+        mr_id: int,
+    ) -> tuple[BotThread, ...]:
+        """Find all bot-initiated question threads on the PR.
+
+        Scans issue comments in a single pass: identifies bot question
+        comments (by marker), then collects subsequent non-bot comments
+        as responses.
+
+        Args:
+            repo_name: Repository name in 'owner/repo' format.
+            mr_id: Pull request number.
+
+        Returns:
+            Tuple of BotThread objects with questions and responses.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            pr = repo.get_pull(mr_id)
+
+            # Single pass: collect all comments, then group
+            all_comments = list(pr.get_issue_comments())
+
+            threads: list[BotThread] = []
+            for idx, issue_comment in enumerate(all_comments):
+                if BOT_QUESTION_MARKER not in (issue_comment.body or ""):
+                    continue
+
+                questions = parse_questions_from_markdown(issue_comment.body)
+                if not questions:
+                    continue
+
+                bot_login = issue_comment.user.login
+                bot_time = issue_comment.created_at
+
+                # Responses: comments after bot's, not from bot
+                responses: list[Comment] = []
+                for later_comment in all_comments[idx + 1 :]:
+                    if later_comment.user.login == bot_login:
+                        continue
+                    if later_comment.created_at <= bot_time:
+                        continue
+                    responses.append(
+                        Comment(
+                            author=later_comment.user.login,
+                            author_type=(
+                                CommentAuthorType.BOT
+                                if later_comment.user.type == "Bot"
+                                else CommentAuthorType.USER
+                            ),
+                            body=later_comment.body,
+                            type=CommentType.ISSUE,
+                            created_at=later_comment.created_at,
+                            comment_id=str(later_comment.id),
+                        )
+                    )
+
+                comment_id = str(issue_comment.id)
+                status = ThreadStatus.ANSWERED if responses else ThreadStatus.PENDING
+                threads.append(
+                    BotThread(
+                        thread_id=comment_id,
+                        platform_thread_id=comment_id,
+                        mr_id=mr_id,
+                        questions=tuple(questions),
+                        responses=tuple(responses),
+                        status=status,
+                    )
+                )
+
+            return tuple(threads)
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    def get_linked_tasks_deep(
+        self,
+        repo_name: str,
+        mr_id: int,
+    ) -> tuple[LinkedTask, ...]:
+        """Deep search for linked tasks via regex and timeline events.
+
+        Combines two strategies:
+        1. Regex matching of closing keywords in the PR description.
+        2. GitHub timeline events (cross-referenced, connected).
+
+        Note:
+            This method does NOT use ``@with_retry`` as linked tasks are
+            optional. Failure should not block the review.
+
+        Args:
+            repo_name: Repository name in 'owner/repo' format.
+            mr_id: Pull request number.
+
+        Returns:
+            Tuple of LinkedTask objects (deduplicated by issue number).
+        """
+        tasks: list[LinkedTask] = []
+        seen_ids: set[int] = set()
+
+        try:
+            repo = self.github.get_repo(repo_name)
+            pr = repo.get_pull(mr_id)
+
+            # 1. Regex in description
+            if pr.body:
+                for match in self._CLOSING_PATTERN.finditer(pr.body):
+                    issue_number = int(match.group(1))
+                    if issue_number in seen_ids:
+                        continue
+                    seen_ids.add(issue_number)
+                    try:
+                        issue = repo.get_issue(issue_number)
+                        tasks.append(
+                            LinkedTask(
+                                identifier=str(issue.number),
+                                title=issue.title,
+                                description=issue.body or "",
+                                url=issue.html_url,
+                            )
+                        )
+                    except (GithubException, RateLimitExceededException):
+                        logger.warning("Failed to fetch issue #%s", issue_number)
+
+            # 2. Timeline events
+            try:
+                for event in pr.as_issue().get_timeline():
+                    if getattr(event, "event", None) not in (
+                        "cross-referenced",
+                        "connected",
+                    ):
+                        continue
+                    source = getattr(event, "source", None)
+                    if not source:
+                        continue
+                    issue_data = source.get("issue") if isinstance(source, dict) else None
+                    if not issue_data:
+                        continue
+                    issue_number = issue_data.get("number")
+                    if issue_number and issue_number not in seen_ids:
+                        seen_ids.add(issue_number)
+                        tasks.append(
+                            LinkedTask(
+                                identifier=str(issue_number),
+                                title=issue_data.get("title", ""),
+                                description=issue_data.get("body") or "",
+                                url=issue_data.get("html_url", ""),
+                            )
+                        )
+            except (GithubException, RateLimitExceededException):
+                logger.debug("Timeline API unavailable for PR #%s", mr_id)
+
+        except (GithubException, RateLimitExceededException) as e:
+            logger.warning("Failed deep task search for PR #%s: %s", mr_id, e)
+
+        return tuple(tasks)
 
     # Backward compatibility alias
     def post_review_comment(self, repo_name: str, pr_number: int, comment: str) -> None:
