@@ -18,7 +18,7 @@ from typing import overload
 from google import genai
 from google.api_core import exceptions as google_exceptions
 from google.genai import types
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ai_reviewer.llm.base import LLMProvider, LLMResponse
 from ai_reviewer.utils.retry import (
@@ -257,6 +257,9 @@ class GeminiProvider(LLMProvider):
                 estimated_cost_usd=estimated_cost,
             )
 
+        except ValidationError:
+            logger.exception("Failed to validate Gemini response structure")
+            raise
         except (
             google_exceptions.GoogleAPIError,
             google_exceptions.RetryError,

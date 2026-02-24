@@ -363,6 +363,20 @@ class TestGeminiProviderErrors:
         with pytest.raises(ValueError, match="Bad input"):
             provider.generate("test", response_schema=_TestSchema)
 
+    def test_validation_error_logged_specifically(
+        self, provider: GeminiProvider, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test that ValidationError gets a specific log message, not generic."""
+        mock_response = Mock()
+        mock_response.text = '{"invalid_field": "oops"}'
+        mock_response.usage_metadata = None
+        provider._client.models.generate_content.return_value = mock_response
+
+        with pytest.raises(Exception):  # noqa: B017, PT011
+            provider.generate("test", response_schema=_TestSchema)
+
+        assert "Failed to validate Gemini response structure" in caplog.text
+
 
 # ---------------------------------------------------------------------------
 # calculate_cost
