@@ -478,8 +478,8 @@ class GitHubClient(GitProvider, RepositoryProvider):
             repo = self.github.get_repo(repo_name)
             kwargs: dict[str, str] = {"ref": ref} if ref else {}
             content_file = repo.get_contents(path, **kwargs)
-            if isinstance(content_file, list):
-                return None  # directory
+            if isinstance(content_file, list) or content_file.type != "file":
+                return None  # directory, submodule, or symlink
             try:
                 return content_file.decoded_content.decode("utf-8")
             except UnicodeDecodeError:

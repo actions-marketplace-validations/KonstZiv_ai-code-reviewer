@@ -328,6 +328,7 @@ class TestGitHubRepositoryProvider:
         client.github.get_repo.return_value = mock_repo
 
         mock_content = Mock()
+        mock_content.type = "file"
         mock_content.decoded_content = b"print('hello')"
         mock_repo.get_contents.return_value = mock_content
 
@@ -341,6 +342,7 @@ class TestGitHubRepositoryProvider:
         client.github.get_repo.return_value = mock_repo
 
         mock_content = Mock()
+        mock_content.type = "file"
         mock_content.decoded_content = b"v2"
         mock_repo.get_contents.return_value = mock_content
 
@@ -355,6 +357,7 @@ class TestGitHubRepositoryProvider:
         client.github.get_repo.return_value = mock_repo
 
         mock_content = Mock()
+        mock_content.type = "file"
         # Use a Mock with decode that raises, since real bytes.decode is read-only
         mock_decoded = Mock()
         mock_decoded.decode.side_effect = UnicodeDecodeError("utf-8", b"", 0, 1, "invalid")
@@ -383,6 +386,32 @@ class TestGitHubRepositoryProvider:
         mock_repo.get_contents.return_value = [Mock(), Mock()]
 
         result = client.get_file_content("owner/repo", "src/")
+
+        assert result is None
+
+    def test_get_file_content_submodule_returns_none(self, client: GitHubClient) -> None:
+        """Test that a submodule returns None."""
+        mock_repo = Mock()
+        client.github.get_repo.return_value = mock_repo
+
+        mock_content = Mock()
+        mock_content.type = "submodule"
+        mock_repo.get_contents.return_value = mock_content
+
+        result = client.get_file_content("owner/repo", "vendor/lib")
+
+        assert result is None
+
+    def test_get_file_content_symlink_returns_none(self, client: GitHubClient) -> None:
+        """Test that a symlink returns None."""
+        mock_repo = Mock()
+        client.github.get_repo.return_value = mock_repo
+
+        mock_content = Mock()
+        mock_content.type = "symlink"
+        mock_repo.get_contents.return_value = mock_content
+
+        result = client.get_file_content("owner/repo", "link.py")
 
         assert result is None
 
