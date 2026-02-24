@@ -83,6 +83,16 @@ class TestRepositoryMetadata:
         restored = RepositoryMetadata(**data)
         assert restored == meta
 
+    def test_invalid_visibility_rejected(self) -> None:
+        """Test that invalid visibility value is rejected by Literal."""
+        with pytest.raises(ValidationError):
+            RepositoryMetadata(name="owner/repo", visibility="archived")  # type: ignore[arg-type]
+
+    def test_internal_visibility_accepted(self) -> None:
+        """Test that 'internal' visibility is valid (GitLab-specific)."""
+        meta = RepositoryMetadata(name="owner/repo", visibility="internal")
+        assert meta.visibility == "internal"
+
 
 # ── RepositoryProvider ABC tests ───────────────────────────────────
 

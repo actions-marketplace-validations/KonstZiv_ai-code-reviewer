@@ -11,6 +11,7 @@ conventions, languages) before generating a review.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -35,7 +36,9 @@ class RepositoryMetadata(BaseModel):
     default_branch: str = Field(default="main", description="Default branch name")
     topics: tuple[str, ...] = Field(default=(), description="Repository topics")
     license: str | None = Field(default=None, description="SPDX license identifier")
-    visibility: str = Field(default="private", description="Repository visibility")
+    visibility: Literal["public", "private", "internal"] = Field(
+        default="private", description="Repository visibility"
+    )
     ci_config_path: str | None = Field(default=None, description="Custom CI config path (GitLab)")
 
 
