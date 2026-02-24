@@ -108,7 +108,7 @@ class BotThread(BaseModel):
 # ── Markdown format for bot questions ──────────────────────────────
 
 BOT_QUESTION_MARKER = "<!-- ai-reviewbot-questions -->"
-QUESTION_PATTERN_RE = r"\*\*Q(\d+):\*\*\s+(.+?)\n>\s+\*Default:\s*(.+?)\*"
+QUESTION_PATTERN_RE = r"\*\*Q(\d+):\*\*\s*(.+?)\s*\n>\s*\*Default:\s*(.+?)\*"
 
 
 def format_questions_markdown(

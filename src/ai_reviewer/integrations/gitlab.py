@@ -121,12 +121,9 @@ def _parse_discussion_notes(
 
         author_data: dict[str, object] = note_data.get("author", {})  # type: ignore[assignment]
 
-        # Determine if it's a bot
+        # Determine if it's a bot (use GitLab API "bot" field)
         author_type = CommentAuthorType.USER
-        is_bot = author_data.get("bot", False) or (
-            "bot" in str(author_data.get("username", "")).lower()
-        )
-        if is_bot:
+        if author_data.get("bot", False):
             author_type = CommentAuthorType.BOT
 
         # Determine comment type from position
@@ -647,9 +644,7 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
                         continue
 
                     author_data: dict[str, object] = note_data.get("author", {})
-                    is_bot = author_data.get("bot", False) or (
-                        "bot" in str(author_data.get("username", "")).lower()
-                    )
+                    is_bot = bool(author_data.get("bot", False))
 
                     responses.append(
                         Comment(
