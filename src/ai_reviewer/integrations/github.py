@@ -443,6 +443,11 @@ class GitHubClient(GitProvider, RepositoryProvider):
             repo = self.github.get_repo(repo_name)
             branch = ref or repo.default_branch
             tree = repo.get_git_tree(branch, recursive=True)
+            if getattr(tree, "truncated", False):
+                logger.warning(
+                    "Git tree for %s is truncated (exceeds 10,000 entries)",
+                    repo_name,
+                )
             return tuple(item.path for item in tree.tree if item.type == "blob")
         except RateLimitExceededException as e:
             msg = f"GitHub: {e}"

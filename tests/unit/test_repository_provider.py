@@ -285,6 +285,24 @@ class TestGitHubRepositoryProvider:
 
         assert result == ()
 
+    def test_get_file_tree_truncated_logs_warning(
+        self, client: GitHubClient, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test that truncated tree logs a warning."""
+        mock_repo = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.default_branch = "main"
+
+        mock_tree = Mock()
+        mock_tree.truncated = True
+        mock_tree.tree = [Mock(path="file.py", type="blob")]
+        mock_repo.get_git_tree.return_value = mock_tree
+
+        result = client.get_file_tree("owner/repo")
+
+        assert result == ("file.py",)
+        assert "truncated" in caplog.text
+
     def test_get_file_tree_github_error(self, client: GitHubClient) -> None:
         """Test GithubException is converted."""
         client.github.get_repo.side_effect = GithubException(404, {"message": "Not Found"}, {})
