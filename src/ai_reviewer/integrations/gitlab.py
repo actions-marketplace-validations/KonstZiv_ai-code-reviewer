@@ -28,6 +28,14 @@ from ai_reviewer.core.models import (
     MergeRequest,
 )
 from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.integrations.conversation import (
+    BOT_QUESTION_MARKER,
+    BotThread,
+    ConversationProvider,
+    ThreadStatus,
+    format_questions_markdown,
+    parse_questions_from_markdown,
+)
 from ai_reviewer.integrations.repository import RepositoryMetadata, RepositoryProvider
 from ai_reviewer.utils.retry import (
     AuthenticationError,
@@ -39,7 +47,10 @@ from ai_reviewer.utils.retry import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from ai_reviewer.integrations.base import ReviewSubmission
+    from ai_reviewer.integrations.conversation import BotQuestion
 
 
 logger = logging.getLogger(__name__)
@@ -110,12 +121,9 @@ def _parse_discussion_notes(
 
         author_data: dict[str, object] = note_data.get("author", {})  # type: ignore[assignment]
 
-        # Determine if it's a bot
+        # Determine if it's a bot (use GitLab API "bot" field)
         author_type = CommentAuthorType.USER
-        is_bot = author_data.get("bot", False) or (
-            "bot" in str(author_data.get("username", "")).lower()
-        )
-        if is_bot:
+        if author_data.get("bot", False):
             author_type = CommentAuthorType.BOT
 
         # Determine comment type from position
@@ -158,10 +166,11 @@ def _parse_discussion_notes(
     return comments
 
 
-class GitLabClient(GitProvider, RepositoryProvider):
+class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
     """Client for interacting with GitLab API.
 
-    Implements the GitProvider interface for GitLab-specific operations.
+    Implements GitProvider, RepositoryProvider, and ConversationProvider
+    interfaces for GitLab-specific operations.
 
     Attributes:
         gitlab: The python-gitlab instance.
@@ -520,3 +529,230 @@ class GitLabClient(GitProvider, RepositoryProvider):
             if getattr(e, "response_code", None) == HTTP_NOT_FOUND:
                 return None
             raise _convert_gitlab_exception(e) from e
+
+    # ── ConversationProvider implementation ──────────────────────────
+
+    @with_retry
+    def post_question_comment(
+        self,
+        repo_name: str,
+        mr_id: int,
+        questions: Sequence[BotQuestion],
+        *,
+        intro: str = "",
+    ) -> str:
+        """Post a discussion with structured bot questions.
+
+        Creates a new discussion (not a plain note) so that GitLab's
+        native threading is used for responses.
+
+        Args:
+            repo_name: Project path (e.g., 'owner/repo').
+            mr_id: Merge request IID.
+            questions: Questions to post.
+            intro: Optional introductory text.
+
+        Returns:
+            The discussion ID as a string.
+        """
+        try:
+            body = format_questions_markdown(questions, intro)
+            project = self.gitlab.projects.get(repo_name)
+            mr = project.mergerequests.get(mr_id)
+            discussion = mr.discussions.create({"body": body})
+            logger.info("Posted question discussion to MR !%s in %s", mr_id, repo_name)
+            return str(discussion.id)
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    @with_retry
+    def reply_in_thread(
+        self,
+        repo_name: str,
+        mr_id: int,
+        thread_id: str,
+        body: str,
+    ) -> str:
+        """Reply in an existing GitLab discussion thread.
+
+        Args:
+            repo_name: Project path (e.g., 'owner/repo').
+            mr_id: Merge request IID.
+            thread_id: Discussion ID to reply in.
+            body: Reply text (markdown supported).
+
+        Returns:
+            The new note ID as a string.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            mr = project.mergerequests.get(mr_id)
+            discussion = mr.discussions.get(thread_id)
+            note = discussion.notes.create({"body": body})
+            logger.info(
+                "Posted reply to discussion %s on MR !%s in %s",
+                thread_id,
+                mr_id,
+                repo_name,
+            )
+            return str(note["id"])  # type: ignore[index]
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    @with_retry
+    def get_bot_threads(
+        self,
+        repo_name: str,
+        mr_id: int,
+    ) -> tuple[BotThread, ...]:
+        """Find all bot-initiated question threads on the MR.
+
+        Scans discussions for the bot question marker in the first note,
+        then collects subsequent non-system notes as responses. Uses
+        GitLab's native ``resolved`` status for thread resolution.
+
+        Args:
+            repo_name: Project path (e.g., 'owner/repo').
+            mr_id: Merge request IID.
+
+        Returns:
+            Tuple of BotThread objects with questions and responses.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            mr = project.mergerequests.get(mr_id)
+            threads: list[BotThread] = []
+
+            for discussion in mr.discussions.list(iterator=True):
+                notes = discussion.attributes.get("notes", [])
+                if not notes:
+                    continue
+
+                first_note = notes[0]
+                body = str(first_note.get("body", ""))
+                if BOT_QUESTION_MARKER not in body:
+                    continue
+
+                questions = parse_questions_from_markdown(body)
+                if not questions:
+                    continue
+
+                # Collect non-system responses from subsequent notes
+                responses: list[Comment] = []
+                for note_data in notes[1:]:
+                    if note_data.get("system", False):
+                        continue
+
+                    author_data: dict[str, object] = note_data.get("author", {})
+                    is_bot = bool(author_data.get("bot", False))
+
+                    responses.append(
+                        Comment(
+                            author=str(author_data.get("username", "unknown")),
+                            author_type=(
+                                CommentAuthorType.BOT if is_bot else CommentAuthorType.USER
+                            ),
+                            body=str(note_data.get("body", "")),
+                            type=CommentType.ISSUE,
+                            created_at=note_data.get("created_at"),
+                            comment_id=str(note_data.get("id", "")),
+                            thread_id=str(discussion.id),
+                        )
+                    )
+
+                # Determine status
+                is_resolved = discussion.attributes.get("resolved", False)
+                if is_resolved:
+                    status = ThreadStatus.RESOLVED
+                elif responses:
+                    status = ThreadStatus.ANSWERED
+                else:
+                    status = ThreadStatus.PENDING
+
+                discussion_id = str(discussion.id)
+                threads.append(
+                    BotThread(
+                        thread_id=discussion_id,
+                        platform_thread_id=discussion_id,
+                        mr_id=mr_id,
+                        questions=tuple(questions),
+                        responses=tuple(responses),
+                        status=status,
+                    )
+                )
+
+            return tuple(threads)
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    def get_linked_tasks_deep(
+        self,
+        repo_name: str,
+        mr_id: int,
+    ) -> tuple[LinkedTask, ...]:
+        """Deep search for linked tasks via closes_issues API and regex.
+
+        Combines two strategies:
+        1. GitLab's ``closes_issues()`` API endpoint.
+        2. Regex fallback for closing keywords in the MR description.
+
+        Note:
+            This method does NOT use ``@with_retry`` as linked tasks are
+            optional. Failure should not block the review.
+
+        Args:
+            repo_name: Project path (e.g., 'owner/repo').
+            mr_id: Merge request IID.
+
+        Returns:
+            Tuple of LinkedTask objects (deduplicated by issue IID).
+        """
+        tasks: list[LinkedTask] = []
+        seen_ids: set[int] = set()
+
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            mr = project.mergerequests.get(mr_id)
+
+            # 1. GitLab closes_issues API
+            try:
+                for issue in mr.closes_issues():
+                    iid = issue.iid
+                    if iid not in seen_ids:
+                        seen_ids.add(iid)
+                        tasks.append(
+                            LinkedTask(
+                                identifier=str(iid),
+                                title=issue.title,
+                                description=issue.description or "",
+                                url=issue.web_url,
+                            )
+                        )
+            except GitlabError:
+                logger.debug("closes_issues() unavailable for MR !%s", mr_id)
+
+            # 2. Regex fallback in description
+            description = mr.description or ""
+            pattern = r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)"
+            for match in re.finditer(pattern, description, re.IGNORECASE):
+                issue_number = int(match.group(1))
+                if issue_number in seen_ids:
+                    continue
+                seen_ids.add(issue_number)
+                try:
+                    issue = project.issues.get(issue_number)
+                    tasks.append(
+                        LinkedTask(
+                            identifier=str(issue.iid),
+                            title=issue.title,
+                            description=issue.description or "",
+                            url=issue.web_url,
+                        )
+                    )
+                except GitlabError:
+                    logger.warning("Failed to fetch issue #%s", issue_number)
+
+        except GitlabError as e:
+            logger.warning("Failed deep task search for MR !%s: %s", mr_id, e)
+
+        return tuple(tasks)
