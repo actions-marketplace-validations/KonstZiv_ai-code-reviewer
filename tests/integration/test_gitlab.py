@@ -106,23 +106,19 @@ class TestGitLabClient:
         )
         mock_mr.discussions.list.return_value = [discussion]
 
-        # Mock Diffs
-        mock_diff = Mock()
-        mock_diff.id = 1
-        mock_mr.diffs.list.return_value = [mock_diff]
-
-        mock_diff_detail = Mock()
-        mock_diff_detail.diffs = [
-            {
-                "new_file": False,
-                "deleted_file": False,
-                "renamed_file": False,
-                "new_path": "test.py",
-                "old_path": "test.py",
-                "diff": "@@ -1,1 +1,2 @@\n-old\n+new\n+added",
-            }
-        ]
-        mock_mr.diffs.get.return_value = mock_diff_detail
+        # Mock changes (single API call instead of N+1 diffs)
+        mock_mr.changes.return_value = {
+            "changes": [
+                {
+                    "new_file": False,
+                    "deleted_file": False,
+                    "renamed_file": False,
+                    "new_path": "test.py",
+                    "old_path": "test.py",
+                    "diff": "@@ -1,1 +1,2 @@\n-old\n+new\n+added",
+                }
+            ]
+        }
 
         # Execute
         mr = client.get_merge_request("owner/repo", 1)
@@ -157,7 +153,7 @@ class TestGitLabClient:
         mock_mr.web_url = "url"
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
-        mock_mr.diffs.list.return_value = []
+        mock_mr.changes.return_value = {"changes": []}
 
         # Mock discussion with bot note
         discussion = _make_discussion(
@@ -200,7 +196,7 @@ class TestGitLabClient:
         mock_mr.web_url = "url"
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
-        mock_mr.diffs.list.return_value = []
+        mock_mr.changes.return_value = {"changes": []}
 
         # Mock discussion with system note
         discussion = _make_discussion(
@@ -239,7 +235,7 @@ class TestGitLabClient:
         mock_mr.web_url = "url"
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
-        mock_mr.diffs.list.return_value = []
+        mock_mr.changes.return_value = {"changes": []}
 
         # Discussion with note that has no position key
         discussion = _make_discussion(
@@ -278,7 +274,7 @@ class TestGitLabClient:
         mock_mr.web_url = "url"
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
-        mock_mr.diffs.list.return_value = []
+        mock_mr.changes.return_value = {"changes": []}
 
         # Discussion with 2 notes (root + reply)
         discussion = _make_discussion(

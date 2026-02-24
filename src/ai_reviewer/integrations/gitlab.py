@@ -218,38 +218,37 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
             notes = discussion.attributes.get("notes", [])
             comments.extend(_parse_discussion_notes(notes, discussion_id))
 
-        # Fetch file changes
+        # Fetch file changes (single API call instead of N+1)
         changes: list[FileChange] = []
-        for diff in mr.diffs.list(iterator=True):
-            diff_detail = mr.diffs.get(diff.id)
-            for file_diff in diff_detail.diffs:
-                # Determine change type
-                if file_diff.get("new_file"):
-                    change_type = FileChangeType.ADDED
-                elif file_diff.get("deleted_file"):
-                    change_type = FileChangeType.DELETED
-                elif file_diff.get("renamed_file"):
-                    change_type = FileChangeType.RENAMED
-                else:
-                    change_type = FileChangeType.MODIFIED
+        mr_changes = mr.changes()
+        for file_diff in mr_changes.get("changes", []):  # type: ignore[union-attr]
+            # Determine change type
+            if file_diff.get("new_file"):
+                change_type = FileChangeType.ADDED
+            elif file_diff.get("deleted_file"):
+                change_type = FileChangeType.DELETED
+            elif file_diff.get("renamed_file"):
+                change_type = FileChangeType.RENAMED
+            else:
+                change_type = FileChangeType.MODIFIED
 
-                # Count additions/deletions from diff
-                diff_content = file_diff.get("diff", "")
-                additions = sum(1 for line in diff_content.split("\n") if line.startswith("+"))
-                deletions = sum(1 for line in diff_content.split("\n") if line.startswith("-"))
+            # Count additions/deletions from diff
+            diff_content = file_diff.get("diff", "")
+            additions = sum(1 for line in diff_content.split("\n") if line.startswith("+"))
+            deletions = sum(1 for line in diff_content.split("\n") if line.startswith("-"))
 
-                changes.append(
-                    FileChange(
-                        filename=file_diff.get("new_path", file_diff.get("old_path", "")),
-                        change_type=change_type,
-                        additions=additions,
-                        deletions=deletions,
-                        patch=diff_content if diff_content else None,
-                        previous_filename=file_diff.get("old_path")
-                        if file_diff.get("renamed_file")
-                        else None,
-                    )
+            changes.append(
+                FileChange(
+                    filename=file_diff.get("new_path", file_diff.get("old_path", "")),
+                    change_type=change_type,
+                    additions=additions,
+                    deletions=deletions,
+                    patch=diff_content if diff_content else None,
+                    previous_filename=file_diff.get("old_path")
+                    if file_diff.get("renamed_file")
+                    else None,
                 )
+            )
 
         return MergeRequest(
             number=mr.iid,
