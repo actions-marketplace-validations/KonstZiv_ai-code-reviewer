@@ -23,6 +23,7 @@ from ai_reviewer.discovery.config_collector import (
 )
 from ai_reviewer.discovery.models import (
     AutomatedChecks,
+    CIInsights,
     Gap,
     PlatformData,
     ProjectProfile,
@@ -44,7 +45,7 @@ from ai_reviewer.integrations.conversation import (  # noqa: TC001
 
 if TYPE_CHECKING:
     from ai_reviewer.discovery.config_collector import ConfigContent
-    from ai_reviewer.discovery.models import CIInsights
+    from ai_reviewer.discovery.models import DetectedTool
     from ai_reviewer.integrations.conversation import ConversationProvider
     from ai_reviewer.integrations.repository import RepositoryProvider
     from ai_reviewer.llm.base import LLMProvider
@@ -167,7 +168,8 @@ class DiscoveryOrchestrator:
     # ── Layer 1: CI analysis ─────────────────────────────────────
 
     def _analyze_ci(self, platform_data: PlatformData, repo_name: str) -> CIInsights | None:
-        """Analyze CI configuration files."""
+        """Analyze all CI configuration files and merge results."""
+        results: list[CIInsights] = []
         for ci_path in platform_data.ci_config_paths:
             content = self._repo.get_file_content(repo_name, ci_path)
             if not content:
@@ -187,8 +189,10 @@ class DiscoveryOrchestrator:
                     ci_path,
                     len(result.detected_tools),
                 )
-                return result
-        return None
+                results.append(result)
+        if not results:
+            return None
+        return _merge_ci_insights(results)
 
     # ── Layer 2: Config collection ───────────────────────────────
 
@@ -293,6 +297,56 @@ def _find_ci_files(file_tree: tuple[str, ...]) -> tuple[str, ...]:
                 matched.append(path)
                 break
     return tuple(matched)
+
+
+def _first_non_none(*values: str | int | None) -> str | int | None:
+    """Return the first non-None value, or None."""
+    for v in values:
+        if v is not None:
+            return v
+    return None
+
+
+def _merge_ci_insights(results: list[CIInsights]) -> CIInsights:
+    """Merge CIInsights from multiple CI files into a single result.
+
+    Tools are deduplicated by name.  Scalar fields (python_version,
+    package_manager, etc.) take the first non-None value encountered.
+    The ``ci_file_path`` is set to the file that contributed the most tools.
+    """
+    seen_tool_names: set[str] = set()
+    merged_tools: list[DetectedTool] = []
+    merged_services: list[str] = []
+    merged_targets: list[str] = []
+    best_path = results[0].ci_file_path
+    best_tool_count = 0
+
+    for r in results:
+        for tool in r.detected_tools:
+            if tool.name not in seen_tool_names:
+                seen_tool_names.add(tool.name)
+                merged_tools.append(tool)
+        for svc in r.services:
+            if svc not in merged_services:
+                merged_services.append(svc)
+        for tgt in r.deployment_targets:
+            if tgt not in merged_targets:
+                merged_targets.append(tgt)
+        if len(r.detected_tools) > best_tool_count:
+            best_tool_count = len(r.detected_tools)
+            best_path = r.ci_file_path
+
+    return CIInsights(
+        ci_file_path=best_path,
+        detected_tools=tuple(merged_tools),
+        services=tuple(merged_services),
+        deployment_targets=tuple(merged_targets),
+        python_version=_first_non_none(*(r.python_version for r in results)),  # type: ignore[arg-type]
+        node_version=_first_non_none(*(r.node_version for r in results)),  # type: ignore[arg-type]
+        go_version=_first_non_none(*(r.go_version for r in results)),  # type: ignore[arg-type]
+        package_manager=_first_non_none(*(r.package_manager for r in results)),  # type: ignore[arg-type]
+        min_coverage=_first_non_none(*(r.min_coverage for r in results)),  # type: ignore[arg-type]
+    )
 
 
 def _has_enough_data(ci_insights: CIInsights | None) -> bool:
