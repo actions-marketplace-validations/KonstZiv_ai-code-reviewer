@@ -18,7 +18,7 @@ from ai_reviewer.core.models import (  # noqa: TC001 — runtime for deprecated 
     MergeRequest,
 )
 
-_BRANCH_ISSUE_RE = re.compile(r"^(?:\w+/)?(?:GH-)?(\d+)[-_]")
+_BRANCH_ISSUE_RE = re.compile(r"^(?:\w+/)?(?:GH-)?(\d+)(?:[-_]|$)")
 
 ISSUE_CLOSING_RE = re.compile(
     r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)",

@@ -308,18 +308,27 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
                     source = getattr(event, "source", None)
                     if not source:
                         continue
-                    issue_data = source.get("issue") if isinstance(source, dict) else None
+                    # source can be a dict or an object depending on PyGithub version
+                    issue_data = (
+                        source.get("issue")
+                        if isinstance(source, dict)
+                        else getattr(source, "issue", None)
+                    )
                     if not issue_data:
                         continue
-                    issue_number = issue_data.get("number")
+
+                    def _val(obj: object, key: str) -> Any:  # noqa: ANN401
+                        return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
+
+                    issue_number = _val(issue_data, "number")
                     if issue_number and issue_number not in seen_ids:
                         seen_ids.add(issue_number)
                         tasks.append(
                             LinkedTask(
                                 identifier=str(issue_number),
-                                title=issue_data.get("title", ""),
-                                description=issue_data.get("body") or "",
-                                url=issue_data.get("html_url", ""),
+                                title=_val(issue_data, "title") or "",
+                                description=_val(issue_data, "body") or "",
+                                url=_val(issue_data, "html_url") or "",
                             )
                         )
             except (GithubException, RateLimitExceededException):

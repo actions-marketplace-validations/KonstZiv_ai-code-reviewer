@@ -208,6 +208,14 @@ class TestParseBranchIssueNumber:
         """Test branch like 'no-number' returns None."""
         assert parse_branch_issue_number("no-number") is None
 
+    def test_prefix_slash_number_only(self) -> None:
+        """Test branch like 'fix/456' (number at end, no trailing separator)."""
+        assert parse_branch_issue_number("fix/456") == 456
+
+    def test_bare_number(self) -> None:
+        """Test branch like '123' (just a number)."""
+        assert parse_branch_issue_number("123") == 123
+
     def test_number_in_middle_returns_none(self) -> None:
         """Test branch like 'feature-add-42' (number not at start)."""
         assert parse_branch_issue_number("feature-add-42") is None
