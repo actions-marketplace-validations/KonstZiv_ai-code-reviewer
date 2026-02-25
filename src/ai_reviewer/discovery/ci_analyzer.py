@@ -28,7 +28,7 @@ _MAX_RECURSION_DEPTH = 20
 _TOOL_PATTERNS: tuple[tuple[str, str, ToolCategory], ...] = (
     # Python — specific before generic
     (r"\bruff\b\s+format", "ruff format", ToolCategory.FORMATTING),
-    (r"\bruff\b(?:\s+check)?", "ruff", ToolCategory.LINTING),
+    (r"\bruff\b(?:\s+check)?(?!\s+format)", "ruff", ToolCategory.LINTING),
     (r"\bflake8\b", "flake8", ToolCategory.LINTING),
     (r"\bpylint\b", "pylint", ToolCategory.LINTING),
     (r"\bblack\b", "black", ToolCategory.FORMATTING),

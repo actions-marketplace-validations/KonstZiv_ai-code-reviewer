@@ -310,6 +310,18 @@ test:
         assert "postgres" in insights.services
         assert "redis" in insights.services
 
+    def test_ruff_format_only_no_false_linting(self, analyzer: CIPipelineAnalyzer) -> None:
+        yaml_content = """
+jobs:
+  fmt:
+    steps:
+      - run: ruff format src/
+"""
+        insights = analyzer.analyze(yaml_content)
+        names = _tool_names(insights)
+        assert "ruff format" in names
+        assert "ruff" not in names
+
     def test_empty_makefile(self, analyzer: CIPipelineAnalyzer) -> None:
         insights = analyzer.analyze_makefile("")
         assert insights.detected_tools == ()
