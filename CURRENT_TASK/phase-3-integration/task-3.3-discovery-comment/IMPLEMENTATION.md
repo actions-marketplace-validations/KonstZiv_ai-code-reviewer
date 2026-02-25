@@ -1,5 +1,11 @@
 # Task 3.3: Discovery Comment — Implementation Guide
 
+## Актуальний стан коду (після Phase 2)
+
+- `ProjectProfile` має всі потрібні поля: `platform_data`, `ci_insights`, `guidance`, `gaps`, `framework`, `language_version`, `package_manager`
+- `ConversationProvider.post_question_comment()` вже використовується в orchestrator для gaps
+- Discovery comment — це **окремий** коментар від question comment
+
 ## Формат
 
 ```markdown
@@ -17,21 +23,22 @@
 - Business logic correctness
 - Error handling edge cases
 
-**Q1:** I see `make verify` in your Makefile — what does this target do?
-> *Default: I'll assume it's a convenience alias for lint+test.*
-
 ---
 💡 *Create `.reviewbot.md` in your repo root to customize.*
-📊 *Discovery: 3 API calls, 0 LLM tokens*
 ```
 
 ## Реалізація
 
+### 1. format_discovery_comment()
+
 ```python
-def format_discovery_comment(profile: ProjectProfile, stats: dict) -> str:
+# discovery/comment.py (або в orchestrator чи окремий модуль)
+
+def format_discovery_comment(profile: ProjectProfile) -> str:
+    """Format a discovery summary comment for posting to MR."""
     parts = ["## 🔍 AI ReviewBot: Project Analysis\n"]
 
-    # Stack
+    # Stack line
     pd = profile.platform_data
     stack = f"**Stack:** {pd.primary_language}"
     if profile.framework:
@@ -46,11 +53,12 @@ def format_discovery_comment(profile: ProjectProfile, stats: dict) -> str:
     ci = profile.ci_insights
     if ci and ci.detected_tools:
         tool_names = ", ".join(t.name for t in ci.detected_tools)
-        parts.append(f"**CI:** ✅ {ci.ci_file_path} — {tool_names}")
+        provider = profile.automated_checks.ci_provider or ci.ci_file_path
+        parts.append(f"**CI:** ✅ {provider} — {tool_names}")
     else:
         parts.append("**CI:** ❌ No CI pipeline detected")
 
-    # Skip / Focus
+    # Skip / Focus from guidance
     g = profile.guidance
     if g.skip_in_review:
         parts.append("\n**What I'll skip** (CI handles these):")
@@ -61,38 +69,49 @@ def format_discovery_comment(profile: ProjectProfile, stats: dict) -> str:
         for item in g.focus_in_review:
             parts.append(f"- {item}")
 
-    # Questions from gaps
-    questions_with_q = [g for g in profile.gaps if g.question]
-    if questions_with_q:
-        parts.append("")
-        for i, gap in enumerate(questions_with_q, 1):
-            parts.append(f"**Q{i}:** {gap.question}")
-            parts.append(f"> *Default: {gap.default_assumption}*")
-            parts.append("")
-
     # Footer
-    parts.append("---")
+    parts.append("\n---")
     parts.append("💡 *Create `.reviewbot.md` in your repo root to customize.*")
-    api_calls = stats.get("api_calls", 0)
-    llm_tokens = stats.get("llm_tokens", 0)
-    parts.append(f"📊 *Discovery: {api_calls} API calls, {llm_tokens} LLM tokens*")
 
     return "\n".join(parts)
 ```
 
-## Коли постити
+**Примітка:** `stats: dict` параметр прибрано — orchestrator не збирає метрики API calls/tokens. Якщо потрібно — додамо в Beta-1 разом з token tracking.
 
-- Перший запуск або `.reviewbot.md` відсутній → завжди
-- Є gaps/questions → завжди
-- Все добре, нема питань → тихий режим (не постити)
+### 2. Коли постити
+
+В `reviewer.py` після discovery:
+
+```python
+if profile and not profile.from_reviewbot_md:
+    # Post discovery comment (first run or gaps exist)
+    if profile.gaps or not _has_previous_discovery_comment(provider, repo_name, mr_id):
+        comment = format_discovery_comment(profile)
+        provider.post_comment(repo_name, mr_id, comment)
+```
+
+**Правила:**
+- `.reviewbot.md` є → тихий режим (не постити)
+- Є gaps/questions → завжди постити
+- Все добре, нема питань, перший запуск → постити один раз
+- Повторний запуск без змін → не постити (duplicate detection)
+
+### 3. Визначення from_reviewbot_md
+
+Додати поле в `ProjectProfile` або передавати окремим параметром:
+
+```python
+# Варіант: просто перевірити в reviewer.py
+posted_reviewbot = profile.platform_data.file_tree and ".reviewbot.md" in profile.platform_data.file_tree
+```
 
 ---
 
 ## Чеклист
 
 - [ ] `format_discovery_comment()` — readable markdown
-- [ ] Questions formatted з BotQuestion pattern (parseable)
-- [ ] Stats footer (API calls, LLM tokens)
-- [ ] Silent mode: no gaps → no comment
-- [ ] Тест на formatting
-- [ ] `make check` проходить
+- [ ] Silent mode: `.reviewbot.md` → no comment
+- [ ] Silent mode: no gaps + повторний запуск → no comment
+- [ ] Duplicate detection (перевірка по заголовку `## 🔍 AI ReviewBot`)
+- [ ] Тести на formatting
+- [ ] `uv run pytest -x -q && uv run ruff check && uv run mypy`

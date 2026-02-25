@@ -1,17 +1,28 @@
 # Task 3.1: Prompt Integration — Implementation Guide
 
-## 1. Оновити ReviewContext
+## Актуальний стан коду (після Phase 2)
+
+- `ReviewContext` в `core/models.py:205` має `tasks: tuple[LinkedTask, ...]` (не `task: LinkedTask | None`)
+- `build_review_prompt()` в `integrations/prompts.py` приймає `(context: ReviewContext, settings: Settings)`
+- `SYSTEM_PROMPT` в `integrations/prompts.py:24`
+- `ProjectProfile.to_prompt_context()` в `discovery/models.py:223` — готовий метод
+
+## 1. Додати `project_profile` в ReviewContext
 
 ```python
 # core/models.py
 
+from ai_reviewer.discovery.models import ProjectProfile  # noqa: TC001
+
 class ReviewContext(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    mr: MergeRequest
-    task: LinkedTask | None = None
-    repository: str = ""
-    project_profile: ProjectProfile | None = None  # NEW
+    mr: MergeRequest = Field(..., description="The merge request to review")
+    tasks: tuple[LinkedTask, ...] = Field(default=(), description="Linked tasks")
+    repository: str = Field(..., min_length=1, description="Repository name (owner/repo)")
+    project_profile: ProjectProfile | None = Field(
+        default=None, description="Discovery profile for project context",
+    )
 ```
 
 ## 2. Оновити build_review_prompt()
@@ -22,20 +33,18 @@ class ReviewContext(BaseModel):
 def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
     parts = []
 
-    # NEW: Project Context
+    # NEW: Project Context (before existing sections)
     if context.project_profile:
         parts.append("## Project Context")
         parts.append(context.project_profile.to_prompt_context())
         parts.append("")
 
-    # Existing sections...
-    parts.append("## Language")
-    # ...
+    # Existing sections (MR info, files, linked tasks, etc.)...
 ```
 
 ## 3. Оновити SYSTEM_PROMPT
 
-Додати блок:
+Додати блок після існуючих інструкцій:
 
 ```
 ## Project Context Awareness
@@ -51,8 +60,8 @@ If a "Project Context" section is provided:
 
 ## Чеклист
 
-- [ ] `ReviewContext.project_profile` field
-- [ ] `build_review_prompt()` includes Project Context
-- [ ] `SYSTEM_PROMPT` updated
-- [ ] Existing tests still pass
-- [ ] `make check` проходить
+- [ ] `ReviewContext.project_profile` field додано
+- [ ] `build_review_prompt()` includes Project Context section
+- [ ] `SYSTEM_PROMPT` updated з Project Context Awareness
+- [ ] Existing tests still pass (ReviewContext тести потребують update)
+- [ ] `uv run pytest -x -q && uv run ruff check && uv run mypy`
