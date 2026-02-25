@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from pydantic import SecretStr
 
-from ai_reviewer.core.config import LanguageMode
+from ai_reviewer.core.config import LanguageMode, Settings
 from ai_reviewer.core.models import (
     CodeIssue,
     FileChange,
@@ -291,7 +291,7 @@ class TestBuildReviewSubmission:
 
 def _make_settings() -> Mock:
     """Build a mock Settings object with all required attributes."""
-    settings = Mock()
+    settings = Mock(spec=Settings)
     settings.google_api_key = SecretStr("test-key")
     settings.gemini_model = "gemini-pro"
     settings.gemini_model_fallback = "gemini-2.5-flash"

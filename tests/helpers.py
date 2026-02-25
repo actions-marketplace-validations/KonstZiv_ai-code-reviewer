@@ -6,8 +6,6 @@ to construct ProjectProfile and related objects with sensible defaults.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from ai_reviewer.discovery.models import (
     AutomatedChecks,
     CIInsights,
@@ -15,9 +13,6 @@ from ai_reviewer.discovery.models import (
     ProjectProfile,
     ReviewGuidance,
 )
-
-if TYPE_CHECKING:
-    from ai_reviewer.discovery.models import DetectedTool
 
 
 def make_profile(**kw: object) -> ProjectProfile:
@@ -40,13 +35,13 @@ def make_profile(**kw: object) -> ProjectProfile:
             gaps=(Gap(observation="No tests", default_assumption="None"),),
         )
     """
-    ci_tools: tuple[DetectedTool, ...] = kw.pop("ci_tools", ())  # type: ignore[assignment]
-    ci_provider: str | None = kw.pop("ci_provider", None)  # type: ignore[assignment]
-    ci_file_path: str = kw.pop("ci_file_path", ".github/workflows/ci.yml")  # type: ignore[assignment]
-    skip: tuple[str, ...] = kw.pop("skip", ())  # type: ignore[assignment]
-    focus: tuple[str, ...] = kw.pop("focus", ())  # type: ignore[assignment]
-    language: str = kw.pop("language", "Python")  # type: ignore[assignment]
-    file_tree: tuple[str, ...] = kw.pop("file_tree", ("src/main.py",))  # type: ignore[assignment]
+    ci_tools = kw.pop("ci_tools", ())
+    ci_provider = kw.pop("ci_provider", None)
+    ci_file_path = kw.pop("ci_file_path", ".github/workflows/ci.yml")
+    skip = kw.pop("skip", ())
+    focus = kw.pop("focus", ())
+    language = kw.pop("language", "Python")
+    file_tree = kw.pop("file_tree", ("src/main.py",))
 
     ci = CIInsights(ci_file_path=ci_file_path, detected_tools=ci_tools) if ci_tools else None
     return ProjectProfile(
