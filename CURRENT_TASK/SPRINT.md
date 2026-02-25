@@ -10,7 +10,8 @@ sprint-beta-0/
 │   ├── task-1.1-llm-provider/
 │   ├── task-1.2-repository-provider/
 │   ├── task-1.3-conversation-provider/
-│   └── task-1.4-housekeeping/
+│   ├── task-1.4-housekeeping/
+│   └── task-1.5-linked-task-strategy/
 ├── phase-2-discovery-engine/          Фаза 2: Discovery Engine
 │   ├── EPIC.md
 │   ├── task-2.1-discovery-models/
@@ -140,7 +141,7 @@ sprint-beta-0/
 
 ### Sprint Beta-1: Deep Context + Stability
 
-- Глибший linked tasks (GitHub timeline API, GitLab closes_issues)
+- ~~Глибший linked tasks~~ → перенесено в task 1.5 (вже актуально)
 - Rate limit & token tracking, usage footer
 - Framework-specific hints (Django, FastAPI)
 - LLM fallback (Gemini → Claude/OpenAI)
