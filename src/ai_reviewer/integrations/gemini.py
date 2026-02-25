@@ -24,7 +24,7 @@ from ai_reviewer.llm.gemini import (
     GeminiProvider,
     calculate_cost,
 )
-from ai_reviewer.utils.retry import RateLimitError, ServerError
+from ai_reviewer.utils.retry import QuotaExhaustedError, RateLimitError, ServerError
 
 if TYPE_CHECKING:
     from pydantic import SecretStr
@@ -129,7 +129,7 @@ def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewRe
             system_prompt=SYSTEM_PROMPT,
             response_schema=ReviewResult,
         )
-    except (ServerError, RateLimitError) as primary_err:
+    except (ServerError, RateLimitError, QuotaExhaustedError) as primary_err:
         if not settings.gemini_model_fallback:
             raise
         logger.warning(

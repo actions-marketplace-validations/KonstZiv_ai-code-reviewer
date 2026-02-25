@@ -39,6 +39,9 @@ class LanguageMode(str, Enum):
     FIXED = "fixed"
 
 
+# Bot display name used in all user-facing comments
+BOT_NAME = "AI ReviewBot"
+
 # Minimum length for API tokens/keys validation
 MIN_SECRET_LENGTH = 10
 
@@ -349,6 +352,7 @@ def clear_settings_cache() -> None:
 
 
 __all__ = [
+    "BOT_NAME",
     "MIN_SECRET_LENGTH",
     "VALID_LOG_LEVELS",
     "LanguageMode",

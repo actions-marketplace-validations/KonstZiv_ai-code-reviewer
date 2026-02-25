@@ -31,7 +31,7 @@ class TestFormatReviewComment:
 
         comment = format_review_comment(result)
 
-        assert "# 🤖 AI Code Review" in comment
+        assert "AI ReviewBot" in comment
         assert "## 📊 Summary" in comment
         assert "Code looks good." in comment
         assert "## 📋 Task Alignment" in comment
@@ -507,7 +507,7 @@ class TestFormatReviewSummary:
 
         comment = format_review_summary(result, (), None)
 
-        assert "# 🤖 AI Code Review" in comment
+        assert "AI ReviewBot" in comment
         assert "## 📊 Summary" in comment
         assert "Code looks good." in comment
 

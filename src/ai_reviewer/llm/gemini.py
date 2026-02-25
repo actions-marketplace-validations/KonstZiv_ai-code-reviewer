@@ -27,6 +27,7 @@ from ai_reviewer.llm.base import LLMProvider, LLMResponse
 from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
+    QuotaExhaustedError,
     RateLimitError,
     ServerError,
     with_retry,
@@ -115,6 +116,30 @@ def _log_prompt_debug_info(prompt: str, system_prompt: str | None) -> None:
     )
 
 
+# Keywords in quotaId that indicate a daily or free-tier quota (not retryable).
+_DAILY_QUOTA_KEYWORDS = ("perday", "freetier", "daily")
+
+
+def _is_daily_quota_error(error_msg: str) -> str | None:
+    """Check if a 429 error is caused by daily/free-tier quota exhaustion.
+
+    Parses the error message for ``quotaId`` values containing keywords
+    like ``PerDay`` or ``FreeTier``.
+
+    Args:
+        error_msg: The stringified error message from Gemini API.
+
+    Returns:
+        The matched quotaId string if daily quota detected, None otherwise.
+    """
+    match = re.search(r"'quotaId':\s*'([^']+)'", error_msg)
+    if match:
+        quota_id = match.group(1)
+        if any(kw in quota_id.lower() for kw in _DAILY_QUOTA_KEYWORDS):
+            return quota_id
+    return None
+
+
 def _match_by_error_message(e: Exception) -> Exception:
     """Match exception by error message keywords (fallback heuristic).
 
@@ -124,8 +149,12 @@ def _match_by_error_message(e: Exception) -> Exception:
     Returns:
         Converted exception or the original if no keyword matched.
     """
-    error_msg = str(e).lower()
+    error_msg_str = str(e)
+    error_msg = error_msg_str.lower()
     if "rate limit" in error_msg or "quota" in error_msg or "429" in error_msg:
+        quota_id = _is_daily_quota_error(error_msg_str)
+        if quota_id:
+            return QuotaExhaustedError(f"Gemini: {e}", quota_id=quota_id)
         return RateLimitError(f"Gemini: {e}")
     if any(kw in error_msg for kw in ("500", "502", "503", "504", "server error", "deadline")):
         return ServerError(f"Gemini: {e}")
@@ -146,6 +175,9 @@ def _convert_google_exception(e: Exception) -> Exception:
         or the original exception if no match is found.
     """
     if isinstance(e, google_exceptions.ResourceExhausted):
+        quota_id = _is_daily_quota_error(str(e))
+        if quota_id:
+            return QuotaExhaustedError(f"Gemini: {e}", quota_id=quota_id)
         return RateLimitError(f"Gemini: {e}")
 
     if isinstance(e, google_exceptions.Unauthenticated):
