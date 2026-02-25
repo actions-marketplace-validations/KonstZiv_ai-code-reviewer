@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from ai_reviewer.core.config import BOT_NAME
 from ai_reviewer.core.formatter import (
     format_inline_comment,
     format_review_comment,
@@ -25,6 +26,7 @@ from ai_reviewer.discovery.comment import (
 )
 from ai_reviewer.integrations.base import LineComment, ReviewSubmission, parse_diff_valid_lines
 from ai_reviewer.integrations.gemini import analyze_code_changes
+from ai_reviewer.utils.language import get_language_for_review
 
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
@@ -138,13 +140,6 @@ def review_pull_request(
 
         logger.info("Fetched MR: %s", mr.title)
 
-        # 1.5. Post discovery comment (fail-open, reuses MR data)
-        if profile:
-            existing_bot = tuple(
-                c.body for c in mr.comments if c.author_type == CommentAuthorType.BOT
-            )
-            _post_discovery_comment(provider, repo_name, mr_id, profile, existing_bot)
-
         # 2. Get linked tasks (multi-strategy discovery)
         tasks = provider.get_linked_tasks(repo_name, mr.number, mr.source_branch)
         if tasks:
@@ -156,8 +151,23 @@ def review_pull_request(
         else:
             logger.info("No linked tasks found")
 
-        # 3. Build context
+        # 3. Build context (needed for language detection)
         context = ReviewContext(mr=mr, tasks=tasks, repository=repo_name, project_profile=profile)
+        language = get_language_for_review(context, settings)
+
+        # 3.5. Post discovery comment (fail-open, after language is known)
+        if profile:
+            existing_bot = tuple(
+                c.body for c in mr.comments if c.author_type == CommentAuthorType.BOT
+            )
+            _post_discovery_comment(
+                provider,
+                repo_name,
+                mr_id,
+                profile,
+                existing_comments=existing_bot,
+                language=language,
+            )
 
         # 4. Analyze with AI
         result = analyze_code_changes(context, settings)
@@ -198,12 +208,14 @@ def review_pull_request(
         _post_error_comment(provider, repo_name, mr_id, e)
 
 
-def _post_discovery_comment(
+def _post_discovery_comment(  # noqa: PLR0913
     provider: GitProvider,
     repo_name: str,
     mr_id: int,
     profile: ProjectProfile,
+    *,
     existing_comments: tuple[str, ...] = (),
+    language: str | None = None,
 ) -> None:
     """Post discovery summary comment if appropriate.
 
@@ -216,13 +228,14 @@ def _post_discovery_comment(
         mr_id: Merge/Pull request number.
         profile: Discovery profile to summarize.
         existing_comments: Bodies of existing bot comments (for duplicate detection).
+        language: ISO 639 language code for comment formatting.
     """
     try:
         if not should_post_discovery_comment(profile, existing_comments):
             logger.debug("Discovery comment skipped (duplicate or .reviewbot.md present)")
             return
 
-        comment = format_discovery_comment(profile)
+        comment = format_discovery_comment(profile, language=language)
         provider.post_comment(repo_name, mr_id, comment)
         logger.info("Posted discovery comment")
     except Exception:
@@ -291,7 +304,7 @@ def _post_error_comment(
     """
     try:
         error_msg = (
-            "## ❌ AI Review Failed\n\n"
+            f"## \u274c {BOT_NAME}: Review Failed\n\n"
             "The AI reviewer encountered an error while processing this PR.\n"
             f"**Error:** `{error!s}`\n\n"
             "_Please check the CI logs for more details._"

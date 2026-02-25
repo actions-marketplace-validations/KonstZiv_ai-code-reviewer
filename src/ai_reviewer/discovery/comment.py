@@ -9,12 +9,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ai_reviewer.core.config import BOT_NAME
+from ai_reviewer.core.formatter import RUSSIAN_DISCLAIMER, is_russian_language
+
 if TYPE_CHECKING:
     from ai_reviewer.discovery.models import ProjectProfile
 
 # ── Constants ────────────────────────────────────────────────────────
 
-DISCOVERY_COMMENT_HEADING = "## \U0001f50d AI ReviewBot: Project Analysis"
+DISCOVERY_COMMENT_HEADING = f"## \U0001f50d {BOT_NAME}: Project Analysis"
 
 _REVIEWBOT_MD_PATH = ".reviewbot.md"
 
@@ -39,11 +42,16 @@ def _format_gaps_section(profile: ProjectProfile) -> list[str]:
 # ── Public API ───────────────────────────────────────────────────────
 
 
-def format_discovery_comment(profile: ProjectProfile) -> str:
+def format_discovery_comment(
+    profile: ProjectProfile,
+    *,
+    language: str | None = None,
+) -> str:
     """Format a discovery summary comment for posting to MR.
 
     Args:
         profile: Populated project profile from the Discovery pipeline.
+        language: ISO 639 language code. If Russian, adds disclaimer.
 
     Returns:
         Markdown-formatted comment string.
@@ -84,6 +92,10 @@ def format_discovery_comment(profile: ProjectProfile) -> str:
     # Gaps / Questions
     parts.extend(_format_gaps_section(profile))
 
+    # Russian disclaimer
+    if is_russian_language(language):
+        parts.append(RUSSIAN_DISCLAIMER)
+
     # Footer
     parts.append("\n---")
     parts.append(f"\U0001f4a1 *Create `{_REVIEWBOT_MD_PATH}` in your repo root to customize.*")
@@ -99,9 +111,9 @@ def should_post_discovery_comment(
 
     Rules:
         - ``.reviewbot.md`` present in file tree -> silent (skip).
-        - Profile has unresolved gaps -> always post.
+        - No gaps -> silent (avoid noise).
         - A previous discovery comment already exists -> skip (duplicate).
-        - First run with no gaps -> post once.
+        - Gaps present and no duplicate -> post.
 
     Args:
         profile: Populated project profile.
@@ -112,6 +124,10 @@ def should_post_discovery_comment(
     """
     # .reviewbot.md present -> silent mode
     if _REVIEWBOT_MD_PATH in profile.platform_data.file_tree:
+        return False
+
+    # No gaps -> silent mode (avoid noise in MR)
+    if not profile.gaps:
         return False
 
     # Duplicate detection: check if heading already posted

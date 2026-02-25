@@ -190,7 +190,9 @@ class APIError(Exception):
         Returns:
             Markdown-formatted error message.
         """
-        parts = ["## :x: AI Code Review Failed", ""]
+        from ai_reviewer.core.config import BOT_NAME  # noqa: PLC0415
+
+        parts = [f"## :x: {BOT_NAME}: Review Failed", ""]
         parts.append(f"**Error:** {self}")
 
         if self.provider:

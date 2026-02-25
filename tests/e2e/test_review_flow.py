@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from pydantic import SecretStr
 
-from ai_reviewer.core.config import Settings
+from ai_reviewer.core.config import LanguageMode, Settings
 from ai_reviewer.core.formatter import format_review_summary
 from ai_reviewer.core.models import (
     CodeIssue,
@@ -41,6 +41,8 @@ class TestReviewFlow:
         settings.review_enable_dialogue = True
         settings.review_post_inline_comments = True
         settings.discovery_enabled = False
+        settings.language_mode = LanguageMode.FIXED
+        settings.language = "en"
         return settings
 
     @pytest.fixture
@@ -93,7 +95,7 @@ class TestReviewFlow:
         # Check submission content
         args, _ = mock_provider.submit_review.call_args
         submission = args[2]
-        assert "AI Code Review" in submission.summary
+        assert "AI ReviewBot" in submission.summary
         assert "LGTM" in submission.summary
         assert "✅ Aligned" in submission.summary
 
@@ -162,7 +164,7 @@ class TestReviewFlow:
         # Verify error comment posted
         mock_provider.post_comment.assert_called_once()
         args, _ = mock_provider.post_comment.call_args
-        assert "❌ AI Review Failed" in args[2]
+        assert "AI ReviewBot: Review Failed" in args[2]
         assert "Gemini API Error" in args[2]
 
     @patch("ai_reviewer.reviewer.analyze_code_changes")
@@ -189,7 +191,7 @@ class TestReviewFlow:
         mock_provider.submit_review.assert_not_called()
 
         args, _ = mock_provider.post_comment.call_args
-        assert "AI Code Review" in args[2]
+        assert "AI ReviewBot" in args[2]
 
     @patch("ai_reviewer.reviewer.analyze_code_changes")
     def test_successful_review_with_inline_issues(

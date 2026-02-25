@@ -168,6 +168,16 @@ class TestFormatDiscoveryComment:
         result = format_discovery_comment(profile)
         assert "Questions / Gaps" not in result
 
+    def test_russian_disclaimer_added(self) -> None:
+        profile = _make_profile()
+        result = format_discovery_comment(profile, language="ru")
+        assert "россиянин" in result
+
+    def test_no_russian_disclaimer_for_other_languages(self) -> None:
+        profile = _make_profile()
+        result = format_discovery_comment(profile, language="uk")
+        assert "россиянин" not in result
+
 
 # ── TestShouldPostDiscoveryComment ───────────────────────────────────
 
@@ -175,25 +185,29 @@ class TestFormatDiscoveryComment:
 class TestShouldPostDiscoveryComment:
     """Tests for should_post_discovery_comment."""
 
-    def test_post_on_first_run(self) -> None:
-        profile = _make_profile()
-        assert should_post_discovery_comment(profile) is True
+    def test_skip_when_no_gaps(self) -> None:
+        profile = _make_profile(gaps=())
+        assert should_post_discovery_comment(profile) is False
 
     def test_skip_when_reviewbot_md_exists(self) -> None:
         profile = _make_profile(file_tree=("src/main.py", ".reviewbot.md"))
         assert should_post_discovery_comment(profile) is False
 
     def test_skip_when_duplicate_exists(self) -> None:
-        profile = _make_profile()
+        profile = _make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
         existing = (f"{DISCOVERY_COMMENT_HEADING}\n**Stack:** Python",)
         assert should_post_discovery_comment(profile, existing) is False
 
-    def test_post_when_different_comments_exist(self) -> None:
-        profile = _make_profile()
+    def test_post_with_gaps_no_duplicate(self) -> None:
+        profile = _make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
         existing = ("## AI Review\nSome review content",)
         assert should_post_discovery_comment(profile, existing) is True
 
-    def test_post_with_gaps(self) -> None:
+    def test_post_with_gaps_first_run(self) -> None:
         profile = _make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )

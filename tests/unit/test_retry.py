@@ -128,7 +128,7 @@ class TestAPIError:
         )
         formatted = error.format_for_comment()
 
-        assert "AI Code Review Failed" in formatted
+        assert "AI ReviewBot: Review Failed" in formatted
         assert "Rate limit exhausted" in formatted
         assert "github" in formatted
         assert "submit_review" in formatted
