@@ -250,15 +250,17 @@ class DiscoveryOrchestrator:
         if not new_gaps:
             return
 
-        questions = [
-            BotQuestion(
-                question_id=f"Q{i + 1}",
-                text=gap.question,  # type: ignore[arg-type]  # filtered above
-                default_assumption=gap.default_assumption,
-                context=QuestionContext.DISCOVERY,
-            )
-            for i, gap in enumerate(new_gaps)
-        ]
+        questions: list[BotQuestion] = []
+        for i, gap in enumerate(new_gaps):
+            if text := gap.question:
+                questions.append(
+                    BotQuestion(
+                        question_id=f"Q{i + 1}",
+                        text=text,
+                        default_assumption=gap.default_assumption,
+                        context=QuestionContext.DISCOVERY,
+                    )
+                )
 
         intro = _format_discovery_intro(profile)
         try:
