@@ -25,6 +25,7 @@ from ai_reviewer.integrations.gemini import analyze_code_changes
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
     from ai_reviewer.core.models import CodeIssue, FileChange, ReviewResult
+    from ai_reviewer.discovery.models import ProjectProfile
     from ai_reviewer.integrations.base import GitProvider
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,13 @@ def review_pull_request(
     try:
         logger.info("Starting review for MR #%s in %s", mr_id, repo_name)
 
+        # 0. Discovery step (fail-open)
+        profile = (
+            _run_discovery(provider, repo_name, mr_id, settings)
+            if settings.discovery_enabled
+            else None
+        )
+
         # 1. Fetch MR data
         mr = provider.get_merge_request(repo_name, mr_id)
         if not mr:
@@ -138,7 +146,7 @@ def review_pull_request(
             logger.info("No linked tasks found")
 
         # 3. Build context
-        context = ReviewContext(mr=mr, tasks=tasks, repository=repo_name)
+        context = ReviewContext(mr=mr, tasks=tasks, repository=repo_name, project_profile=profile)
 
         # 4. Analyze with AI
         result = analyze_code_changes(context, settings)
@@ -177,6 +185,52 @@ def review_pull_request(
         # Fail Open strategy: Try to post a failure comment, but don't crash the CI hard
         # unless it's a critical configuration error.
         _post_error_comment(provider, repo_name, mr_id, e)
+
+
+def _run_discovery(
+    provider: GitProvider,
+    repo_name: str,
+    mr_id: int,
+    settings: Settings,
+) -> ProjectProfile | None:
+    """Run the Discovery pipeline, fail-open on any error.
+
+    Args:
+        provider: Git provider (triple inheritance: Git + Repository + Conversation).
+        repo_name: Repository identifier.
+        mr_id: Merge/Pull request number.
+        settings: Application settings.
+
+    Returns:
+        ProjectProfile if discovery succeeds, None otherwise.
+    """
+    from ai_reviewer.discovery import DiscoveryOrchestrator  # noqa: PLC0415
+    from ai_reviewer.llm.gemini import GeminiProvider  # noqa: PLC0415
+
+    try:
+        llm = GeminiProvider(
+            api_key=settings.google_api_key.get_secret_value(),
+            model_name=settings.gemini_model,
+        )
+        # GitHubClient/GitLabClient implement RepositoryProvider + ConversationProvider
+        # via triple inheritance, so the cast is safe at runtime.
+        discovery = DiscoveryOrchestrator(
+            repo_provider=provider,  # type: ignore[arg-type]
+            conversation=provider,  # type: ignore[arg-type]
+            llm=llm,
+        )
+        profile = discovery.discover(repo_name, mr_id)
+        tool_count = len(profile.ci_insights.detected_tools) if profile.ci_insights else 0
+        logger.info(
+            "Discovery: %s project, %d CI tool(s)",
+            profile.platform_data.primary_language,
+            tool_count,
+        )
+    except Exception:
+        logger.warning("Discovery failed, continuing without profile", exc_info=True)
+        return None
+    else:
+        return profile
 
 
 def _post_error_comment(
