@@ -148,7 +148,7 @@ class DiscoveryOrchestrator:
         metadata = self._repo.get_metadata(repo_name)
         file_tree = self._repo.get_file_tree(repo_name)
 
-        primary = max(languages, key=languages.get) if languages else "Unknown"  # type: ignore[arg-type]
+        primary = max(languages, key=lambda k: languages[k]) if languages else "Unknown"
         ci_paths = _find_ci_files(file_tree)
 
         return PlatformData(
