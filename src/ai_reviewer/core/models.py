@@ -363,6 +363,10 @@ class ReviewMetrics(BaseModel):
     total_tokens: int = Field(default=0, ge=0, description="Total tokens used")
     api_latency_ms: int = Field(default=0, ge=0, description="API latency in milliseconds")
     estimated_cost_usd: float = Field(default=0.0, ge=0.0, description="Estimated cost in USD")
+    fallback_reason: str | None = Field(
+        default=None,
+        description="Why fallback model was used (None = primary succeeded)",
+    )
 
     @property
     def cost_formatted(self) -> str:

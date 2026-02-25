@@ -789,6 +789,19 @@ class TestReviewMetrics:
         with pytest.raises(ValidationError):
             metrics.model_name = "other-model"  # type: ignore[misc]
 
+    def test_fallback_reason_default_none(self) -> None:
+        """Test fallback_reason is None by default."""
+        metrics = ReviewMetrics(model_name="gemini-2.5-flash")
+        assert metrics.fallback_reason is None
+
+    def test_fallback_reason_set(self) -> None:
+        """Test fallback_reason with a value."""
+        metrics = ReviewMetrics(
+            model_name="gemini-2.5-flash",
+            fallback_reason="gemini-3-flash-preview \u2192 ServerError",
+        )
+        assert metrics.fallback_reason == "gemini-3-flash-preview \u2192 ServerError"
+
     def test_tokens_must_be_non_negative(self) -> None:
         """Test that token counts must be non-negative."""
         with pytest.raises(ValidationError):

@@ -470,6 +470,30 @@ class TestFormatReviewCommentWithMetrics:
         metrics_pos = comment.find("Model:")
         assert separator_pos < metrics_pos
 
+    def test_fallback_reason_in_footer(self) -> None:
+        """Test that fallback_reason appears in footer when set."""
+        metrics = ReviewMetrics(
+            model_name="gemini-2.5-flash",
+            total_tokens=500,
+            fallback_reason="gemini-3-flash-preview \u2192 ServerError",
+        )
+        result = ReviewResult(summary="Test", metrics=metrics)
+
+        comment = format_review_comment(result)
+
+        assert "Fallback:" in comment
+        assert "gemini-3-flash-preview" in comment
+        assert "ServerError" in comment
+
+    def test_no_fallback_line_when_none(self) -> None:
+        """Test that no fallback line appears when fallback_reason is None."""
+        metrics = ReviewMetrics(model_name="gemini-2.5-flash", total_tokens=500)
+        result = ReviewResult(summary="Test", metrics=metrics)
+
+        comment = format_review_comment(result)
+
+        assert "Fallback:" not in comment
+
 
 class TestFormatReviewSummary:
     """Tests for format_review_summary function."""

@@ -45,6 +45,7 @@ class TestSettings:
             assert settings.google_api_key.get_secret_value() == "AIza_test_key_12345"
             # Check defaults
             assert settings.gemini_model == "gemini-3-flash-preview"
+            assert settings.gemini_model_fallback == "gemini-2.5-flash"
             assert settings.log_level == "INFO"
             assert settings.review_max_files == 20
             assert settings.review_max_diff_lines == 500
@@ -681,6 +682,13 @@ class TestEnvVarPrefix:
         with patch.dict(os.environ, env, clear=True):
             settings = Settings()
             assert settings.gemini_model == "gemini-1.5-pro"
+
+    def test_prefixed_gemini_model_fallback(self, minimal_env_prefixed: dict[str, str]) -> None:
+        """Test AI_REVIEWER_GEMINI_MODEL_FALLBACK is accepted."""
+        env = {**minimal_env_prefixed, "AI_REVIEWER_GEMINI_MODEL_FALLBACK": "gemini-1.5-pro"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.gemini_model_fallback == "gemini-1.5-pro"
 
     def test_prefixed_log_level(self, minimal_env_prefixed: dict[str, str]) -> None:
         """Test AI_REVIEWER_LOG_LEVEL is accepted."""

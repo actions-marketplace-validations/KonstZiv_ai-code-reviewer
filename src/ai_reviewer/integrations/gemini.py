@@ -24,6 +24,7 @@ from ai_reviewer.llm.gemini import (
     GeminiProvider,
     calculate_cost,
 )
+from ai_reviewer.utils.retry import RateLimitError, ServerError
 
 if TYPE_CHECKING:
     from pydantic import SecretStr
@@ -97,12 +98,12 @@ class GeminiClient:
 
 
 def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewResult:
-    """Analyze code changes using Gemini.
+    """Analyze code changes using Gemini with automatic model fallback.
 
     This function orchestrates the review process:
     1. Builds the prompt from the context.
-    2. Initializes the Gemini provider.
-    3. Generates the review.
+    2. Tries the primary model.
+    3. On retryable failure, falls back to the secondary model (if configured).
 
     Args:
         context: The review context (MR, task, etc.).
@@ -117,23 +118,43 @@ def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewRe
     prompt = build_review_prompt(context, settings)
     logger.debug("Generated prompt of length %d chars", len(prompt))
 
-    # 2. Initialize provider
-    provider = GeminiProvider(
-        api_key=settings.google_api_key.get_secret_value(),
-        model_name=settings.gemini_model,
-    )
+    api_key = settings.google_api_key.get_secret_value()
+    fallback_reason: str | None = None
 
-    # 3. Generate review
-    response = provider.generate(
-        prompt,
-        system_prompt=SYSTEM_PROMPT,
-        response_schema=ReviewResult,
-    )
+    # 2. Try primary model
+    try:
+        provider = GeminiProvider(api_key=api_key, model_name=settings.gemini_model)
+        response = provider.generate(
+            prompt,
+            system_prompt=SYSTEM_PROMPT,
+            response_schema=ReviewResult,
+        )
+    except (ServerError, RateLimitError) as primary_err:
+        if not settings.gemini_model_fallback:
+            raise
+        logger.warning(
+            "Primary model %s failed (%s: %s). Trying fallback %s",
+            settings.gemini_model,
+            type(primary_err).__name__,
+            primary_err,
+            settings.gemini_model_fallback,
+        )
+        fallback_reason = f"{settings.gemini_model} \u2192 {type(primary_err).__name__}"
+        # 3. Try fallback model
+        fallback_provider = GeminiProvider(
+            api_key=api_key,
+            model_name=settings.gemini_model_fallback,
+        )
+        response = fallback_provider.generate(
+            prompt,
+            system_prompt=SYSTEM_PROMPT,
+            response_schema=ReviewResult,
+        )
 
     result = response.content
     assert isinstance(result, ReviewResult)  # guaranteed by response_schema
 
-    # 4. Map LLMResponse metrics → ReviewMetrics for compatibility
+    # 4. Map LLMResponse metrics → ReviewMetrics
     metrics = ReviewMetrics(
         model_name=response.model_name,
         prompt_tokens=response.prompt_tokens,
@@ -141,6 +162,7 @@ def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewRe
         total_tokens=response.total_tokens,
         api_latency_ms=response.latency_ms,
         estimated_cost_usd=response.estimated_cost_usd,
+        fallback_reason=fallback_reason,
     )
 
     result = result.model_copy(update={"metrics": metrics})

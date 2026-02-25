@@ -317,13 +317,15 @@ def format_review_comment(result: ReviewResult, language: str | None = None) -> 
             f"Est. cost: {result.metrics.cost_formatted}_"
         )
         footer_parts.append(metrics_info)
+        if result.metrics.fallback_reason:
+            footer_parts.append(f"_Fallback: {result.metrics.fallback_reason}_")
 
     parts.extend(footer_parts)
 
     return "\n".join(parts)
 
 
-def format_review_summary(
+def format_review_summary(  # noqa: PLR0912
     result: ReviewResult,
     fallback_issues: tuple[CodeIssue, ...],
     language: str | None = None,
@@ -429,6 +431,8 @@ def format_review_summary(
             f"Est. cost: {result.metrics.cost_formatted}_"
         )
         footer_parts.append(metrics_info)
+        if result.metrics.fallback_reason:
+            footer_parts.append(f"_Fallback: {result.metrics.fallback_reason}_")
 
     parts.extend(footer_parts)
 
