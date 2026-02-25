@@ -1,0 +1,19 @@
+.PHONY: lint test format check
+
+lint:
+	ruff check src/ tests/
+	mypy src/
+
+format:
+	ruff format src/ tests/
+
+test:
+	pytest tests/ --cov --cov-fail-under=90
+
+check: lint test
+
+install:
+	uv sync --dev
+
+pre-commit:
+	pre-commit run --all-files

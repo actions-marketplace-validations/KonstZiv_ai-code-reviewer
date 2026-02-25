@@ -10,6 +10,7 @@ import pytest
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
 from google.api_core import exceptions as google_exceptions
+from google.genai import types
 from pydantic import BaseModel
 
 from ai_reviewer.llm.base import LLMResponse
@@ -49,7 +50,10 @@ class TestGeminiProviderInit:
         """Test provider initializes with default model."""
         provider = GeminiProvider(api_key="key")
         assert provider.model_name == DEFAULT_MODEL
-        mock_client_cls.assert_called_once_with(api_key="key")
+        mock_client_cls.assert_called_once_with(
+            api_key="key",
+            http_options=types.HttpOptions(timeout=300_000),
+        )
 
     @patch("ai_reviewer.llm.gemini.genai.Client")
     def test_custom_model(self, mock_client_cls: MagicMock) -> None:
@@ -314,6 +318,18 @@ class TestConvertGoogleException:
         result = _convert_google_exception(exc)
         assert isinstance(result, ServerError)
 
+    def test_504_in_message_becomes_server_error(self) -> None:
+        """Test fallback: '504' in error message → ServerError."""
+        exc = Exception("504 DEADLINE_EXCEEDED")
+        result = _convert_google_exception(exc)
+        assert isinstance(result, ServerError)
+
+    def test_deadline_in_message_becomes_server_error(self) -> None:
+        """Test fallback: 'deadline' in error message → ServerError."""
+        exc = Exception("Deadline expired before operation could complete")
+        result = _convert_google_exception(exc)
+        assert isinstance(result, ServerError)
+
     def test_unknown_exception_returned_as_is(self) -> None:
         """Test that unrecognized exceptions are returned unchanged."""
         exc = ValueError("Something else")
@@ -365,6 +381,32 @@ class TestGeminiProviderErrors:
         """Test that generic exception with rate limit message is converted."""
         provider._client.models.generate_content.side_effect = Exception(
             "Rate limit exceeded for project"
+        )
+        with pytest.raises(RateLimitError):
+            provider.generate("test", response_schema=_TestSchema)
+
+    def test_genai_server_error_becomes_retryable(self, provider: GeminiProvider) -> None:
+        """Test that google.genai.errors.ServerError → our ServerError (retryable).
+
+        This covers 504 DEADLINE_EXCEEDED and other server-side errors from
+        the genai SDK (distinct from google.api_core.exceptions).
+        """
+        from google.genai.errors import ServerError as GenaiServerError
+
+        provider._client.models.generate_content.side_effect = GenaiServerError(
+            504,
+            {"error": {"message": "Deadline expired before operation could complete"}},
+        )
+        with pytest.raises(ServerError, match="Gemini"):
+            provider.generate("test", response_schema=_TestSchema)
+
+    def test_genai_client_error_converted(self, provider: GeminiProvider) -> None:
+        """Test that google.genai.errors.ClientError is converted via _convert_google_exception."""
+        from google.genai.errors import ClientError as GenaiClientError
+
+        provider._client.models.generate_content.side_effect = GenaiClientError(
+            429,
+            {"error": {"message": "Rate limit exceeded"}},
         )
         with pytest.raises(RateLimitError):
             provider.generate("test", response_schema=_TestSchema)

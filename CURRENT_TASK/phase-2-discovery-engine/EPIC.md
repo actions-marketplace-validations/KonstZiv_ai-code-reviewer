@@ -81,6 +81,24 @@ Layer 3: LLM          → інтерпретація (тільки якщо тр
 
 ---
 
+## 📌 Backlog
+
+### Оптимізація review-контексту для великих PR
+
+**Проблема:** при великих PR промпт перевищує ~38K chars, що провокує
+503 UNAVAILABLE та Connection reset від Gemini API. Тестові файли —
+найбільша частина контексту, але дають найменшу цінність для review.
+
+**Запропоноване рішення:**
+- Виключати тестові файли з review prompt при перевищенні порогу символів
+- Пріоритизувати production-код (src/) над тестами (tests/)
+- Можливо: окремий lightweight review pass для тестів
+- Інтегрувати з Discovery (ProjectProfile знає які файли — тести)
+
+**Scope:** review prompt builder (не Discovery prompts)
+
+---
+
 ## 🔭 Як Discovery розвивається далі
 
 | Версія | Зміст |
