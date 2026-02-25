@@ -40,6 +40,7 @@ class TestReviewFlow:
         settings.review_include_bot_comments = True
         settings.review_enable_dialogue = True
         settings.review_post_inline_comments = True
+        settings.discovery_enabled = False
         return settings
 
     @pytest.fixture

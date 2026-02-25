@@ -294,6 +294,13 @@ class Settings(BaseSettings):
         description="Group comments into threaded dialogues in AI prompt",
     )
 
+    # Discovery
+    discovery_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("AI_REVIEWER_DISCOVERY_ENABLED", "DISCOVERY_ENABLED"),
+        description="Enable project discovery before review",
+    )
+
     # Inline comments
     review_post_inline_comments: bool = Field(
         default=True,
