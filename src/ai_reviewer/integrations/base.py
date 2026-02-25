@@ -25,6 +25,8 @@ ISSUE_CLOSING_RE = re.compile(
     re.IGNORECASE,
 )
 
+_HUNK_HEADER_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+
 
 def parse_branch_issue_number(branch: str) -> int | None:
     """Extract issue number from a branch name convention.
@@ -42,6 +44,54 @@ def parse_branch_issue_number(branch: str) -> int | None:
     """
     m = _BRANCH_ISSUE_RE.match(branch)
     return int(m.group(1)) if m else None
+
+
+def parse_diff_valid_lines(patch: str | None) -> frozenset[int]:
+    """Extract valid new-side line numbers from a unified diff patch.
+
+    Walks through each diff line to compute exact new-side line numbers.
+    Lines starting with ``-`` (deletions) do not have a new-side number.
+    Lines starting with ``+`` (additions) or `` `` (context) do.
+
+    These are the only lines that GitHub's Review API accepts for inline
+    comments; posting on other lines results in 422 "Line could not be
+    resolved".
+
+    Args:
+        patch: Unified diff string (``FileChange.patch``).
+
+    Returns:
+        Frozenset of valid new-side line numbers.
+    """
+    if not patch:
+        return frozenset()
+
+    valid: set[int] = set()
+    new_line = 0
+
+    for raw_line in patch.splitlines():
+        hunk_match = _HUNK_HEADER_RE.match(raw_line)
+        if hunk_match:
+            new_line = int(hunk_match.group(1))
+            continue
+
+        if not new_line:
+            # Before first hunk header
+            continue
+
+        if raw_line.startswith("-"):
+            # Deletion: only old side, no new-side line number
+            continue
+
+        if raw_line.startswith("\\"):
+            # "No newline at end of file" marker
+            continue
+
+        # Addition (+) or context ( ) line: has a new-side line number
+        valid.add(new_line)
+        new_line += 1
+
+    return frozenset(valid)
 
 
 @dataclass(frozen=True, slots=True)
@@ -236,4 +286,5 @@ __all__ = [
     "LineComment",
     "ReviewSubmission",
     "parse_branch_issue_number",
+    "parse_diff_valid_lines",
 ]

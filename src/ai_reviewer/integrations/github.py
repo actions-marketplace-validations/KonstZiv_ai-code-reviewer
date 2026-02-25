@@ -22,7 +22,12 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import ISSUE_CLOSING_RE, GitProvider, parse_branch_issue_number
+from ai_reviewer.integrations.base import (
+    ISSUE_CLOSING_RE,
+    GitProvider,
+    ReviewSubmission,  # noqa: TC001 — runtime for _build_demoted_summary
+    parse_branch_issue_number,
+)
 from ai_reviewer.integrations.conversation import (
     BOT_QUESTION_MARKER,
     BotThread,
@@ -38,13 +43,13 @@ from ai_reviewer.utils.retry import (
     NotFoundError,
     RateLimitError,
     ServerError,
+    ValidationError,
     with_retry,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ai_reviewer.integrations.base import ReviewSubmission
     from ai_reviewer.integrations.conversation import BotQuestion
 
 
@@ -54,10 +59,11 @@ logger = logging.getLogger(__name__)
 HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 HTTP_NOT_FOUND = 404
+HTTP_UNPROCESSABLE_ENTITY = 422
 HTTP_INTERNAL_SERVER_ERROR = 500
 
 
-def _convert_github_exception(e: GithubException) -> Exception:
+def _convert_github_exception(e: GithubException) -> Exception:  # noqa: PLR0911
     """Convert PyGithub exception to our exception hierarchy.
 
     Args:
@@ -81,11 +87,42 @@ def _convert_github_exception(e: GithubException) -> Exception:
     if status == HTTP_NOT_FOUND:
         return NotFoundError(f"GitHub: {message}")
 
+    if status == HTTP_UNPROCESSABLE_ENTITY:
+        return ValidationError(f"GitHub: {message}")
+
     if status >= HTTP_INTERNAL_SERVER_ERROR:
         return ServerError(f"GitHub: {message}", status_code=status)
 
     # For other errors, return as-is (will not be retried)
     return e
+
+
+def _build_demoted_summary(submission: ReviewSubmission) -> str:
+    """Build summary text with demoted inline comments appended.
+
+    When inline comments fail (e.g., GitHub 422 "Line could not be
+    resolved"), their content is appended to the review summary so
+    the feedback is not lost.
+
+    Args:
+        submission: The original review submission.
+
+    Returns:
+        Summary text with demoted inline comments.
+    """
+    if not submission.line_comments:
+        return submission.summary
+
+    parts = [submission.summary]
+    parts.append("\n\n---\n")
+    parts.append(
+        "**Note:** The following inline comments could not be posted "
+        "and are included here instead:\n"
+    )
+    for lc in submission.line_comments:
+        body = lc.format_body_with_suggestion()
+        parts.append(f"\n**`{lc.path}:{lc.line}`**\n{body}\n")
+    return "".join(parts)
 
 
 class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
@@ -419,6 +456,7 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
 
             # Get the latest commit SHA (required for creating review comments)
             commit_sha = pr.head.sha
+            commit = repo.get_commit(commit_sha)
 
             # Build review comments for the API
             # PyGithub's create_review expects a list of dicts
@@ -435,12 +473,29 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
             # Create the review
             # event can be: APPROVE, REQUEST_CHANGES, COMMENT
             # Note: PyGithub accepts dicts at runtime but type stubs expect ReviewComment
-            pr.create_review(
-                commit=repo.get_commit(commit_sha),
-                body=submission.summary,
-                event=submission.event,
-                comments=review_comments if review_comments else None,  # type: ignore[arg-type]
-            )
+            try:
+                pr.create_review(
+                    commit=commit,
+                    body=submission.summary,
+                    event=submission.event,
+                    comments=review_comments if review_comments else None,  # type: ignore[arg-type]
+                )
+            except GithubException as review_err:
+                if review_err.status != HTTP_UNPROCESSABLE_ENTITY or not review_comments:
+                    raise
+                # 422 with inline comments: demote to summary-only
+                logger.warning(
+                    "GitHub 422 on inline comments for PR #%s, demoting %d comments to summary",
+                    mr_id,
+                    len(review_comments),
+                )
+                demoted_body = _build_demoted_summary(submission)
+                pr.create_review(
+                    commit=commit,
+                    body=demoted_body,
+                    event=submission.event,
+                    comments=None,  # type: ignore[arg-type]
+                )
 
             logger.info(
                 "Submitted review to PR #%s in %s with %d inline comments",

@@ -19,12 +19,12 @@ from ai_reviewer.core.formatter import (
     format_review_summary,
 )
 from ai_reviewer.core.models import CommentAuthorType, ReviewContext
-from ai_reviewer.integrations.base import LineComment, ReviewSubmission
+from ai_reviewer.integrations.base import LineComment, ReviewSubmission, parse_diff_valid_lines
 from ai_reviewer.integrations.gemini import analyze_code_changes
 
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
-    from ai_reviewer.core.models import CodeIssue, ReviewResult
+    from ai_reviewer.core.models import CodeIssue, FileChange, ReviewResult
     from ai_reviewer.integrations.base import GitProvider
 
 logger = logging.getLogger(__name__)
@@ -33,24 +33,45 @@ logger = logging.getLogger(__name__)
 def _build_review_submission(
     result: ReviewResult,
     language: str | None,
+    changes: tuple[FileChange, ...] = (),
 ) -> ReviewSubmission:
     """Build a ReviewSubmission by partitioning issues into inline and fallback.
 
-    Issues with both file_path and line_number (>= 1) become inline comments.
-    Remaining issues are included in the summary body as fallback.
+    Issues with both file_path and line_number (>= 1) become inline comments,
+    **provided** the line number exists in the diff. Issues whose line is
+    outside the diff are demoted to the summary (fallback) so that the
+    GitHub Review API does not reject them with 422.
 
     Args:
         result: The structured review result from AI analysis.
         language: ISO 639 language code for formatting.
+        changes: File changes from the MR (used for diff-line validation).
+            When empty, validation is skipped (backward compatibility).
 
     Returns:
         ReviewSubmission with summary and inline line comments.
     """
+    # Build valid-line lookup from diff patches
+    valid_lines_by_file: dict[str, frozenset[int]] = {}
+    for change in changes:
+        valid_lines_by_file[change.filename] = parse_diff_valid_lines(change.patch)
+
     inline_issues: list[CodeIssue] = []
     fallback_issues: list[CodeIssue] = []
 
     for issue in result.issues:
         if issue.file_path and issue.line_number and issue.line_number >= 1:
+            # Validate line against diff when change data is available
+            if valid_lines_by_file:
+                file_lines = valid_lines_by_file.get(issue.file_path, frozenset())
+                if issue.line_number not in file_lines:
+                    logger.warning(
+                        "Line %d not in diff for %s, demoting to summary",
+                        issue.line_number,
+                        issue.file_path,
+                    )
+                    fallback_issues.append(issue)
+                    continue
             inline_issues.append(issue)
         else:
             fallback_issues.append(issue)
@@ -131,7 +152,7 @@ def review_pull_request(
 
         # 6. Post results
         if settings.review_post_inline_comments:
-            submission = _build_review_submission(result, result.detected_language)
+            submission = _build_review_submission(result, result.detected_language, mr.changes)
 
             # Duplicate detection: compare summary only
             if last_bot_comment and last_bot_comment.body.strip() == submission.summary.strip():
