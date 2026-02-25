@@ -22,21 +22,29 @@ from ai_reviewer.discovery.models import (
     ReviewGuidance,
     ToolCategory,
 )
+from ai_reviewer.discovery.prompts import (
+    DISCOVERY_SYSTEM_PROMPT,
+    LLMDiscoveryResponse,
+    build_interpretation_prompt,
+)
 from ai_reviewer.discovery.reviewbot_config import (
     generate_reviewbot_md,
     parse_reviewbot_md,
 )
 
 __all__ = [
+    "DISCOVERY_SYSTEM_PROMPT",
     "AutomatedChecks",
     "CIInsights",
     "ConfigContent",
     "DetectedTool",
     "Gap",
+    "LLMDiscoveryResponse",
     "PlatformData",
     "ProjectProfile",
     "ReviewGuidance",
     "ToolCategory",
+    "build_interpretation_prompt",
     "generate_reviewbot_md",
     "parse_reviewbot_md",
 ]
