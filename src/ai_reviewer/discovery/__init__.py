@@ -22,6 +22,10 @@ from ai_reviewer.discovery.models import (
     ReviewGuidance,
     ToolCategory,
 )
+from ai_reviewer.discovery.reviewbot_config import (
+    generate_reviewbot_md,
+    parse_reviewbot_md,
+)
 
 __all__ = [
     "AutomatedChecks",
@@ -33,4 +37,6 @@ __all__ = [
     "ProjectProfile",
     "ReviewGuidance",
     "ToolCategory",
+    "generate_reviewbot_md",
+    "parse_reviewbot_md",
 ]

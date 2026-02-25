@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from github import GithubException, RateLimitExceededException
+from github import GithubException, GithubObject, RateLimitExceededException
 
 from ai_reviewer.core.models import (
     CommentAuthorType,
@@ -466,7 +466,7 @@ class TestGitHubClient:
         client.submit_review("owner/repo", 1, submission)
 
         call_kwargs = mock_pr.create_review.call_args[1]
-        assert call_kwargs["comments"] is None
+        assert call_kwargs["comments"] is GithubObject.NotSet
 
     @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)  # Disable retry for test
     def test_rate_limit_raises_error(self, client: GitHubClient) -> None:
@@ -561,7 +561,7 @@ class TestGitHubClient:
         assert mock_pr.create_review.call_count == 2
         # Second call should have no inline comments
         second_call = mock_pr.create_review.call_args_list[1][1]
-        assert second_call["comments"] is None
+        assert second_call["comments"] is GithubObject.NotSet
         # Summary should contain demoted comment info
         assert "src/main.py:10" in second_call["body"]
         assert "Fix this" in second_call["body"]
