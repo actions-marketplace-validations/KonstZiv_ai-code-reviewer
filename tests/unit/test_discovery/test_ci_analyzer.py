@@ -330,3 +330,43 @@ jobs:
     def test_custom_ci_file_path_for_makefile(self, analyzer: CIPipelineAnalyzer) -> None:
         insights = analyzer.analyze_makefile("", ci_file_path="custom/Makefile")
         assert insights.ci_file_path == "custom/Makefile"
+
+    def test_multiple_coverage_thresholds_returns_max(self, analyzer: CIPipelineAnalyzer) -> None:
+        """When multiple coverage thresholds exist, return the highest."""
+        yaml_content = """
+jobs:
+  test:
+    steps:
+      - run: pytest --cov-fail-under=80
+      - run: pytest tests/critical/ --cov-fail-under=95
+"""
+        insights = analyzer.analyze(yaml_content)
+        assert insights.min_coverage == 95
+
+    def test_python_major_version_only(self, analyzer: CIPipelineAnalyzer) -> None:
+        """Major-only version like python-version: '3' is detected."""
+        yaml_content = """
+jobs:
+  test:
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3'
+      - run: pytest tests/
+"""
+        insights = analyzer.analyze(yaml_content)
+        assert insights.python_version == "3"
+
+    def test_go_major_version_only(self, analyzer: CIPipelineAnalyzer) -> None:
+        """Major-only version like go-version: '1' is detected."""
+        yaml_content = """
+jobs:
+  test:
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1'
+      - run: go test ./...
+"""
+        insights = analyzer.analyze(yaml_content)
+        assert insights.go_version == "1"

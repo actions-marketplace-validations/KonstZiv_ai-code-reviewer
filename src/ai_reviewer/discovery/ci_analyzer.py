@@ -68,9 +68,9 @@ _COMPILED_TOOL_PATTERNS: tuple[tuple[re.Pattern[str], str, ToolCategory], ...] =
 
 _VERSION_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
     "python": (
-        re.compile(r"python-version:\s*['\"]?(\d+\.\d+)"),
-        re.compile(r"python-version:\s*\[.*?['\"](\d+\.\d+)['\"]"),
-        re.compile(r"python:(\d+\.\d+)"),
+        re.compile(r"python-version:\s*['\"]?(\d+(?:\.\d+)*)"),
+        re.compile(r"python-version:\s*\[.*?['\"](\d+(?:\.\d+)*)['\"]"),
+        re.compile(r"python:(\d+(?:\.\d+)*)"),
     ),
     "node": (
         re.compile(r"node-version:\s*['\"]?(\d+)"),
@@ -78,9 +78,9 @@ _VERSION_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
         re.compile(r"node:(\d+)"),
     ),
     "go": (
-        re.compile(r"go-version:\s*['\"]?(\d+\.\d+)"),
-        re.compile(r"go-version:\s*\[.*?['\"](\d+\.\d+)['\"]"),
-        re.compile(r"golang:(\d+\.\d+)"),
+        re.compile(r"go-version:\s*['\"]?(\d+(?:\.\d+)*)"),
+        re.compile(r"go-version:\s*\[.*?['\"](\d+(?:\.\d+)*)['\"]"),
+        re.compile(r"golang:(\d+(?:\.\d+)*)"),
     ),
 }
 
@@ -431,13 +431,13 @@ def _detect_coverage_threshold(commands: list[str]) -> int | None:
         Coverage threshold as integer (0-100), or None.
     """
     joined = "\n".join(commands)
+    thresholds: list[int] = []
     for pattern in _COVERAGE_PATTERNS:
-        match = pattern.search(joined)
-        if match:
+        for match in pattern.finditer(joined):
             value = int(match.group(1))
             if 0 <= value <= 100:  # noqa: PLR2004
-                return value
-    return None
+                thresholds.append(value)
+    return max(thresholds) if thresholds else None
 
 
 __all__ = ["CIPipelineAnalyzer"]
