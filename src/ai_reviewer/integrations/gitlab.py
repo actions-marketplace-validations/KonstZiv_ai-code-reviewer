@@ -27,7 +27,7 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.integrations.base import GitProvider, _parse_branch_issue_number
 from ai_reviewer.integrations.conversation import (
     BOT_QUESTION_MARKER,
     BotThread,
@@ -264,48 +264,96 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
             updated_at=mr.updated_at,
         )
 
-    def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
-        """Attempt to find a linked issue for the MR.
+    def get_linked_tasks(
+        self,
+        repo_name: str,
+        mr_id: int,
+        source_branch: str,
+    ) -> tuple[LinkedTask, ...]:
+        """Find linked tasks via closes_issues API, regex, and branch name.
 
-        Looks for patterns like "Closes #123" or "Fixes #123" in the MR description.
-        If found, fetches the issue details from GitLab.
+        Combines three strategies (each fail-open):
+        1. GitLab's ``closes_issues()`` API endpoint.
+        2. Regex fallback for closing keywords in the MR description.
+        3. Branch name convention (e.g. ``86-task-description``).
 
-        Note: This method does NOT use retry as linked task is optional.
-        Failure to fetch linked task should not block the review.
+        Note: This method does NOT use ``@with_retry`` as linked tasks
+        are optional. Failure should not block the review.
 
         Args:
             repo_name: Project path (e.g., 'owner/repo').
-            mr: The MergeRequest object to check.
+            mr_id: Merge request IID.
+            source_branch: Source branch name.
 
         Returns:
-            LinkedTask if found, None otherwise.
+            Tuple of LinkedTask objects (deduplicated by issue IID).
         """
-        if not mr.description:
-            return None
-
-        # GitLab keywords for closing issues
-        # https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically
-        pattern = r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)"
-        match = re.search(pattern, mr.description, re.IGNORECASE)
-
-        if not match:
-            return None
-
-        issue_number = int(match.group(1))
+        tasks: list[LinkedTask] = []
+        seen_ids: set[int] = set()
 
         try:
             project = self.gitlab.projects.get(repo_name)
-            issue = project.issues.get(issue_number)
+            mr = project.mergerequests.get(mr_id)
 
-            return LinkedTask(
-                identifier=str(issue.iid),
-                title=issue.title,
-                description=issue.description or "",
-                url=issue.web_url,
-            )
+            # Strategy 1: GitLab closes_issues API
+            try:
+                for issue in mr.closes_issues():
+                    iid = issue.iid
+                    if iid not in seen_ids:
+                        seen_ids.add(iid)
+                        tasks.append(
+                            LinkedTask(
+                                identifier=str(iid),
+                                title=issue.title,
+                                description=issue.description or "",
+                                url=issue.web_url,
+                            )
+                        )
+            except GitlabError:
+                logger.debug("closes_issues() unavailable for MR !%s", mr_id)
+
+            # Strategy 2: Regex fallback in description
+            description = mr.description or ""
+            pattern = r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)"
+            for match in re.finditer(pattern, description, re.IGNORECASE):
+                issue_number = int(match.group(1))
+                if issue_number in seen_ids:
+                    continue
+                seen_ids.add(issue_number)
+                try:
+                    issue = project.issues.get(issue_number)
+                    tasks.append(
+                        LinkedTask(
+                            identifier=str(issue.iid),
+                            title=issue.title,
+                            description=issue.description or "",
+                            url=issue.web_url,
+                        )
+                    )
+                except GitlabError:
+                    logger.warning("Failed to fetch issue #%s", issue_number)
+
+            # Strategy 3: Branch name convention
+            branch_issue = _parse_branch_issue_number(source_branch)
+            if branch_issue and branch_issue not in seen_ids:
+                try:
+                    issue = project.issues.get(branch_issue)
+                    seen_ids.add(branch_issue)
+                    tasks.append(
+                        LinkedTask(
+                            identifier=str(issue.iid),
+                            title=issue.title,
+                            description=issue.description or "",
+                            url=issue.web_url,
+                        )
+                    )
+                except GitlabError:
+                    logger.debug("Branch issue #%s not found", branch_issue)
+
         except GitlabError as e:
-            logger.warning("Found issue link #%s but failed to fetch it: %s", issue_number, e)
-            return None
+            logger.warning("Failed task search for MR !%s: %s", mr_id, e)
+
+        return tuple(tasks)
 
     @with_retry
     def post_comment(self, repo_name: str, mr_id: int, body: str) -> None:
@@ -683,75 +731,3 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
             return tuple(threads)
         except GitlabError as e:
             raise _convert_gitlab_exception(e) from e
-
-    def get_linked_tasks_deep(
-        self,
-        repo_name: str,
-        mr_id: int,
-    ) -> tuple[LinkedTask, ...]:
-        """Deep search for linked tasks via closes_issues API and regex.
-
-        Combines two strategies:
-        1. GitLab's ``closes_issues()`` API endpoint.
-        2. Regex fallback for closing keywords in the MR description.
-
-        Note:
-            This method does NOT use ``@with_retry`` as linked tasks are
-            optional. Failure should not block the review.
-
-        Args:
-            repo_name: Project path (e.g., 'owner/repo').
-            mr_id: Merge request IID.
-
-        Returns:
-            Tuple of LinkedTask objects (deduplicated by issue IID).
-        """
-        tasks: list[LinkedTask] = []
-        seen_ids: set[int] = set()
-
-        try:
-            project = self.gitlab.projects.get(repo_name)
-            mr = project.mergerequests.get(mr_id)
-
-            # 1. GitLab closes_issues API
-            try:
-                for issue in mr.closes_issues():
-                    iid = issue.iid
-                    if iid not in seen_ids:
-                        seen_ids.add(iid)
-                        tasks.append(
-                            LinkedTask(
-                                identifier=str(iid),
-                                title=issue.title,
-                                description=issue.description or "",
-                                url=issue.web_url,
-                            )
-                        )
-            except GitlabError:
-                logger.debug("closes_issues() unavailable for MR !%s", mr_id)
-
-            # 2. Regex fallback in description
-            description = mr.description or ""
-            pattern = r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)"
-            for match in re.finditer(pattern, description, re.IGNORECASE):
-                issue_number = int(match.group(1))
-                if issue_number in seen_ids:
-                    continue
-                seen_ids.add(issue_number)
-                try:
-                    issue = project.issues.get(issue_number)
-                    tasks.append(
-                        LinkedTask(
-                            identifier=str(issue.iid),
-                            title=issue.title,
-                            description=issue.description or "",
-                            url=issue.web_url,
-                        )
-                    )
-                except GitlabError:
-                    logger.warning("Failed to fetch issue #%s", issue_number)
-
-        except GitlabError as e:
-            logger.warning("Failed deep task search for MR !%s: %s", mr_id, e)
-
-        return tuple(tasks)

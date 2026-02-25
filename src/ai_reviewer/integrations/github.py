@@ -23,7 +23,7 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.integrations.base import GitProvider, _parse_branch_issue_number
 from ai_reviewer.integrations.conversation import (
     BOT_QUESTION_MARKER,
     BotThread,
@@ -237,48 +237,106 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
             updated_at=pr.updated_at,
         )
 
-    def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
-        """Attempt to find a linked task/issue for the PR.
+    def get_linked_tasks(  # noqa: PLR0912
+        self,
+        repo_name: str,
+        mr_id: int,
+        source_branch: str,
+    ) -> tuple[LinkedTask, ...]:
+        """Find linked tasks via regex, timeline events, and branch name.
 
-        Looks for patterns like "Fixes #123" or "Closes #123" in the PR description.
-        If found, fetches the issue details from GitHub.
+        Combines three strategies (each fail-open):
+        1. Regex matching of closing keywords in the PR description.
+        2. GitHub timeline events (cross-referenced, connected).
+        3. Branch name convention (e.g. ``86-task-description``).
 
-        Note: This method does NOT use retry as linked task is optional.
-        Failure to fetch linked task should not block the review.
+        Note: This method does NOT use ``@with_retry`` as linked tasks
+        are optional. Failure should not block the review.
 
         Args:
             repo_name: Repository name in 'owner/repo' format.
-            mr: The MergeRequest object to check.
+            mr_id: Pull request number.
+            source_branch: Source branch name.
 
         Returns:
-            LinkedTask if found, None otherwise.
+            Tuple of LinkedTask objects (deduplicated by issue number).
         """
-        if not mr.description:
-            return None
-
-        # Common GitHub keywords for closing issues
-        # https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue
-        pattern = r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)"
-        match = re.search(pattern, mr.description, re.IGNORECASE)
-
-        if not match:
-            return None
-
-        issue_number = int(match.group(1))
+        tasks: list[LinkedTask] = []
+        seen_ids: set[int] = set()
 
         try:
             repo = self.github.get_repo(repo_name)
-            issue = repo.get_issue(issue_number)
+            pr = repo.get_pull(mr_id)
 
-            return LinkedTask(
-                identifier=str(issue.number),
-                title=issue.title,
-                description=issue.body or "",
-                url=issue.html_url,
-            )
+            # Strategy 1: Regex in description
+            if pr.body:
+                for match in self._CLOSING_PATTERN.finditer(pr.body):
+                    issue_number = int(match.group(1))
+                    if issue_number in seen_ids:
+                        continue
+                    seen_ids.add(issue_number)
+                    try:
+                        issue = repo.get_issue(issue_number)
+                        tasks.append(
+                            LinkedTask(
+                                identifier=str(issue.number),
+                                title=issue.title,
+                                description=issue.body or "",
+                                url=issue.html_url,
+                            )
+                        )
+                    except (GithubException, RateLimitExceededException):
+                        logger.warning("Failed to fetch issue #%s", issue_number)
+
+            # Strategy 2: Timeline events
+            try:
+                for event in pr.as_issue().get_timeline():
+                    if getattr(event, "event", None) not in (
+                        "cross-referenced",
+                        "connected",
+                    ):
+                        continue
+                    source = getattr(event, "source", None)
+                    if not source:
+                        continue
+                    issue_data = source.get("issue") if isinstance(source, dict) else None
+                    if not issue_data:
+                        continue
+                    issue_number = issue_data.get("number")
+                    if issue_number and issue_number not in seen_ids:
+                        seen_ids.add(issue_number)
+                        tasks.append(
+                            LinkedTask(
+                                identifier=str(issue_number),
+                                title=issue_data.get("title", ""),
+                                description=issue_data.get("body") or "",
+                                url=issue_data.get("html_url", ""),
+                            )
+                        )
+            except (GithubException, RateLimitExceededException):
+                logger.debug("Timeline API unavailable for PR #%s", mr_id)
+
+            # Strategy 3: Branch name convention
+            branch_issue = _parse_branch_issue_number(source_branch)
+            if branch_issue and branch_issue not in seen_ids:
+                try:
+                    issue = repo.get_issue(branch_issue)
+                    seen_ids.add(branch_issue)
+                    tasks.append(
+                        LinkedTask(
+                            identifier=str(issue.number),
+                            title=issue.title,
+                            description=issue.body or "",
+                            url=issue.html_url,
+                        )
+                    )
+                except (GithubException, RateLimitExceededException):
+                    logger.debug("Branch issue #%s not found", branch_issue)
+
         except (GithubException, RateLimitExceededException) as e:
-            logger.warning("Found issue link #%s but failed to fetch it: %s", issue_number, e)
-            return None
+            logger.warning("Failed task search for PR #%s: %s", mr_id, e)
+
+        return tuple(tasks)
 
     @with_retry
     def post_comment(self, repo_name: str, mr_id: int, body: str) -> None:
@@ -668,88 +726,6 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
             raise RateLimitError(msg) from e
         except GithubException as e:
             raise _convert_github_exception(e) from e
-
-    def get_linked_tasks_deep(
-        self,
-        repo_name: str,
-        mr_id: int,
-    ) -> tuple[LinkedTask, ...]:
-        """Deep search for linked tasks via regex and timeline events.
-
-        Combines two strategies:
-        1. Regex matching of closing keywords in the PR description.
-        2. GitHub timeline events (cross-referenced, connected).
-
-        Note:
-            This method does NOT use ``@with_retry`` as linked tasks are
-            optional. Failure should not block the review.
-
-        Args:
-            repo_name: Repository name in 'owner/repo' format.
-            mr_id: Pull request number.
-
-        Returns:
-            Tuple of LinkedTask objects (deduplicated by issue number).
-        """
-        tasks: list[LinkedTask] = []
-        seen_ids: set[int] = set()
-
-        try:
-            repo = self.github.get_repo(repo_name)
-            pr = repo.get_pull(mr_id)
-
-            # 1. Regex in description
-            if pr.body:
-                for match in self._CLOSING_PATTERN.finditer(pr.body):
-                    issue_number = int(match.group(1))
-                    if issue_number in seen_ids:
-                        continue
-                    seen_ids.add(issue_number)
-                    try:
-                        issue = repo.get_issue(issue_number)
-                        tasks.append(
-                            LinkedTask(
-                                identifier=str(issue.number),
-                                title=issue.title,
-                                description=issue.body or "",
-                                url=issue.html_url,
-                            )
-                        )
-                    except (GithubException, RateLimitExceededException):
-                        logger.warning("Failed to fetch issue #%s", issue_number)
-
-            # 2. Timeline events
-            try:
-                for event in pr.as_issue().get_timeline():
-                    if getattr(event, "event", None) not in (
-                        "cross-referenced",
-                        "connected",
-                    ):
-                        continue
-                    source = getattr(event, "source", None)
-                    if not source:
-                        continue
-                    issue_data = source.get("issue") if isinstance(source, dict) else None
-                    if not issue_data:
-                        continue
-                    issue_number = issue_data.get("number")
-                    if issue_number and issue_number not in seen_ids:
-                        seen_ids.add(issue_number)
-                        tasks.append(
-                            LinkedTask(
-                                identifier=str(issue_number),
-                                title=issue_data.get("title", ""),
-                                description=issue_data.get("body") or "",
-                                url=issue_data.get("html_url", ""),
-                            )
-                        )
-            except (GithubException, RateLimitExceededException):
-                logger.debug("Timeline API unavailable for PR #%s", mr_id)
-
-        except (GithubException, RateLimitExceededException) as e:
-            logger.warning("Failed deep task search for PR #%s: %s", mr_id, e)
-
-        return tuple(tasks)
 
     # Backward compatibility alias
     def post_review_comment(self, repo_name: str, pr_number: int, comment: str) -> None:

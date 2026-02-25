@@ -6,6 +6,7 @@ from ai_reviewer.integrations.base import (
     GitProvider,
     LineComment,
     ReviewSubmission,
+    _parse_branch_issue_number,
 )
 
 
@@ -163,8 +164,10 @@ class TestGitProvider:
             def get_merge_request(self, repo_name: str, mr_id: int) -> MergeRequest | None:
                 return None
 
-            def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
-                return None
+            def get_linked_tasks(
+                self, repo_name: str, mr_id: int, source_branch: str
+            ) -> tuple[LinkedTask, ...]:
+                return ()
 
             def post_comment(self, repo_name: str, mr_id: int, body: str) -> None:
                 pass
@@ -176,3 +179,35 @@ class TestGitProvider:
 
         provider = MockProvider()
         assert isinstance(provider, GitProvider)
+
+
+class TestParseBranchIssueNumber:
+    """Tests for _parse_branch_issue_number helper."""
+
+    def test_plain_number_prefix(self) -> None:
+        """Test branch like '86-task-22-ci'."""
+        assert _parse_branch_issue_number("86-task-22-ci") == 86
+
+    def test_feature_prefix(self) -> None:
+        """Test branch like 'feature/123-login'."""
+        assert _parse_branch_issue_number("feature/123-login") == 123
+
+    def test_gh_prefix(self) -> None:
+        """Test branch like 'GH-789-refactor'."""
+        assert _parse_branch_issue_number("GH-789-refactor") == 789
+
+    def test_underscore_separator(self) -> None:
+        """Test branch like '42_fix_bug'."""
+        assert _parse_branch_issue_number("42_fix_bug") == 42
+
+    def test_plain_branch_returns_none(self) -> None:
+        """Test branch like 'main' returns None."""
+        assert _parse_branch_issue_number("main") is None
+
+    def test_no_number_returns_none(self) -> None:
+        """Test branch like 'no-number' returns None."""
+        assert _parse_branch_issue_number("no-number") is None
+
+    def test_number_in_middle_returns_none(self) -> None:
+        """Test branch like 'feature-add-42' (number not at start)."""
+        assert _parse_branch_issue_number("feature-add-42") is None

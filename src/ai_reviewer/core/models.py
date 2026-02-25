@@ -205,19 +205,19 @@ class LinkedTask(BaseModel):
 class ReviewContext(BaseModel):
     """Context for performing a code review.
 
-    Combines the merge request data with an optional linked task
+    Combines the merge request data with linked tasks
     to provide full context for the AI reviewer.
 
     Attributes:
         mr: The merge request to review.
-        task: The linked task (if any).
+        tasks: Linked tasks discovered via all strategies.
         repository: Repository name in owner/repo format.
     """
 
     model_config = ConfigDict(frozen=True)
 
     mr: MergeRequest = Field(..., description="The merge request to review")
-    task: LinkedTask | None = Field(default=None, description="Linked task if available")
+    tasks: tuple[LinkedTask, ...] = Field(default=(), description="Linked tasks")
     repository: str = Field(..., min_length=1, description="Repository name (owner/repo)")
 
     @field_validator("repository")
@@ -234,9 +234,9 @@ class ReviewContext(BaseModel):
         return v
 
     @property
-    def has_linked_task(self) -> bool:
-        """Check if a task is linked to this review context."""
-        return self.task is not None
+    def has_linked_tasks(self) -> bool:
+        """Check if any tasks are linked to this review context."""
+        return bool(self.tasks)
 
 
 class IssueSeverity(str, Enum):

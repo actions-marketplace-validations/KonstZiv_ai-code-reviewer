@@ -9,12 +9,34 @@ enabling the reviewer to work with any supported Git provider.
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ai_reviewer.core.models import LinkedTask, MergeRequest
+
+
+_BRANCH_ISSUE_RE = re.compile(r"^(?:\w+/)?(?:GH-)?(\d+)[-_]")
+
+
+def _parse_branch_issue_number(branch: str) -> int | None:
+    """Extract issue number from a branch name convention.
+
+    Supports formats like:
+    - ``86-task-description``
+    - ``feature/123-login``
+    - ``GH-789-refactor``
+
+    Args:
+        branch: Source branch name.
+
+    Returns:
+        Issue number if found, None otherwise.
+    """
+    m = _BRANCH_ISSUE_RE.match(branch)
+    return int(m.group(1)) if m else None
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +110,7 @@ class GitProvider(ABC):
 
     Each method represents a distinct capability:
     - get_merge_request: Fetch PR/MR metadata and changes
-    - get_linked_task: Find associated issues/tasks
+    - get_linked_tasks: Find associated issues/tasks via multiple strategies
     - post_comment: Post general comments (Issue Comments on GitHub)
     - submit_review: Submit review with inline comments (PR Review API on GitHub)
     """
@@ -109,18 +131,26 @@ class GitProvider(ABC):
         """
 
     @abstractmethod
-    def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
-        """Find a linked task/issue for the merge request.
+    def get_linked_tasks(
+        self,
+        repo_name: str,
+        mr_id: int,
+        source_branch: str,
+    ) -> tuple[LinkedTask, ...]:
+        """Find linked tasks/issues for the merge request.
 
-        Searches the MR description for issue references and fetches
-        the linked issue details.
+        Combines multiple discovery strategies (regex, platform API,
+        branch name convention) and returns deduplicated results.
+
+        Each strategy is fail-open: if one fails, the others continue.
 
         Args:
             repo_name: Repository identifier.
-            mr: The MergeRequest to search for linked tasks.
+            mr_id: Merge/Pull request number.
+            source_branch: Source branch name for branch-name strategy.
 
         Returns:
-            LinkedTask if found, None otherwise.
+            Tuple of LinkedTask objects (deduplicated).
         """
 
     @abstractmethod
@@ -176,4 +206,5 @@ __all__ = [
     "GitProvider",
     "LineComment",
     "ReviewSubmission",
+    "_parse_branch_issue_number",
 ]

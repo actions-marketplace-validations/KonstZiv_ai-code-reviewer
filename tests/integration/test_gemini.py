@@ -129,7 +129,7 @@ class TestAnalyzeCodeChanges:
 
         context = Mock(spec=ReviewContext)
         context.mr = mr
-        context.task = None
+        context.tasks = ()
         return context
 
     @patch("ai_reviewer.integrations.gemini.GeminiProvider")

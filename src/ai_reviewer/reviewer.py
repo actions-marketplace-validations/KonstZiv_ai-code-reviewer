@@ -105,15 +105,19 @@ def review_pull_request(
 
         logger.info("Fetched MR: %s", mr.title)
 
-        # 2. Get linked task
-        task = provider.get_linked_task(repo_name, mr)
-        if task:
-            logger.info("Found linked task: %s", task.identifier)
+        # 2. Get linked tasks (multi-strategy discovery)
+        tasks = provider.get_linked_tasks(repo_name, mr.number, mr.source_branch)
+        if tasks:
+            logger.info(
+                "Found %d linked task(s): %s",
+                len(tasks),
+                ", ".join(t.identifier for t in tasks),
+            )
         else:
-            logger.info("No linked task found")
+            logger.info("No linked tasks found")
 
         # 3. Build context
-        context = ReviewContext(mr=mr, task=task, repository=repo_name)
+        context = ReviewContext(mr=mr, tasks=tasks, repository=repo_name)
 
         # 4. Analyze with AI
         result = analyze_code_changes(context, settings)
