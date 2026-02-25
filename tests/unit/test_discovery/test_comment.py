@@ -178,6 +178,81 @@ class TestFormatDiscoveryComment:
         result = format_discovery_comment(profile, language="uk")
         assert "россиянин" not in result
 
+    def test_no_disclaimer_when_language_none(self) -> None:
+        """Test that no disclaimer when language is None (default)."""
+        profile = _make_profile()
+        result = format_discovery_comment(profile)
+        assert "россиянин" not in result
+
+    def test_russian_iso639_3_code(self) -> None:
+        """Test that ISO 639-3 'rus' code also triggers Russian disclaimer."""
+        profile = _make_profile()
+        result = format_discovery_comment(profile, language="rus")
+        assert "россиянин" in result
+
+    def test_gap_without_question(self) -> None:
+        """Test gap rendering when question is None."""
+        profile = _make_profile(
+            gaps=(Gap(observation="No security scanner", default_assumption="None"),),
+        )
+        result = format_discovery_comment(profile)
+        assert "- No security scanner" in result
+        assert "*Question:*" not in result
+        assert "  *Assumption:* None" in result
+
+    def test_multiple_mixed_gaps(self) -> None:
+        """Test rendering of multiple gaps with and without questions."""
+        profile = _make_profile(
+            gaps=(
+                Gap(
+                    observation="No test framework",
+                    question="What test runner do you use?",
+                    default_assumption="No tests",
+                ),
+                Gap(
+                    observation="No SAST tool",
+                    default_assumption="No security scanning",
+                ),
+            ),
+        )
+        result = format_discovery_comment(profile)
+        assert "- No test framework" in result
+        assert "  *Question:* What test runner do you use?" in result
+        assert "- No SAST tool" in result
+        # Second gap has no question
+        lines = result.split("\n")
+        sast_idx = next(i for i, line in enumerate(lines) if "No SAST tool" in line)
+        # Next line should be assumption, not question
+        assert "*Assumption:*" in lines[sast_idx + 1]
+
+    def test_full_profile_all_sections(self) -> None:
+        """Test that a full profile renders all sections in order."""
+        profile = _make_profile(
+            framework="FastAPI",
+            language_version="3.12",
+            package_manager="uv",
+            ci_tools=(
+                DetectedTool(name="ruff", category=ToolCategory.LINTING),
+                DetectedTool(name="pytest", category=ToolCategory.TESTING),
+            ),
+            ci_provider="GitHub Actions",
+            skip=("Code style (CI handles)",),
+            focus=("Security vulnerabilities",),
+            gaps=(Gap(observation="No security scanner", default_assumption="None"),),
+        )
+        result = format_discovery_comment(profile)
+
+        # Verify ordering: heading → stack → CI → skip → focus → gaps → footer
+        heading_pos = result.index(DISCOVERY_COMMENT_HEADING)
+        stack_pos = result.index("**Stack:**")
+        ci_pos = result.index("**CI:**")
+        skip_pos = result.index("I'll skip")
+        focus_pos = result.index("I'll focus")
+        gaps_pos = result.index("Questions / Gaps")
+        footer_pos = result.index(".reviewbot.md")
+
+        assert heading_pos < stack_pos < ci_pos < skip_pos < focus_pos < gaps_pos < footer_pos
+
 
 # ── TestShouldPostDiscoveryComment ───────────────────────────────────
 
@@ -217,5 +292,38 @@ class TestShouldPostDiscoveryComment:
         profile = _make_profile(
             file_tree=("src/main.py", ".reviewbot.md"),
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        assert should_post_discovery_comment(profile) is False
+
+    def test_multiple_existing_comments_none_duplicate(self) -> None:
+        """Test posting when multiple existing comments but none is duplicate."""
+        profile = _make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        existing = (
+            "## Review\nFirst review",
+            "LGTM",
+            "Please fix the tests",
+        )
+        assert should_post_discovery_comment(profile, existing) is True
+
+    def test_duplicate_detected_among_many(self) -> None:
+        """Test that duplicate is detected even among many comments."""
+        profile = _make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        existing = (
+            "## Review\nFirst review",
+            f"old stuff\n{DISCOVERY_COMMENT_HEADING}\nold discovery",
+            "LGTM",
+        )
+        assert should_post_discovery_comment(profile, existing) is False
+
+    def test_reviewbot_md_check_before_gaps_check(self) -> None:
+        """Test that .reviewbot.md check takes priority over gaps check."""
+        # Profile has gaps but also .reviewbot.md — should NOT post
+        profile = _make_profile(
+            file_tree=(".reviewbot.md",),
+            gaps=(Gap(observation="Gap", default_assumption="Assumption"),),
         )
         assert should_post_discovery_comment(profile) is False

@@ -19,6 +19,12 @@ from ai_reviewer.core.models import (
     ReviewResult,
     TaskAlignmentStatus,
 )
+from ai_reviewer.discovery.comment import DISCOVERY_COMMENT_HEADING
+from ai_reviewer.discovery.models import (
+    Gap,
+    PlatformData,
+    ProjectProfile,
+)
 from ai_reviewer.integrations.base import GitProvider
 from ai_reviewer.reviewer import review_pull_request
 
@@ -255,3 +261,207 @@ class TestReviewFlow:
         # Verify no further calls
         mock_provider.get_linked_tasks.assert_not_called()
         mock_provider.post_comment.assert_not_called()
+
+
+# ── Helpers ──────────────────────────────────────────────────────────
+
+
+def _make_profile(**kw: object) -> ProjectProfile:
+    """Build a ProjectProfile with sensible defaults."""
+    return ProjectProfile(
+        platform_data=PlatformData(
+            languages={"Python": 100.0},
+            primary_language="Python",
+            file_tree=kw.pop("file_tree", ("src/main.py",)),
+        ),
+        gaps=kw.pop("gaps", ()),
+    )
+
+
+# ── TestDiscoveryIntegration ────────────────────────────────────────
+
+
+class TestDiscoveryIntegration:
+    """E2E tests for review_pull_request with discovery_enabled=True."""
+
+    @pytest.fixture
+    def mock_settings(self) -> Settings:
+        """Create mock settings with discovery enabled."""
+        settings = Mock(spec=Settings)
+        settings.github_token = SecretStr("gh-token")
+        settings.google_api_key = SecretStr("ai-key")
+        settings.gemini_model = "gemini-pro"
+        settings.gemini_model_fallback = "gemini-2.5-flash"
+        settings.review_max_files = 5
+        settings.review_max_diff_lines = 10
+        settings.review_max_comment_chars = 3000
+        settings.review_include_bot_comments = True
+        settings.review_enable_dialogue = True
+        settings.review_post_inline_comments = True
+        settings.discovery_enabled = True
+        settings.language_mode = LanguageMode.FIXED
+        settings.language = "en"
+        return settings
+
+    @pytest.fixture
+    def mock_mr(self) -> MergeRequest:
+        """Create a mock MergeRequest."""
+        return MergeRequest(
+            number=1,
+            title="Test PR",
+            description="Fixes #123",
+            author="dev",
+            source_branch="feat",
+            target_branch="main",
+            comments=(),
+            changes=(),
+        )
+
+    @pytest.fixture
+    def mock_provider(self) -> MagicMock:
+        """Create a mock GitProvider."""
+        return MagicMock(spec=GitProvider)
+
+    @patch("ai_reviewer.reviewer.analyze_code_changes")
+    @patch("ai_reviewer.reviewer._run_discovery")
+    def test_discovery_success_posts_comment_then_review(
+        self,
+        mock_run_discovery: MagicMock,
+        mock_analyze: MagicMock,
+        mock_provider: MagicMock,
+        mock_mr: MergeRequest,
+        mock_settings: Settings,
+    ) -> None:
+        """Test full flow: discovery succeeds with gaps → posts discovery comment + review."""
+        profile = _make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        mock_run_discovery.return_value = profile
+        mock_provider.get_merge_request.return_value = mock_mr
+        mock_provider.get_linked_tasks.return_value = ()
+        mock_analyze.return_value = ReviewResult(summary="LGTM")
+
+        review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
+
+        # Discovery comment posted via post_comment
+        mock_provider.post_comment.assert_called_once()
+        comment_body = mock_provider.post_comment.call_args[0][2]
+        assert DISCOVERY_COMMENT_HEADING in comment_body
+
+        # Review submitted via submit_review
+        mock_provider.submit_review.assert_called_once()
+
+    @patch("ai_reviewer.reviewer.analyze_code_changes")
+    @patch("ai_reviewer.reviewer._run_discovery")
+    def test_discovery_failure_still_completes_review(
+        self,
+        mock_run_discovery: MagicMock,
+        mock_analyze: MagicMock,
+        mock_provider: MagicMock,
+        mock_mr: MergeRequest,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that discovery failure (returns None) does not block review."""
+        mock_run_discovery.return_value = None
+        mock_provider.get_merge_request.return_value = mock_mr
+        mock_provider.get_linked_tasks.return_value = ()
+        mock_analyze.return_value = ReviewResult(summary="LGTM")
+
+        review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
+
+        # No discovery comment posted
+        mock_provider.post_comment.assert_not_called()
+        # Review still submitted
+        mock_provider.submit_review.assert_called_once()
+
+    @patch("ai_reviewer.reviewer.analyze_code_changes")
+    @patch("ai_reviewer.reviewer._run_discovery")
+    def test_discovery_no_gaps_skips_comment(
+        self,
+        mock_run_discovery: MagicMock,
+        mock_analyze: MagicMock,
+        mock_provider: MagicMock,
+        mock_mr: MergeRequest,
+        mock_settings: Settings,
+    ) -> None:
+        """Test silent mode: discovery succeeds but no gaps → no discovery comment."""
+        profile = _make_profile(gaps=())  # No gaps
+        mock_run_discovery.return_value = profile
+        mock_provider.get_merge_request.return_value = mock_mr
+        mock_provider.get_linked_tasks.return_value = ()
+        mock_analyze.return_value = ReviewResult(summary="LGTM")
+
+        review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
+
+        # No discovery comment (silent mode)
+        mock_provider.post_comment.assert_not_called()
+        # Review still submitted
+        mock_provider.submit_review.assert_called_once()
+
+    @patch("ai_reviewer.reviewer.analyze_code_changes")
+    @patch("ai_reviewer.reviewer._run_discovery")
+    def test_discovery_duplicate_comment_not_posted(
+        self,
+        mock_run_discovery: MagicMock,
+        mock_analyze: MagicMock,
+        mock_provider: MagicMock,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that duplicate discovery comment is not posted."""
+        profile = _make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        mock_run_discovery.return_value = profile
+
+        # MR already has a discovery comment
+        existing_comment = Comment(
+            author="bot",
+            author_type=CommentAuthorType.BOT,
+            body=f"{DISCOVERY_COMMENT_HEADING}\nold content",
+            type=CommentType.ISSUE,
+        )
+        mr = MergeRequest(
+            number=1,
+            title="Test PR",
+            author="dev",
+            source_branch="feat",
+            target_branch="main",
+            comments=(existing_comment,),
+            changes=(),
+        )
+        mock_provider.get_merge_request.return_value = mr
+        mock_provider.get_linked_tasks.return_value = ()
+        mock_analyze.return_value = ReviewResult(summary="LGTM")
+
+        review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
+
+        # No discovery comment posted (duplicate)
+        mock_provider.post_comment.assert_not_called()
+        # Review still submitted
+        mock_provider.submit_review.assert_called_once()
+
+    @patch("ai_reviewer.reviewer.analyze_code_changes")
+    @patch("ai_reviewer.reviewer._run_discovery")
+    def test_discovery_with_language_ru(
+        self,
+        mock_run_discovery: MagicMock,
+        mock_analyze: MagicMock,
+        mock_provider: MagicMock,
+        mock_mr: MergeRequest,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that Russian language adds disclaimer to discovery comment."""
+        mock_settings.language = "ru"
+        profile = _make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        mock_run_discovery.return_value = profile
+        mock_provider.get_merge_request.return_value = mock_mr
+        mock_provider.get_linked_tasks.return_value = ()
+        mock_analyze.return_value = ReviewResult(summary="LGTM")
+
+        review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
+
+        # Discovery comment should include Russian disclaimer
+        comment_body = mock_provider.post_comment.call_args[0][2]
+        assert "россиянин" in comment_body
