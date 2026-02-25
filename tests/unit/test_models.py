@@ -388,21 +388,30 @@ class TestReviewContext:
         """Create a sample task for testing."""
         return LinkedTask(identifier="123", title="Test task")
 
-    def test_create_context_without_task(self, sample_mr: MergeRequest) -> None:
-        """Test creating context without linked task."""
+    def test_create_context_without_tasks(self, sample_mr: MergeRequest) -> None:
+        """Test creating context without linked tasks."""
         context = ReviewContext(mr=sample_mr, repository="owner/repo")
         assert context.mr == sample_mr
-        assert context.task is None
+        assert context.tasks == ()
         assert context.repository == "owner/repo"
-        assert context.has_linked_task is False
+        assert context.has_linked_tasks is False
 
-    def test_create_context_with_task(
+    def test_create_context_with_tasks(
         self, sample_mr: MergeRequest, sample_task: LinkedTask
     ) -> None:
-        """Test creating context with linked task."""
-        context = ReviewContext(mr=sample_mr, task=sample_task, repository="owner/repo")
-        assert context.task == sample_task
-        assert context.has_linked_task is True
+        """Test creating context with linked tasks."""
+        context = ReviewContext(mr=sample_mr, tasks=(sample_task,), repository="owner/repo")
+        assert context.tasks == (sample_task,)
+        assert context.has_linked_tasks is True
+
+    def test_create_context_with_multiple_tasks(
+        self, sample_mr: MergeRequest, sample_task: LinkedTask
+    ) -> None:
+        """Test creating context with multiple linked tasks."""
+        task2 = LinkedTask(identifier="456", title="Second task")
+        context = ReviewContext(mr=sample_mr, tasks=(sample_task, task2), repository="owner/repo")
+        assert len(context.tasks) == 2
+        assert context.has_linked_tasks is True
 
     def test_repository_format_valid(self, sample_mr: MergeRequest) -> None:
         """Test that valid repository formats are accepted."""
@@ -779,6 +788,19 @@ class TestReviewMetrics:
         metrics = ReviewMetrics(model_name="gemini-2.5-flash")
         with pytest.raises(ValidationError):
             metrics.model_name = "other-model"  # type: ignore[misc]
+
+    def test_fallback_reason_default_none(self) -> None:
+        """Test fallback_reason is None by default."""
+        metrics = ReviewMetrics(model_name="gemini-2.5-flash")
+        assert metrics.fallback_reason is None
+
+    def test_fallback_reason_set(self) -> None:
+        """Test fallback_reason with a value."""
+        metrics = ReviewMetrics(
+            model_name="gemini-2.5-flash",
+            fallback_reason="gemini-3-flash-preview \u2192 ServerError",
+        )
+        assert metrics.fallback_reason == "gemini-3-flash-preview \u2192 ServerError"
 
     def test_tokens_must_be_non_negative(self) -> None:
         """Test that token counts must be non-negative."""

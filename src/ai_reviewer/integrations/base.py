@@ -9,12 +9,89 @@ enabling the reviewer to work with any supported Git provider.
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from ai_reviewer.core.models import LinkedTask, MergeRequest
+from ai_reviewer.core.models import (  # noqa: TC001 — runtime for deprecated alias
+    LinkedTask,
+    MergeRequest,
+)
+
+_BRANCH_ISSUE_RE = re.compile(r"^(?:\w+/)?(?:GH-)?(\d+)(?:[-_]|$)")
+
+ISSUE_CLOSING_RE = re.compile(
+    r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)",
+    re.IGNORECASE,
+)
+
+_HUNK_HEADER_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+
+
+def parse_branch_issue_number(branch: str) -> int | None:
+    """Extract issue number from a branch name convention.
+
+    Supports formats like:
+    - ``86-task-description``
+    - ``feature/123-login``
+    - ``GH-789-refactor``
+
+    Args:
+        branch: Source branch name.
+
+    Returns:
+        Issue number if found, None otherwise.
+    """
+    m = _BRANCH_ISSUE_RE.match(branch)
+    return int(m.group(1)) if m else None
+
+
+def parse_diff_valid_lines(patch: str | None) -> frozenset[int]:
+    """Extract valid new-side line numbers from a unified diff patch.
+
+    Walks through each diff line to compute exact new-side line numbers.
+    Lines starting with ``-`` (deletions) do not have a new-side number.
+    Lines starting with ``+`` (additions) or `` `` (context) do.
+
+    These are the only lines that GitHub's Review API accepts for inline
+    comments; posting on other lines results in 422 "Line could not be
+    resolved".
+
+    Args:
+        patch: Unified diff string (``FileChange.patch``).
+
+    Returns:
+        Frozenset of valid new-side line numbers.
+    """
+    if not patch:
+        return frozenset()
+
+    valid: set[int] = set()
+    new_line = 0
+
+    for raw_line in patch.splitlines():
+        hunk_match = _HUNK_HEADER_RE.match(raw_line)
+        if hunk_match:
+            new_line = int(hunk_match.group(1))
+            continue
+
+        if not new_line:
+            # Before first hunk header
+            continue
+
+        if raw_line.startswith("-"):
+            # Deletion: only old side, no new-side line number
+            continue
+
+        if raw_line.startswith("\\"):
+            # "No newline at end of file" marker
+            continue
+
+        # Addition (+) or context ( ) line: has a new-side line number
+        valid.add(new_line)
+        new_line += 1
+
+    return frozenset(valid)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +165,7 @@ class GitProvider(ABC):
 
     Each method represents a distinct capability:
     - get_merge_request: Fetch PR/MR metadata and changes
-    - get_linked_task: Find associated issues/tasks
+    - get_linked_tasks: Find associated issues/tasks via multiple strategies
     - post_comment: Post general comments (Issue Comments on GitHub)
     - submit_review: Submit review with inline comments (PR Review API on GitHub)
     """
@@ -109,18 +186,26 @@ class GitProvider(ABC):
         """
 
     @abstractmethod
-    def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
-        """Find a linked task/issue for the merge request.
+    def get_linked_tasks(
+        self,
+        repo_name: str,
+        mr_id: int,
+        source_branch: str,
+    ) -> tuple[LinkedTask, ...]:
+        """Find linked tasks/issues for the merge request.
 
-        Searches the MR description for issue references and fetches
-        the linked issue details.
+        Combines multiple discovery strategies (regex, platform API,
+        branch name convention) and returns deduplicated results.
+
+        Each strategy is fail-open: if one fails, the others continue.
 
         Args:
             repo_name: Repository identifier.
-            mr: The MergeRequest to search for linked tasks.
+            mr_id: Merge/Pull request number.
+            source_branch: Source branch name for branch-name strategy.
 
         Returns:
-            LinkedTask if found, None otherwise.
+            Tuple of LinkedTask objects (deduplicated).
         """
 
     @abstractmethod
@@ -171,9 +256,35 @@ class GitProvider(ABC):
             Exception: If submission fails.
         """
 
+    # ── Backward compatibility alias ────────────────────────────────
+
+    def get_linked_task(
+        self,
+        repo_name: str,
+        mr: MergeRequest,
+    ) -> LinkedTask | None:
+        """Find a linked task for the merge request (deprecated).
+
+        .. deprecated::
+            Use :meth:`get_linked_tasks` instead. This alias returns
+            only the first linked task found or ``None``.
+
+        Args:
+            repo_name: Repository identifier.
+            mr: MergeRequest model.
+
+        Returns:
+            First LinkedTask or None.
+        """
+        tasks = self.get_linked_tasks(repo_name, mr.number, mr.source_branch)
+        return tasks[0] if tasks else None
+
 
 __all__ = [
+    "ISSUE_CLOSING_RE",
     "GitProvider",
     "LineComment",
     "ReviewSubmission",
+    "parse_branch_issue_number",
+    "parse_diff_valid_lines",
 ]

@@ -13,12 +13,13 @@ from ai_reviewer.core.models import (
     MergeRequest,
 )
 from ai_reviewer.integrations.base import GitProvider, LineComment, ReviewSubmission
-from ai_reviewer.integrations.github import GitHubClient
+from ai_reviewer.integrations.github import GitHubClient, _build_demoted_summary
 from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
     NotFoundError,
     RateLimitError,
+    ValidationError,
 )
 
 
@@ -259,12 +260,15 @@ class TestGitHubClient:
         assert len(mr.changes) == 1
         assert mr.changes[0].patch is None
 
-    def test_get_linked_task_found(self, client: GitHubClient) -> None:
-        """Test finding linked task."""
+    def test_get_linked_tasks_regex(self, client: GitHubClient) -> None:
+        """Test finding linked tasks via regex in description."""
         mock_repo = Mock()
+        mock_pr = Mock()
         client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+        mock_pr.body = "Fixes #123"
+        mock_pr.as_issue.return_value.get_timeline.return_value = []
 
-        # Mock Issue
         mock_issue = Mock()
         mock_issue.number = 123
         mock_issue.title = "Task Title"
@@ -272,25 +276,110 @@ class TestGitHubClient:
         mock_issue.html_url = "http://issue/123"
         mock_repo.get_issue.return_value = mock_issue
 
-        # Mock MR
-        mr = MagicMock(spec=MergeRequest)
-        mr.description = "Fixes #123"
+        tasks = client.get_linked_tasks("owner/repo", 1, "feat")
 
-        task = client.get_linked_task("owner/repo", mr)
+        assert len(tasks) == 1
+        assert tasks[0].identifier == "123"
+        assert tasks[0].title == "Task Title"
 
-        assert task is not None
-        assert task.identifier == "123"
-        assert task.title == "Task Title"
-        mock_repo.get_issue.assert_called_once_with(123)
+    def test_get_linked_tasks_timeline(self, client: GitHubClient) -> None:
+        """Test finding linked tasks via timeline events."""
+        mock_repo = Mock()
+        mock_pr = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+        mock_pr.body = ""
 
-    def test_get_linked_task_not_found(self, client: GitHubClient) -> None:
-        """Test when no linked task is found."""
-        mr = MagicMock(spec=MergeRequest)
-        mr.description = "No task link here"
+        timeline_event = Mock()
+        timeline_event.event = "connected"
+        timeline_event.source = {
+            "issue": {
+                "number": 42,
+                "title": "Bug",
+                "body": "desc",
+                "html_url": "url",
+            }
+        }
+        mock_pr.as_issue.return_value.get_timeline.return_value = [timeline_event]
 
-        task = client.get_linked_task("owner/repo", mr)
+        tasks = client.get_linked_tasks("owner/repo", 1, "feat")
 
-        assert task is None
+        assert len(tasks) == 1
+        assert tasks[0].identifier == "42"
+
+    def test_get_linked_tasks_branch_name(self, client: GitHubClient) -> None:
+        """Test finding linked tasks via branch name convention."""
+        mock_repo = Mock()
+        mock_pr = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+        mock_pr.body = ""
+        mock_pr.as_issue.return_value.get_timeline.return_value = []
+
+        mock_issue = Mock()
+        mock_issue.number = 86
+        mock_issue.title = "From Branch"
+        mock_issue.body = ""
+        mock_issue.html_url = "url"
+        mock_repo.get_issue.return_value = mock_issue
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "86-task-22-ci")
+
+        assert len(tasks) == 1
+        assert tasks[0].identifier == "86"
+
+    def test_get_linked_tasks_deduplication(self, client: GitHubClient) -> None:
+        """Test that regex + timeline finding same issue deduplicates."""
+        mock_repo = Mock()
+        mock_pr = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+        mock_pr.body = "Fixes #42"
+
+        mock_issue = Mock()
+        mock_issue.number = 42
+        mock_issue.title = "Bug"
+        mock_issue.body = ""
+        mock_issue.html_url = "url"
+        mock_repo.get_issue.return_value = mock_issue
+
+        timeline_event = Mock()
+        timeline_event.event = "connected"
+        timeline_event.source = {
+            "issue": {"number": 42, "title": "Bug", "body": "", "html_url": "url"}
+        }
+        mock_pr.as_issue.return_value.get_timeline.return_value = [timeline_event]
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "42-fix")
+
+        assert len(tasks) == 1
+
+    def test_get_linked_tasks_fail_open(self, client: GitHubClient) -> None:
+        """Test that one strategy failing doesn't block others."""
+        mock_repo = Mock()
+        mock_pr = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+        mock_pr.body = "Fixes #123"
+        mock_repo.get_issue.side_effect = GithubException(404, "Not Found", {})
+        mock_pr.as_issue.return_value.get_timeline.side_effect = GithubException(500, "Error", {})
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "no-number")
+
+        assert tasks == ()
+
+    def test_get_linked_tasks_empty(self, client: GitHubClient) -> None:
+        """Test when no linked tasks found at all."""
+        mock_repo = Mock()
+        mock_pr = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+        mock_pr.body = "No links here"
+        mock_pr.as_issue.return_value.get_timeline.return_value = []
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "main")
+
+        assert tasks == ()
 
     def test_post_comment_success(self, client: GitHubClient) -> None:
         """Test successful comment posting."""
@@ -437,3 +526,108 @@ class TestGitHubClient:
 
         with pytest.raises(RateLimitError):
             client.post_comment("owner/repo", 1, "Test")
+
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)
+    def test_422_converts_to_validation_error(self, client: GitHubClient) -> None:
+        """Test that 422 raises ValidationError."""
+        client.github.get_repo.side_effect = GithubException(422, "Unprocessable Entity", {})
+
+        with pytest.raises(ValidationError):
+            client.get_merge_request("owner/repo", 1)
+
+    def test_submit_review_422_demotes_to_summary(self, client: GitHubClient) -> None:
+        """Test that 422 on inline comments demotes to summary-only review."""
+        mock_repo = Mock()
+        mock_pr = Mock()
+        mock_commit = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+        mock_repo.get_commit.return_value = mock_commit
+        mock_pr.head.sha = "abc123"
+
+        # First create_review raises 422, second succeeds
+        mock_pr.create_review.side_effect = [
+            GithubException(422, "Line could not be resolved", {}),
+            None,
+        ]
+
+        submission = ReviewSubmission(
+            summary="Please fix",
+            line_comments=(LineComment(path="src/main.py", line=10, body="Fix this"),),
+        )
+
+        client.submit_review("owner/repo", 1, submission)
+
+        assert mock_pr.create_review.call_count == 2
+        # Second call should have no inline comments
+        second_call = mock_pr.create_review.call_args_list[1][1]
+        assert second_call["comments"] is None
+        # Summary should contain demoted comment info
+        assert "src/main.py:10" in second_call["body"]
+        assert "Fix this" in second_call["body"]
+
+    @patch("ai_reviewer.integrations.github.with_retry", lambda f: f)
+    def test_submit_review_422_no_comments_reraises(self, client: GitHubClient) -> None:
+        """Test that 422 without inline comments is re-raised."""
+        mock_repo = Mock()
+        mock_pr = Mock()
+        mock_commit = Mock()
+        client.github.get_repo.return_value = mock_repo
+        mock_repo.get_pull.return_value = mock_pr
+        mock_repo.get_commit.return_value = mock_commit
+        mock_pr.head.sha = "abc123"
+
+        mock_pr.create_review.side_effect = GithubException(422, "Unprocessable Entity", {})
+
+        submission = ReviewSubmission(summary="LGTM")
+
+        with pytest.raises(ValidationError):
+            client.submit_review("owner/repo", 1, submission)
+
+
+class TestBuildDemotedSummary:
+    """Tests for _build_demoted_summary helper."""
+
+    def test_no_comments(self) -> None:
+        """Test with no inline comments returns summary as-is."""
+        submission = ReviewSubmission(summary="All good")
+
+        assert _build_demoted_summary(submission) == "All good"
+
+    def test_with_comments(self) -> None:
+        """Test with inline comments appends formatted comments."""
+        submission = ReviewSubmission(
+            summary="Please fix",
+            line_comments=(
+                LineComment(path="src/main.py", line=10, body="Fix this"),
+                LineComment(path="src/utils.py", line=5, body="Update"),
+            ),
+        )
+
+        result = _build_demoted_summary(submission)
+
+        assert "Please fix" in result
+        assert "**`src/main.py:10`**" in result
+        assert "Fix this" in result
+        assert "**`src/utils.py:5`**" in result
+        assert "Update" in result
+        assert "could not be posted" in result
+
+    def test_with_suggestion(self) -> None:
+        """Test that suggestion block is preserved in demoted summary."""
+        submission = ReviewSubmission(
+            summary="Review",
+            line_comments=(
+                LineComment(
+                    path="app.py",
+                    line=3,
+                    body="Use f-string",
+                    suggestion='print(f"Hello {name}")',
+                ),
+            ),
+        )
+
+        result = _build_demoted_summary(submission)
+
+        assert "```suggestion" in result
+        assert 'print(f"Hello {name}")' in result

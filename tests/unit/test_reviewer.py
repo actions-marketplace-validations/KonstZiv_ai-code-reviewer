@@ -2,6 +2,8 @@
 
 from ai_reviewer.core.models import (
     CodeIssue,
+    FileChange,
+    FileChangeType,
     GoodPractice,
     IssueCategory,
     IssueSeverity,
@@ -181,3 +183,91 @@ class TestBuildReviewSubmission:
         submission = _build_review_submission(result, None)
 
         assert submission.event == "COMMENT"
+
+    def test_valid_line_stays_inline(self) -> None:
+        """Test that issue with line in diff remains inline."""
+        issue = CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
+            title="Bug",
+            description="Desc",
+            file_path="app.py",
+            line_number=10,
+        )
+        result = ReviewResult(issues=(issue,), summary="Review")
+        changes = (
+            FileChange(
+                filename="app.py",
+                change_type=FileChangeType.MODIFIED,
+                patch="@@ -8,4 +8,5 @@\n ctx\n ctx\n+new\n ctx\n ctx\n",
+            ),
+        )
+
+        submission = _build_review_submission(result, None, changes)
+
+        assert len(submission.line_comments) == 1
+        assert submission.line_comments[0].line == 10
+
+    def test_invalid_line_demoted_to_summary(self) -> None:
+        """Test that issue with line outside diff is demoted to fallback."""
+        issue = CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
+            title="Bug",
+            description="Desc",
+            file_path="app.py",
+            line_number=99,
+        )
+        result = ReviewResult(issues=(issue,), summary="Review")
+        changes = (
+            FileChange(
+                filename="app.py",
+                change_type=FileChangeType.MODIFIED,
+                patch="@@ -8,3 +8,3 @@\n ctx\n-old\n+new\n",
+            ),
+        )
+
+        submission = _build_review_submission(result, None, changes)
+
+        assert len(submission.line_comments) == 0
+        assert "Bug" in submission.summary
+
+    def test_no_changes_skips_validation(self) -> None:
+        """Test that empty changes tuple skips validation (backward compat)."""
+        issue = CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
+            title="Bug",
+            description="Desc",
+            file_path="app.py",
+            line_number=99,
+        )
+        result = ReviewResult(issues=(issue,), summary="Review")
+
+        submission = _build_review_submission(result, None)
+
+        assert len(submission.line_comments) == 1
+
+    def test_file_not_in_changes_demoted(self) -> None:
+        """Test that issue referencing a file not in changes is demoted."""
+        issue = CodeIssue(
+            category=IssueCategory.CODE_QUALITY,
+            severity=IssueSeverity.WARNING,
+            title="Issue",
+            description="Desc",
+            file_path="other.py",
+            line_number=5,
+        )
+        result = ReviewResult(issues=(issue,), summary="Review")
+        changes = (
+            FileChange(
+                filename="app.py",
+                change_type=FileChangeType.MODIFIED,
+                patch="@@ -1,2 +1,2 @@\n-old\n+new\n ctx\n",
+            ),
+        )
+
+        submission = _build_review_submission(result, None, changes)
+
+        assert len(submission.line_comments) == 0
+        assert "Issue" in submission.summary

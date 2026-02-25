@@ -7,7 +7,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 from github import RateLimitExceededException
-from gitlab.exceptions import GitlabError
 from pydantic import ValidationError
 
 from ai_reviewer.integrations.conversation import (
@@ -365,73 +364,6 @@ class TestGitHubConversationProvider:
 
         assert threads == ()
 
-    # ── get_linked_tasks_deep ─────────────────────────────────────
-
-    def test_get_linked_tasks_deep_regex(self, client: GitHubClient) -> None:
-        """Test regex extraction from PR description."""
-        mock_repo = Mock()
-        mock_pr = Mock()
-        client.github.get_repo.return_value = mock_repo
-        mock_repo.get_pull.return_value = mock_pr
-        mock_pr.body = "Fixes #42\nCloses #99"
-
-        mock_issue_42 = Mock()
-        mock_issue_42.number = 42
-        mock_issue_42.title = "Bug"
-        mock_issue_42.body = "desc"
-        mock_issue_42.html_url = "https://github.com/o/r/issues/42"
-
-        mock_issue_99 = Mock()
-        mock_issue_99.number = 99
-        mock_issue_99.title = "Feature"
-        mock_issue_99.body = ""
-        mock_issue_99.html_url = "https://github.com/o/r/issues/99"
-
-        mock_repo.get_issue.side_effect = lambda n: {42: mock_issue_42, 99: mock_issue_99}[n]
-
-        # Skip timeline
-        mock_pr.as_issue.return_value.get_timeline.return_value = []
-
-        tasks = client.get_linked_tasks_deep("owner/repo", 1)
-
-        assert len(tasks) == 2
-        assert tasks[0].identifier == "42"
-        assert tasks[1].identifier == "99"
-
-    def test_get_linked_tasks_deep_no_description(self, client: GitHubClient) -> None:
-        """Test with no PR description."""
-        mock_repo = Mock()
-        mock_pr = Mock()
-        client.github.get_repo.return_value = mock_repo
-        mock_repo.get_pull.return_value = mock_pr
-        mock_pr.body = None
-        mock_pr.as_issue.return_value.get_timeline.return_value = []
-
-        tasks = client.get_linked_tasks_deep("owner/repo", 1)
-
-        assert tasks == ()
-
-    def test_get_linked_tasks_deep_deduplication(self, client: GitHubClient) -> None:
-        """Test that duplicate issue references are deduplicated."""
-        mock_repo = Mock()
-        mock_pr = Mock()
-        client.github.get_repo.return_value = mock_repo
-        mock_repo.get_pull.return_value = mock_pr
-        mock_pr.body = "Fixes #42 Closes #42"
-
-        mock_issue = Mock()
-        mock_issue.number = 42
-        mock_issue.title = "Bug"
-        mock_issue.body = ""
-        mock_issue.html_url = "url"
-        mock_repo.get_issue.return_value = mock_issue
-
-        mock_pr.as_issue.return_value.get_timeline.return_value = []
-
-        tasks = client.get_linked_tasks_deep("owner/repo", 1)
-
-        assert len(tasks) == 1
-
 
 # ── GitLab ConversationProvider tests ──────────────────────────────
 
@@ -625,89 +557,3 @@ class TestGitLabConversationProvider:
         threads = client.get_bot_threads("group/repo", 1)
 
         assert threads == ()
-
-    # ── get_linked_tasks_deep ─────────────────────────────────────
-
-    def test_get_linked_tasks_deep_closes_issues(self, client: GitLabClient) -> None:
-        """Test using GitLab closes_issues API."""
-        mock_project = Mock()
-        mock_mr = Mock()
-        client.gitlab.projects.get.return_value = mock_project
-        mock_project.mergerequests.get.return_value = mock_mr
-        mock_mr.description = ""
-
-        mock_issue = Mock()
-        mock_issue.iid = 42
-        mock_issue.title = "Bug"
-        mock_issue.description = "desc"
-        mock_issue.web_url = "https://gitlab.com/g/r/-/issues/42"
-        mock_mr.closes_issues.return_value = [mock_issue]
-
-        tasks = client.get_linked_tasks_deep("group/repo", 1)
-
-        assert len(tasks) == 1
-        assert tasks[0].identifier == "42"
-        assert tasks[0].title == "Bug"
-
-    def test_get_linked_tasks_deep_regex_fallback(self, client: GitLabClient) -> None:
-        """Test regex fallback when closes_issues returns nothing."""
-        mock_project = Mock()
-        mock_mr = Mock()
-        client.gitlab.projects.get.return_value = mock_project
-        mock_project.mergerequests.get.return_value = mock_mr
-        mock_mr.description = "Fixes #99"
-        mock_mr.closes_issues.return_value = []
-
-        mock_issue = Mock()
-        mock_issue.iid = 99
-        mock_issue.title = "Feature"
-        mock_issue.description = ""
-        mock_issue.web_url = "url"
-        mock_project.issues.get.return_value = mock_issue
-
-        tasks = client.get_linked_tasks_deep("group/repo", 1)
-
-        assert len(tasks) == 1
-        assert tasks[0].identifier == "99"
-
-    def test_get_linked_tasks_deep_deduplication(self, client: GitLabClient) -> None:
-        """Test deduplication between API and regex results."""
-        mock_project = Mock()
-        mock_mr = Mock()
-        client.gitlab.projects.get.return_value = mock_project
-        mock_project.mergerequests.get.return_value = mock_mr
-        mock_mr.description = "Fixes #42"
-
-        # closes_issues returns the same issue
-        mock_issue = Mock()
-        mock_issue.iid = 42
-        mock_issue.title = "Bug"
-        mock_issue.description = ""
-        mock_issue.web_url = "url"
-        mock_mr.closes_issues.return_value = [mock_issue]
-
-        tasks = client.get_linked_tasks_deep("group/repo", 1)
-
-        assert len(tasks) == 1
-
-    def test_get_linked_tasks_deep_api_failure(self, client: GitLabClient) -> None:
-        """Test graceful handling when closes_issues fails."""
-        mock_project = Mock()
-        mock_mr = Mock()
-        client.gitlab.projects.get.return_value = mock_project
-        mock_project.mergerequests.get.return_value = mock_mr
-        mock_mr.description = "Fixes #10"
-        mock_mr.closes_issues.side_effect = GitlabError("403")
-
-        mock_issue = Mock()
-        mock_issue.iid = 10
-        mock_issue.title = "Task"
-        mock_issue.description = ""
-        mock_issue.web_url = "url"
-        mock_project.issues.get.return_value = mock_issue
-
-        tasks = client.get_linked_tasks_deep("group/repo", 1)
-
-        # Should fall back to regex
-        assert len(tasks) == 1
-        assert tasks[0].identifier == "10"

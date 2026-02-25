@@ -30,6 +30,7 @@ from ai_reviewer.integrations.gemini import (
     analyze_code_changes,
     calculate_cost,
 )
+from ai_reviewer.utils.retry import AuthenticationError, RateLimitError, ServerError
 
 
 class TestGeminiClientDeprecation:
@@ -114,6 +115,7 @@ class TestAnalyzeCodeChanges:
         settings = Mock(spec=Settings)
         settings.google_api_key = SecretStr("test-key")
         settings.gemini_model = "gemini-pro"
+        settings.gemini_model_fallback = "gemini-2.5-flash"
         settings.review_max_files = 5
         settings.review_max_diff_lines = 10
         return settings
@@ -129,7 +131,7 @@ class TestAnalyzeCodeChanges:
 
         context = Mock(spec=ReviewContext)
         context.mr = mr
-        context.task = None
+        context.tasks = ()
         return context
 
     @patch("ai_reviewer.integrations.gemini.GeminiProvider")
@@ -169,6 +171,141 @@ class TestAnalyzeCodeChanges:
             api_key="test-key",
             model_name="gemini-pro",
         )
+
+    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_fallback_on_server_error(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_provider_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that ServerError on primary triggers fallback model."""
+        mock_build_prompt.return_value = "prompt"
+
+        primary = Mock()
+        fallback = Mock()
+        mock_provider_cls.side_effect = [primary, fallback]
+
+        primary.generate.side_effect = ServerError("503 overloaded")
+
+        expected = ReviewResult(summary="Fallback OK")
+        mock_resp = Mock()
+        mock_resp.content = expected
+        mock_resp.model_name = "gemini-2.5-flash"
+        mock_resp.prompt_tokens = 80
+        mock_resp.completion_tokens = 40
+        mock_resp.total_tokens = 120
+        mock_resp.latency_ms = 100
+        mock_resp.estimated_cost_usd = 0.001
+        fallback.generate.return_value = mock_resp
+
+        result = analyze_code_changes(mock_context, mock_settings)
+
+        assert result.summary == "Fallback OK"
+        assert result.metrics is not None
+        assert result.metrics.model_name == "gemini-2.5-flash"
+        assert result.metrics.fallback_reason is not None
+        assert "ServerError" in result.metrics.fallback_reason
+        assert mock_provider_cls.call_count == 2
+        mock_provider_cls.assert_any_call(api_key="test-key", model_name="gemini-pro")
+        mock_provider_cls.assert_any_call(api_key="test-key", model_name="gemini-2.5-flash")
+
+    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_fallback_on_rate_limit(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_provider_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that RateLimitError on primary triggers fallback model."""
+        mock_build_prompt.return_value = "prompt"
+
+        primary = Mock()
+        fallback = Mock()
+        mock_provider_cls.side_effect = [primary, fallback]
+
+        primary.generate.side_effect = RateLimitError("429 quota")
+
+        expected = ReviewResult(summary="OK")
+        mock_resp = Mock()
+        mock_resp.content = expected
+        mock_resp.model_name = "gemini-2.5-flash"
+        mock_resp.prompt_tokens = 0
+        mock_resp.completion_tokens = 0
+        mock_resp.total_tokens = 0
+        mock_resp.latency_ms = 0
+        mock_resp.estimated_cost_usd = 0.0
+        fallback.generate.return_value = mock_resp
+
+        result = analyze_code_changes(mock_context, mock_settings)
+
+        assert result.metrics is not None
+        assert "RateLimitError" in result.metrics.fallback_reason  # type: ignore[operator]
+
+    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_no_fallback_on_auth_error(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_provider_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that AuthenticationError is NOT caught for fallback."""
+        mock_build_prompt.return_value = "prompt"
+        mock_provider_cls.return_value.generate.side_effect = AuthenticationError("Invalid API key")
+
+        with pytest.raises(AuthenticationError):
+            analyze_code_changes(mock_context, mock_settings)
+
+    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_no_fallback_when_disabled(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_provider_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that ServerError propagates when fallback is disabled."""
+        mock_build_prompt.return_value = "prompt"
+        mock_settings.gemini_model_fallback = None
+        mock_provider_cls.return_value.generate.side_effect = ServerError("503")
+
+        with pytest.raises(ServerError):
+            analyze_code_changes(mock_context, mock_settings)
+
+    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_primary_success_no_fallback_reason(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_provider_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that successful primary has no fallback_reason in metrics."""
+        mock_build_prompt.return_value = "prompt"
+
+        expected = ReviewResult(summary="OK")
+        mock_resp = Mock()
+        mock_resp.content = expected
+        mock_resp.model_name = "gemini-pro"
+        mock_resp.prompt_tokens = 0
+        mock_resp.completion_tokens = 0
+        mock_resp.total_tokens = 0
+        mock_resp.latency_ms = 0
+        mock_resp.estimated_cost_usd = 0.0
+        mock_provider_cls.return_value.generate.return_value = mock_resp
+
+        result = analyze_code_changes(mock_context, mock_settings)
+
+        assert result.metrics is not None
+        assert result.metrics.fallback_reason is None
 
 
 class TestReExports:

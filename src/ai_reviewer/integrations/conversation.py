@@ -2,7 +2,7 @@
 
 This module defines the ``ConversationProvider`` interface for two-way
 communication on merge requests: posting structured questions, reading
-responses, replying in threads, and deep-searching linked tasks.
+responses, and replying in threads.
 
 Used by the Discovery engine to ask clarifying questions and by the
 orchestrator to track bot-initiated conversations.
@@ -18,10 +18,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ai_reviewer.core.models import (  # noqa: TC001 — needed at runtime by Pydantic
-    Comment,
-    LinkedTask,
-)
+from ai_reviewer.core.models import Comment  # noqa: TC001 — needed at runtime by Pydantic
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -174,8 +171,7 @@ class ConversationProvider(ABC):
     """Abstract interface for bot conversation on merge requests.
 
     Provides two-way communication: posting structured questions,
-    reading responses, replying in threads, and deep-searching for
-    linked tasks beyond simple regex matching.
+    reading responses, and replying in threads.
     """
 
     @abstractmethod
@@ -239,25 +235,6 @@ class ConversationProvider(ABC):
 
         Returns:
             Tuple of BotThread objects with questions and responses.
-        """
-
-    @abstractmethod
-    def get_linked_tasks_deep(
-        self,
-        repo_name: str,
-        mr_id: int,
-    ) -> tuple[LinkedTask, ...]:
-        """Deep search for linked tasks/issues.
-
-        Goes beyond simple regex matching to use platform-specific APIs
-        (GitHub timeline events, GitLab closes_issues endpoint).
-
-        Args:
-            repo_name: Repository identifier.
-            mr_id: Merge/pull request number.
-
-        Returns:
-            Tuple of LinkedTask objects found through all methods.
         """
 
 

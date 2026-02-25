@@ -65,7 +65,7 @@ class TestBuildReviewPrompt:
             title="Task Title",
             description="Task Description",
         )
-        return ReviewContext(mr=mr, task=task, repository="owner/repo")
+        return ReviewContext(mr=mr, tasks=(task,), repository="owner/repo")
 
     def test_full_context(self, sample_context: ReviewContext, mock_settings: Settings) -> None:
         """Test prompt generation with full context."""
@@ -88,7 +88,7 @@ class TestBuildReviewPrompt:
         """Test prompt generation without linked task."""
         # Create context without task using model_copy if possible, or new instance
         mr = sample_context.mr
-        context = ReviewContext(mr=mr, task=None, repository="owner/repo")
+        context = ReviewContext(mr=mr, repository="owner/repo")
 
         prompt = build_review_prompt(context, mock_settings)
 

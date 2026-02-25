@@ -81,9 +81,11 @@ def collect_text_samples(context: ReviewContext) -> tuple[str, ...]:
     if context.mr.description and _is_substantial_text(context.mr.description):
         samples.append(context.mr.description)
 
-    # 3. Task description (if linked)
-    if context.task and context.task.description and _is_substantial_text(context.task.description):
-        samples.append(context.task.description)
+    # 3. Task descriptions (if linked)
+    for task in context.tasks:
+        if task.description and _is_substantial_text(task.description):
+            samples.append(task.description)
+            break
 
     return tuple(samples)
 

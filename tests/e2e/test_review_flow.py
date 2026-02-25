@@ -33,6 +33,7 @@ class TestReviewFlow:
         settings.github_token = SecretStr("gh-token")
         settings.google_api_key = SecretStr("ai-key")
         settings.gemini_model = "gemini-pro"
+        settings.gemini_model_fallback = "gemini-2.5-flash"
         settings.review_max_files = 5
         settings.review_max_diff_lines = 10
         settings.review_max_comment_chars = 3000
@@ -71,7 +72,7 @@ class TestReviewFlow:
         """Test a successful review flow with inline comments enabled."""
         # Setup provider mock
         mock_provider.get_merge_request.return_value = mock_mr
-        mock_provider.get_linked_task.return_value = LinkedTask(identifier="123", title="Task")
+        mock_provider.get_linked_tasks.return_value = (LinkedTask(identifier="123", title="Task"),)
 
         # Setup Gemini analysis mock
         mock_analyze.return_value = ReviewResult(
@@ -84,7 +85,7 @@ class TestReviewFlow:
 
         # Verify
         mock_provider.get_merge_request.assert_called_once_with("owner/repo", 1)
-        mock_provider.get_linked_task.assert_called_once()
+        mock_provider.get_linked_tasks.assert_called_once()
         mock_analyze.assert_called_once()
         mock_provider.submit_review.assert_called_once()
 
@@ -130,7 +131,7 @@ class TestReviewFlow:
         )
 
         mock_provider.get_merge_request.return_value = mr_with_comment
-        mock_provider.get_linked_task.return_value = None
+        mock_provider.get_linked_tasks.return_value = ()
 
         # Execute
         review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
@@ -149,7 +150,7 @@ class TestReviewFlow:
         """Test that errors result in an error comment."""
         # Setup provider mock
         mock_provider.get_merge_request.return_value = mock_mr
-        mock_provider.get_linked_task.return_value = None
+        mock_provider.get_linked_tasks.return_value = ()
 
         # Setup analysis to fail
         mock_analyze.side_effect = Exception("Gemini API Error")
@@ -174,7 +175,7 @@ class TestReviewFlow:
         """Test that disabling inline comments falls back to post_comment."""
         mock_settings.review_post_inline_comments = False
         mock_provider.get_merge_request.return_value = mock_mr
-        mock_provider.get_linked_task.return_value = None
+        mock_provider.get_linked_tasks.return_value = ()
 
         mock_analyze.return_value = ReviewResult(
             summary="LGTM",
@@ -199,7 +200,7 @@ class TestReviewFlow:
     ) -> None:
         """Test that issues with file/line become inline comments."""
         mock_provider.get_merge_request.return_value = mock_mr
-        mock_provider.get_linked_task.return_value = None
+        mock_provider.get_linked_tasks.return_value = ()
 
         issue_inline = CodeIssue(
             category=IssueCategory.SECURITY,
@@ -249,5 +250,5 @@ class TestReviewFlow:
         review_pull_request(mock_provider, "owner/repo", 1, mock_settings)
 
         # Verify no further calls
-        mock_provider.get_linked_task.assert_not_called()
+        mock_provider.get_linked_tasks.assert_not_called()
         mock_provider.post_comment.assert_not_called()

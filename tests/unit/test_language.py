@@ -159,7 +159,7 @@ class TestCollectTextSamples:
             title="Auth feature",
             description=long_task_desc,
         )
-        context = ReviewContext(mr=simple_mr, task=task, repository="owner/repo")
+        context = ReviewContext(mr=simple_mr, tasks=(task,), repository="owner/repo")
         samples = collect_text_samples(context)
         assert len(samples) == 1
         assert "JWT tokens" in samples[0]
@@ -192,7 +192,7 @@ class TestCollectTextSamples:
             comments=(comment,),
         )
 
-        context = ReviewContext(mr=mr, task=task, repository="owner/repo")
+        context = ReviewContext(mr=mr, tasks=(task,), repository="owner/repo")
         samples = collect_text_samples(context)
 
         assert len(samples) == 3

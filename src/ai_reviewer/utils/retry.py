@@ -123,6 +123,18 @@ class NotFoundError(APIClientError):
         super().__init__(message)
 
 
+class ValidationError(APIClientError):
+    """Validation error (HTTP 422).
+
+    Request was well-formed but could not be processed.
+    For example, inline comment on a line not in the diff.
+    """
+
+    def __init__(self, message: str = "Validation failed: unprocessable entity") -> None:
+        """Initialize ValidationError."""
+        super().__init__(message)
+
+
 class APIError(Exception):
     """Generic API error with details.
 
@@ -290,6 +302,7 @@ def with_retry_and_context[**P, R](
 HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 HTTP_NOT_FOUND = 404
+HTTP_UNPROCESSABLE_ENTITY = 422
 HTTP_TOO_MANY_REQUESTS = 429
 HTTP_INTERNAL_SERVER_ERROR = 500
 
@@ -305,6 +318,7 @@ def raise_for_status(status_code: int, message: str = "") -> None:
         AuthenticationError: For 401 status.
         ForbiddenError: For 403 status (non-rate-limit).
         NotFoundError: For 404 status.
+        ValidationError: For 422 status.
         RateLimitError: For 429 status.
         ServerError: For 5xx status codes.
     """
@@ -317,6 +331,9 @@ def raise_for_status(status_code: int, message: str = "") -> None:
 
     if status_code == HTTP_NOT_FOUND:
         raise NotFoundError(message or "Resource not found")
+
+    if status_code == HTTP_UNPROCESSABLE_ENTITY:
+        raise ValidationError(message or "Validation failed: unprocessable entity")
 
     if status_code == HTTP_TOO_MANY_REQUESTS:
         raise RateLimitError(message or "API rate limit exceeded")
