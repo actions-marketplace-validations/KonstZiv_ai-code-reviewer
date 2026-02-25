@@ -10,6 +10,7 @@ import pytest
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
 from google.api_core import exceptions as google_exceptions
+from google.genai import types
 from pydantic import BaseModel
 
 from ai_reviewer.llm.base import LLMResponse
@@ -49,7 +50,10 @@ class TestGeminiProviderInit:
         """Test provider initializes with default model."""
         provider = GeminiProvider(api_key="key")
         assert provider.model_name == DEFAULT_MODEL
-        mock_client_cls.assert_called_once_with(api_key="key")
+        mock_client_cls.assert_called_once_with(
+            api_key="key",
+            http_options=types.HttpOptions(timeout=300),
+        )
 
     @patch("ai_reviewer.llm.gemini.genai.Client")
     def test_custom_model(self, mock_client_cls: MagicMock) -> None:

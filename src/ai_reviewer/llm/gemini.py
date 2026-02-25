@@ -12,9 +12,11 @@ Typical usage:
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import overload
 
+import httpx
 from google import genai
 from google.api_core import exceptions as google_exceptions
 from google.genai import types
@@ -28,6 +30,10 @@ from ai_reviewer.utils.retry import (
     ServerError,
     with_retry,
 )
+
+# Timeout for Gemini API requests (seconds).
+# Large prompts (many files) may need significant server processing time.
+_API_TIMEOUT_SECONDS = 300
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +87,30 @@ def calculate_cost(
 
 
 _PARSING_ERROR_MSG = "Gemini response could not be parsed"
+
+# Regex to extract file paths from "File: path (type)" headers in the prompt.
+_FILE_HEADER_RE = re.compile(r"^File:\s*(\S+)\s*\(", re.MULTILINE)
+
+
+def _log_prompt_debug_info(prompt: str, system_prompt: str | None) -> None:
+    """Log diagnostic information about the prompt for debugging API errors.
+
+    Logs prompt length (chars), system prompt length, and the list of
+    files included in the prompt (extracted from ``### File:`` headers).
+
+    Args:
+        prompt: The user prompt sent to the API.
+        system_prompt: The system prompt, if any.
+    """
+    files = _FILE_HEADER_RE.findall(prompt)
+    system_len = len(system_prompt) if system_prompt else 0
+    logger.warning(
+        "Prompt debug: %d chars (system: %d chars), %d files: %s",
+        len(prompt),
+        system_len,
+        len(files),
+        files,
+    )
 
 
 def _match_by_error_message(e: Exception) -> Exception:
@@ -154,7 +184,10 @@ class GeminiProvider(LLMProvider):
                 for extracting from ``SecretStr`` if needed).
             model_name: Gemini model to use.
         """
-        self._client = genai.Client(api_key=api_key)
+        self._client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=_API_TIMEOUT_SECONDS),
+        )
         self.model_name = model_name
         logger.debug("GeminiProvider initialized with model %s", model_name)
 
@@ -265,12 +298,24 @@ class GeminiProvider(LLMProvider):
             google_exceptions.RetryError,
         ) as e:
             logger.warning("Gemini API error: %s", e)
+            _log_prompt_debug_info(prompt, system_prompt)
             raise _convert_google_exception(e) from e
+        except (httpx.ReadError, httpx.ConnectError, ConnectionError, OSError) as e:
+            logger.warning(
+                "Gemini connection error (%s): %s",
+                type(e).__name__,
+                e,
+            )
+            _log_prompt_debug_info(prompt, system_prompt)
+            msg = f"Gemini: connection error - {e}"
+            raise ServerError(msg) from e
         except Exception as e:
             converted = _convert_google_exception(e)
             if converted is not e:
                 logger.warning("Gemini API error: %s", e)
+                _log_prompt_debug_info(prompt, system_prompt)
                 raise converted from e
+            _log_prompt_debug_info(prompt, system_prompt)
             logger.exception("Gemini API call failed")
             raise
 
