@@ -10,8 +10,6 @@ from ai_reviewer.discovery.models import (
     CIInsights,
     DetectedTool,
     Gap,
-    PlatformData,
-    ProjectProfile,
     ToolCategory,
 )
 from ai_reviewer.discovery.orchestrator import (
@@ -23,6 +21,7 @@ from ai_reviewer.discovery.orchestrator import (
     _find_ci_files,
     _has_enough_data,
     _infer_ci_provider,
+    _merge_ci_insights,
 )
 from ai_reviewer.discovery.prompts import LLMDiscoveryResponse
 from ai_reviewer.integrations.conversation import (
@@ -32,6 +31,7 @@ from ai_reviewer.integrations.conversation import (
 )
 from ai_reviewer.integrations.repository import RepositoryMetadata
 from ai_reviewer.llm.base import LLMResponse
+from tests.helpers import make_profile
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
@@ -234,7 +234,7 @@ class TestEnrichFromThreads:
     """Tests for _enrich_from_threads."""
 
     def test_removes_answered_gaps(self) -> None:
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(
                 Gap(
                     observation="No tests",
@@ -267,14 +267,14 @@ class TestEnrichFromThreads:
         assert result.gaps[0].observation == "No SAST"
 
     def test_no_change_when_no_threads(self) -> None:
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="X", default_assumption="Y"),),
         )
         result = _enrich_from_threads(profile, ())
         assert result is profile
 
     def test_no_change_when_pending(self) -> None:
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(
                 Gap(
                     observation="No tests",
@@ -478,17 +478,80 @@ class TestScenarioGracefulDegradation:
         assert profile is not None
 
 
-# ── Helpers ──────────────────────────────────────────────────────────
+# ── TestMergeCiInsights ─────────────────────────────────────────────
 
 
-def _make_profile(
-    *,
-    gaps: tuple[Gap, ...] = (),
-) -> ProjectProfile:
-    return ProjectProfile(
-        platform_data=PlatformData(
-            languages={"Python": 100.0},
-            primary_language="Python",
-        ),
-        gaps=gaps,
-    )
+class TestMergeCiInsights:
+    """Tests for _merge_ci_insights."""
+
+    def test_single_result_returned_as_is(self) -> None:
+        ci = CIInsights(
+            ci_file_path="ci.yml",
+            detected_tools=(DetectedTool(name="ruff", category=ToolCategory.LINTING),),
+        )
+        merged = _merge_ci_insights([ci])
+        assert merged.detected_tools == ci.detected_tools
+        assert merged.ci_file_path == "ci.yml"
+
+    def test_tools_merged_from_multiple_files(self) -> None:
+        ci1 = CIInsights(
+            ci_file_path=".github/workflows/ai-review.yml",
+            detected_tools=(),
+        )
+        ci2 = CIInsights(
+            ci_file_path=".github/workflows/tests.yml",
+            detected_tools=(
+                DetectedTool(name="ruff", category=ToolCategory.LINTING),
+                DetectedTool(name="pytest", category=ToolCategory.TESTING),
+                DetectedTool(name="mypy", category=ToolCategory.TYPE_CHECKING),
+            ),
+        )
+        merged = _merge_ci_insights([ci1, ci2])
+        names = {t.name for t in merged.detected_tools}
+        assert names == {"ruff", "pytest", "mypy"}
+
+    def test_tools_deduplicated_by_name(self) -> None:
+        ci1 = CIInsights(
+            ci_file_path="ci.yml",
+            detected_tools=(DetectedTool(name="ruff", category=ToolCategory.LINTING),),
+        )
+        ci2 = CIInsights(
+            ci_file_path="lint.yml",
+            detected_tools=(
+                DetectedTool(name="ruff", category=ToolCategory.LINTING),
+                DetectedTool(name="mypy", category=ToolCategory.TYPE_CHECKING),
+            ),
+        )
+        merged = _merge_ci_insights([ci1, ci2])
+        assert len(merged.detected_tools) == 2
+
+    def test_best_path_chosen_by_tool_count(self) -> None:
+        ci1 = CIInsights(ci_file_path="empty.yml", detected_tools=())
+        ci2 = CIInsights(
+            ci_file_path="tests.yml",
+            detected_tools=(DetectedTool(name="pytest", category=ToolCategory.TESTING),),
+        )
+        merged = _merge_ci_insights([ci1, ci2])
+        assert merged.ci_file_path == "tests.yml"
+
+    def test_scalar_fields_first_non_none_wins(self) -> None:
+        ci1 = CIInsights(ci_file_path="a.yml", python_version=None, package_manager="uv")
+        ci2 = CIInsights(ci_file_path="b.yml", python_version="3.13", package_manager="pip")
+        merged = _merge_ci_insights([ci1, ci2])
+        assert merged.python_version == "3.13"
+        assert merged.package_manager == "uv"  # first non-None wins
+
+    def test_services_and_targets_merged(self) -> None:
+        ci1 = CIInsights(
+            ci_file_path="a.yml",
+            services=("postgres",),
+            deployment_targets=("pypi",),
+        )
+        ci2 = CIInsights(
+            ci_file_path="b.yml",
+            services=("redis", "postgres"),
+            deployment_targets=("ghcr.io",),
+        )
+        merged = _merge_ci_insights([ci1, ci2])
+        assert set(merged.services) == {"postgres", "redis"}
+        assert set(merged.deployment_targets) == {"pypi", "ghcr.io"}

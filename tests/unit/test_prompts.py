@@ -16,6 +16,12 @@ from ai_reviewer.core.models import (
     MergeRequest,
     ReviewContext,
 )
+from ai_reviewer.discovery.models import (
+    AutomatedChecks,
+    PlatformData,
+    ProjectProfile,
+    ReviewGuidance,
+)
 from ai_reviewer.integrations.prompts import (
     _build_comments_section,
     _format_comment_for_prompt,
@@ -95,6 +101,79 @@ class TestBuildReviewPrompt:
         assert "## Linked Task" in prompt
         assert "No linked task provided" in prompt
         assert "Title: Task Title" not in prompt
+
+    def test_project_context_included(
+        self,
+        sample_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that project_profile is injected as Project Context section."""
+        profile = ProjectProfile(
+            platform_data=PlatformData(
+                languages={"Python": 100.0},
+                primary_language="Python",
+            ),
+            framework="Django 5.1",
+            language_version="3.13",
+            package_manager="uv",
+            automated_checks=AutomatedChecks(
+                linting=("ruff",),
+                type_checking=("mypy",),
+            ),
+            guidance=ReviewGuidance(
+                skip_in_review=("Code style (handled by CI)",),
+                focus_in_review=("Security vulnerabilities",),
+            ),
+        )
+        context = ReviewContext(
+            mr=sample_context.mr,
+            tasks=sample_context.tasks,
+            repository="owner/repo",
+            project_profile=profile,
+        )
+
+        prompt = build_review_prompt(context, mock_settings)
+
+        assert "## Project Context" in prompt
+        assert "Python (Django 5.1) 3.13" in prompt
+        assert "ruff" in prompt
+        assert "mypy" in prompt
+        assert "Skip:" in prompt
+        assert "Focus:" in prompt
+
+    def test_no_project_context_when_none(
+        self,
+        sample_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that Project Context section is absent when profile is None."""
+        # sample_context has project_profile=None by default
+        prompt = build_review_prompt(sample_context, mock_settings)
+        assert "## Project Context" not in prompt
+
+    def test_project_context_before_linked_task(
+        self,
+        sample_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that Project Context appears before Linked Task in prompt."""
+        profile = ProjectProfile(
+            platform_data=PlatformData(
+                languages={"Go": 100.0},
+                primary_language="Go",
+            ),
+        )
+        context = ReviewContext(
+            mr=sample_context.mr,
+            repository="owner/repo",
+            project_profile=profile,
+        )
+
+        prompt = build_review_prompt(context, mock_settings)
+
+        ctx_pos = prompt.index("## Project Context")
+        task_pos = prompt.index("## Linked Task")
+        assert ctx_pos < task_pos
 
     def test_diff_truncation(self, sample_context: ReviewContext, mock_settings: Settings) -> None:
         """Test that long diffs are truncated."""
