@@ -237,6 +237,22 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
         )
 
     @staticmethod
+    def _get_attr(obj: Any, key: str) -> Any:  # noqa: ANN401
+        """Get a value from a dict or object attribute.
+
+        PyGithub timeline events may return dicts or typed objects
+        depending on version. This helper handles both.
+
+        Args:
+            obj: Dict or object to read from.
+            key: Key/attribute name.
+
+        Returns:
+            The value, or None if not found.
+        """
+        return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
+
+    @staticmethod
     def _issue_to_linked_task(issue: Any) -> LinkedTask:  # noqa: ANN401
         """Convert a PyGithub Issue to LinkedTask.
 
@@ -309,26 +325,19 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
                     if not source:
                         continue
                     # source can be a dict or an object depending on PyGithub version
-                    issue_data = (
-                        source.get("issue")
-                        if isinstance(source, dict)
-                        else getattr(source, "issue", None)
-                    )
+                    issue_data = self._get_attr(source, "issue")
                     if not issue_data:
                         continue
 
-                    def _val(obj: object, key: str) -> Any:  # noqa: ANN401
-                        return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
-
-                    issue_number = _val(issue_data, "number")
+                    issue_number = self._get_attr(issue_data, "number")
                     if issue_number and issue_number not in seen_ids:
                         seen_ids.add(issue_number)
                         tasks.append(
                             LinkedTask(
                                 identifier=str(issue_number),
-                                title=_val(issue_data, "title") or "",
-                                description=_val(issue_data, "body") or "",
-                                url=_val(issue_data, "html_url") or "",
+                                title=self._get_attr(issue_data, "title") or "",
+                                description=self._get_attr(issue_data, "body") or "",
+                                url=self._get_attr(issue_data, "html_url") or "",
                             )
                         )
             except (GithubException, RateLimitExceededException):
