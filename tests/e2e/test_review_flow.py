@@ -20,13 +20,10 @@ from ai_reviewer.core.models import (
     TaskAlignmentStatus,
 )
 from ai_reviewer.discovery.comment import DISCOVERY_COMMENT_HEADING
-from ai_reviewer.discovery.models import (
-    Gap,
-    PlatformData,
-    ProjectProfile,
-)
+from ai_reviewer.discovery.models import Gap
 from ai_reviewer.integrations.base import GitProvider
 from ai_reviewer.reviewer import review_pull_request
+from tests.helpers import make_profile
 
 
 class TestReviewFlow:
@@ -263,21 +260,6 @@ class TestReviewFlow:
         mock_provider.post_comment.assert_not_called()
 
 
-# ── Helpers ──────────────────────────────────────────────────────────
-
-
-def _make_profile(**kw: object) -> ProjectProfile:
-    """Build a ProjectProfile with sensible defaults."""
-    return ProjectProfile(
-        platform_data=PlatformData(
-            languages={"Python": 100.0},
-            primary_language="Python",
-            file_tree=kw.pop("file_tree", ("src/main.py",)),
-        ),
-        gaps=kw.pop("gaps", ()),
-    )
-
-
 # ── TestDiscoveryIntegration ────────────────────────────────────────
 
 
@@ -333,7 +315,7 @@ class TestDiscoveryIntegration:
         mock_settings: Settings,
     ) -> None:
         """Test full flow: discovery succeeds with gaps → posts discovery comment + review."""
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
         mock_run_discovery.return_value = profile
@@ -385,7 +367,7 @@ class TestDiscoveryIntegration:
         mock_settings: Settings,
     ) -> None:
         """Test silent mode: discovery succeeds but no gaps → no discovery comment."""
-        profile = _make_profile(gaps=())  # No gaps
+        profile = make_profile(gaps=())  # No gaps
         mock_run_discovery.return_value = profile
         mock_provider.get_merge_request.return_value = mock_mr
         mock_provider.get_linked_tasks.return_value = ()
@@ -408,7 +390,7 @@ class TestDiscoveryIntegration:
         mock_settings: Settings,
     ) -> None:
         """Test that duplicate discovery comment is not posted."""
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
         mock_run_discovery.return_value = profile
@@ -452,7 +434,7 @@ class TestDiscoveryIntegration:
     ) -> None:
         """Test that Russian language adds disclaimer to discovery comment."""
         mock_settings.language = "ru"
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
         mock_run_discovery.return_value = profile

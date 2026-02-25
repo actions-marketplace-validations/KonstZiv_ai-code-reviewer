@@ -1,5 +1,15 @@
 # Task 4.3: Documentation — Implementation Guide
 
+## ⚠️ Revision Note (Phase 3 → Phase 4)
+
+- Use `BOT_NAME` constant (`"AI ReviewBot"` from `core/config.py`) consistently
+  in all documentation — do not hardcode the name.
+- Discovery comment now supports `language` parameter and Russian disclaimer.
+- Silent mode: discovery comment is NOT posted when no gaps (avoid noise).
+- MkDocs site has 6 languages (en, uk, de, es, it, sr) — all must be updated.
+
+---
+
 ## README update
 
 Додати після "Quick Start":
@@ -55,7 +65,8 @@ Create `examples/.reviewbot.md` — copy of task 2.4 format.
 
 ## Чеклист
 
-- [ ] README.md updated
+- [ ] README.md updated (English)
+- [ ] MkDocs docs updated (6 languages: en, uk, de, es, it, sr)
 - [ ] examples/.reviewbot.md created
 - [ ] ROADMAP.md updated
 - [ ] CHANGELOG.md entry

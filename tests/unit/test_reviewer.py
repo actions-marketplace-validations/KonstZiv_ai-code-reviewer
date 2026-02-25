@@ -16,17 +16,14 @@ from ai_reviewer.core.models import (
     TaskAlignmentStatus,
 )
 from ai_reviewer.discovery.comment import DISCOVERY_COMMENT_HEADING
-from ai_reviewer.discovery.models import (
-    Gap,
-    PlatformData,
-    ProjectProfile,
-)
+from ai_reviewer.discovery.models import Gap
 from ai_reviewer.integrations.base import GitProvider
 from ai_reviewer.reviewer import (
     _build_review_submission,
     _post_discovery_comment,
     _run_discovery,
 )
+from tests.helpers import make_profile
 
 
 class TestBuildReviewSubmission:
@@ -292,18 +289,6 @@ class TestBuildReviewSubmission:
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
-def _make_profile(**kw: object) -> ProjectProfile:
-    """Build a ProjectProfile with sensible defaults."""
-    return ProjectProfile(
-        platform_data=PlatformData(
-            languages={"Python": 100.0},
-            primary_language="Python",
-            file_tree=kw.pop("file_tree", ("src/main.py",)),
-        ),
-        gaps=kw.pop("gaps", ()),
-    )
-
-
 def _make_settings() -> Mock:
     """Build a mock Settings object with all required attributes."""
     settings = Mock()
@@ -330,7 +315,7 @@ class TestRunDiscovery:
         mock_gemini_cls: MagicMock,
     ) -> None:
         """Test that successful discovery returns a ProjectProfile."""
-        profile = _make_profile()
+        profile = make_profile()
         mock_orch_cls.return_value.discover.return_value = profile
         provider = MagicMock(spec=GitProvider)
         settings = _make_settings()
@@ -364,7 +349,7 @@ class TestRunDiscovery:
         mock_gemini_cls: MagicMock,
     ) -> None:
         """Test that GeminiProvider is created with correct settings."""
-        profile = _make_profile()
+        profile = make_profile()
         mock_orch_cls.return_value.discover.return_value = profile
         provider = MagicMock(spec=GitProvider)
         settings = _make_settings()
@@ -384,7 +369,7 @@ class TestRunDiscovery:
         mock_gemini_cls: MagicMock,
     ) -> None:
         """Test that provider is used for both repo_provider and conversation."""
-        profile = _make_profile()
+        profile = make_profile()
         mock_orch_cls.return_value.discover.return_value = profile
         provider = MagicMock(spec=GitProvider)
         settings = _make_settings()
@@ -404,7 +389,7 @@ class TestPostDiscoveryComment:
 
     def test_posts_when_should_post(self) -> None:
         """Test that comment is posted when should_post returns True."""
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
         provider = MagicMock(spec=GitProvider)
@@ -419,7 +404,7 @@ class TestPostDiscoveryComment:
 
     def test_skips_when_no_gaps(self) -> None:
         """Test that comment is NOT posted when profile has no gaps (silent mode)."""
-        profile = _make_profile(gaps=())
+        profile = make_profile(gaps=())
         provider = MagicMock(spec=GitProvider)
 
         _post_discovery_comment(provider, "owner/repo", 1, profile)
@@ -428,7 +413,7 @@ class TestPostDiscoveryComment:
 
     def test_skips_when_duplicate_exists(self) -> None:
         """Test that duplicate comment is not posted."""
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
         provider = MagicMock(spec=GitProvider)
@@ -446,7 +431,7 @@ class TestPostDiscoveryComment:
 
     def test_skips_when_reviewbot_md_present(self) -> None:
         """Test that comment is not posted when .reviewbot.md exists."""
-        profile = _make_profile(
+        profile = make_profile(
             file_tree=("src/main.py", ".reviewbot.md"),
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
@@ -458,7 +443,7 @@ class TestPostDiscoveryComment:
 
     def test_fail_open_on_provider_error(self) -> None:
         """Test that provider error is swallowed (fail-open)."""
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
         provider = MagicMock(spec=GitProvider)
@@ -469,7 +454,7 @@ class TestPostDiscoveryComment:
 
     def test_language_passed_to_formatter(self) -> None:
         """Test that language parameter is forwarded to format_discovery_comment."""
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
         provider = MagicMock(spec=GitProvider)
@@ -489,7 +474,7 @@ class TestPostDiscoveryComment:
 
     def test_language_none_no_disclaimer(self) -> None:
         """Test that no disclaimer when language is None."""
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="No tests", default_assumption="No testing"),),
         )
         provider = MagicMock(spec=GitProvider)

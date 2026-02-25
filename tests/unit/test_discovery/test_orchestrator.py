@@ -10,8 +10,6 @@ from ai_reviewer.discovery.models import (
     CIInsights,
     DetectedTool,
     Gap,
-    PlatformData,
-    ProjectProfile,
     ToolCategory,
 )
 from ai_reviewer.discovery.orchestrator import (
@@ -32,6 +30,7 @@ from ai_reviewer.integrations.conversation import (
 )
 from ai_reviewer.integrations.repository import RepositoryMetadata
 from ai_reviewer.llm.base import LLMResponse
+from tests.helpers import make_profile
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
@@ -234,7 +233,7 @@ class TestEnrichFromThreads:
     """Tests for _enrich_from_threads."""
 
     def test_removes_answered_gaps(self) -> None:
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(
                 Gap(
                     observation="No tests",
@@ -267,14 +266,14 @@ class TestEnrichFromThreads:
         assert result.gaps[0].observation == "No SAST"
 
     def test_no_change_when_no_threads(self) -> None:
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(Gap(observation="X", default_assumption="Y"),),
         )
         result = _enrich_from_threads(profile, ())
         assert result is profile
 
     def test_no_change_when_pending(self) -> None:
-        profile = _make_profile(
+        profile = make_profile(
             gaps=(
                 Gap(
                     observation="No tests",
@@ -476,19 +475,3 @@ class TestScenarioGracefulDegradation:
         # Should not crash
         profile = orch.discover("owner/repo", mr_id=1)
         assert profile is not None
-
-
-# ── Helpers ──────────────────────────────────────────────────────────
-
-
-def _make_profile(
-    *,
-    gaps: tuple[Gap, ...] = (),
-) -> ProjectProfile:
-    return ProjectProfile(
-        platform_data=PlatformData(
-            languages={"Python": 100.0},
-            primary_language="Python",
-        ),
-        gaps=gaps,
-    )

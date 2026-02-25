@@ -147,11 +147,11 @@ class DiscoveryOrchestrator:
         languages = self._repo.get_languages(repo_name)
         metadata = self._repo.get_metadata(repo_name)
         file_tree = self._repo.get_file_tree(repo_name)
-        logger.debug("Platform data: %d files in tree", len(file_tree))
+        logger.info("Platform data: %d files in tree", len(file_tree))
 
         primary = max(languages, key=lambda k: languages[k]) if languages else "Unknown"
         ci_paths = _find_ci_files(file_tree)
-        logger.debug("CI files found: %s", ci_paths if ci_paths else "(none)")
+        logger.info("CI files found: %s", ci_paths if ci_paths else "(none)")
 
         return PlatformData(
             languages=languages,
@@ -171,9 +171,9 @@ class DiscoveryOrchestrator:
         for ci_path in platform_data.ci_config_paths:
             content = self._repo.get_file_content(repo_name, ci_path)
             if not content:
-                logger.debug("CI file %s: no content returned", ci_path)
+                logger.info("CI file %s: no content returned", ci_path)
                 continue
-            logger.debug("CI file %s: %d chars fetched", ci_path, len(content))
+            logger.info("CI file %s: %d chars fetched", ci_path, len(content))
             try:
                 if ci_path == "Makefile":
                     result = self._ci_analyzer.analyze_makefile(content)
@@ -182,7 +182,7 @@ class DiscoveryOrchestrator:
             except Exception:
                 logger.warning("Failed to analyze CI file %s", ci_path, exc_info=True)
             else:
-                logger.debug(
+                logger.info(
                     "CI analysis of %s: %d tool(s) detected",
                     ci_path,
                     len(result.detected_tools),
