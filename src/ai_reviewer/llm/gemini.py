@@ -31,9 +31,10 @@ from ai_reviewer.utils.retry import (
     with_retry,
 )
 
-# Timeout for Gemini API requests (seconds).
+# Timeout for Gemini API requests (milliseconds).
 # Large prompts (many files) may need significant server processing time.
-_API_TIMEOUT_SECONDS = 300
+# google-genai HttpOptions.timeout is in milliseconds.
+_API_TIMEOUT_MS = 300_000  # 5 minutes
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +187,7 @@ class GeminiProvider(LLMProvider):
         """
         self._client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(timeout=_API_TIMEOUT_SECONDS),
+            http_options=types.HttpOptions(timeout=_API_TIMEOUT_MS),
         )
         self.model_name = model_name
         logger.debug("GeminiProvider initialized with model %s", model_name)
