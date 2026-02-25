@@ -86,6 +86,29 @@ class ServerError(RetryableError):
         self.status_code = status_code
 
 
+class QuotaExhaustedError(Exception):
+    """Daily or free-tier quota exhausted (HTTP 429 with PerDay/FreeTier quotaId).
+
+    Unlike ``RateLimitError``, this is NOT retryable because the quota
+    will not reset within a reasonable retry window.  The caller should
+    fall back to another model or abort immediately.
+    """
+
+    def __init__(
+        self,
+        message: str = "API daily quota exhausted",
+        quota_id: str | None = None,
+    ) -> None:
+        """Initialize QuotaExhaustedError.
+
+        Args:
+            message: Error message.
+            quota_id: The Gemini quotaId that was exceeded.
+        """
+        super().__init__(message)
+        self.quota_id = quota_id
+
+
 class APIClientError(Exception):
     """Base class for client errors that should NOT trigger retry (Fail Fast)."""
 
