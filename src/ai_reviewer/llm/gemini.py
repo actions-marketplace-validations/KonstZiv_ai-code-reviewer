@@ -19,6 +19,7 @@ from typing import overload
 import httpx
 from google import genai
 from google.api_core import exceptions as google_exceptions
+from google.genai import errors as genai_errors
 from google.genai import types
 from pydantic import BaseModel, ValidationError
 
@@ -126,7 +127,7 @@ def _match_by_error_message(e: Exception) -> Exception:
     error_msg = str(e).lower()
     if "rate limit" in error_msg or "quota" in error_msg or "429" in error_msg:
         return RateLimitError(f"Gemini: {e}")
-    if "503" in error_msg or "500" in error_msg or "server error" in error_msg:
+    if any(kw in error_msg for kw in ("500", "502", "503", "504", "server error", "deadline")):
         return ServerError(f"Gemini: {e}")
     return e
 
@@ -294,6 +295,15 @@ class GeminiProvider(LLMProvider):
         except ValidationError:
             logger.exception("Failed to validate Gemini response structure")
             raise
+        except genai_errors.ServerError as e:
+            logger.warning("Gemini SDK server error (retryable): %s", e)
+            _log_prompt_debug_info(prompt, system_prompt)
+            msg = f"Gemini: {e}"
+            raise ServerError(msg) from e
+        except genai_errors.ClientError as e:
+            logger.warning("Gemini SDK client error: %s", e)
+            _log_prompt_debug_info(prompt, system_prompt)
+            raise _convert_google_exception(e) from e
         except (
             google_exceptions.GoogleAPIError,
             google_exceptions.RetryError,
