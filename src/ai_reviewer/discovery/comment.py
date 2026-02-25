@@ -19,6 +19,23 @@ DISCOVERY_COMMENT_HEADING = "## \U0001f50d AI ReviewBot: Project Analysis"
 _REVIEWBOT_MD_PATH = ".reviewbot.md"
 
 
+# ── Helpers ──────────────────────────────────────────────────────────
+
+
+def _format_gaps_section(profile: ProjectProfile) -> list[str]:
+    """Render the Gaps / Questions section lines."""
+    if not profile.gaps:
+        return []
+    lines: list[str] = ["\n**Questions / Gaps:**"]
+    for gap in profile.gaps:
+        lines.append(f"- {gap.observation}")
+        if gap.question:
+            lines.append(f"  *Question:* {gap.question}")
+        if gap.default_assumption:
+            lines.append(f"  *Assumption:* {gap.default_assumption}")
+    return lines
+
+
 # ── Public API ───────────────────────────────────────────────────────
 
 
@@ -63,6 +80,9 @@ def format_discovery_comment(profile: ProjectProfile) -> str:
         parts.append("\n**What I'll focus on:**")
         for item in g.focus_in_review:
             parts.append(f"- {item}")
+
+    # Gaps / Questions
+    parts.extend(_format_gaps_section(profile))
 
     # Footer
     parts.append("\n---")

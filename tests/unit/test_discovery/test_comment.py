@@ -133,6 +133,41 @@ class TestFormatDiscoveryComment:
         result = format_discovery_comment(profile)
         assert "\u274c" in result
 
+    def test_gaps_section_observation_and_assumption(self) -> None:
+        profile = _make_profile(
+            gaps=(
+                Gap(observation="No test framework detected", default_assumption="No testing"),
+                Gap(observation="Hardcoded API key", default_assumption="Will be moved to env"),
+            ),
+        )
+        result = format_discovery_comment(profile)
+        assert "**Questions / Gaps:**" in result
+        assert "- No test framework detected" in result
+        assert "  *Assumption:* No testing" in result
+        assert "- Hardcoded API key" in result
+        assert "  *Assumption:* Will be moved to env" in result
+
+    def test_gaps_section_with_question(self) -> None:
+        profile = _make_profile(
+            gaps=(
+                Gap(
+                    observation="No SAST tool detected",
+                    question="Do you run security scans separately?",
+                    default_assumption="No security scanning",
+                ),
+            ),
+        )
+        result = format_discovery_comment(profile)
+        assert "**Questions / Gaps:**" in result
+        assert "- No SAST tool detected" in result
+        assert "  *Question:* Do you run security scans separately?" in result
+        assert "  *Assumption:* No security scanning" in result
+
+    def test_no_gaps_section_when_empty(self) -> None:
+        profile = _make_profile(gaps=())
+        result = format_discovery_comment(profile)
+        assert "Questions / Gaps" not in result
+
 
 # ── TestShouldPostDiscoveryComment ───────────────────────────────────
 

@@ -19,6 +19,10 @@ from ai_reviewer.core.formatter import (
     format_review_summary,
 )
 from ai_reviewer.core.models import CommentAuthorType, ReviewContext
+from ai_reviewer.discovery.comment import (
+    format_discovery_comment,
+    should_post_discovery_comment,
+)
 from ai_reviewer.integrations.base import LineComment, ReviewSubmission, parse_diff_valid_lines
 from ai_reviewer.integrations.gemini import analyze_code_changes
 
@@ -126,10 +130,6 @@ def review_pull_request(
             else None
         )
 
-        # 0.5. Post discovery comment (fail-open)
-        if profile:
-            _post_discovery_comment(provider, repo_name, mr_id, profile)
-
         # 1. Fetch MR data
         mr = provider.get_merge_request(repo_name, mr_id)
         if not mr:
@@ -137,6 +137,13 @@ def review_pull_request(
             return
 
         logger.info("Fetched MR: %s", mr.title)
+
+        # 1.5. Post discovery comment (fail-open, reuses MR data)
+        if profile:
+            existing_bot = tuple(
+                c.body for c in mr.comments if c.author_type == CommentAuthorType.BOT
+            )
+            _post_discovery_comment(provider, repo_name, mr_id, profile, existing_bot)
 
         # 2. Get linked tasks (multi-strategy discovery)
         tasks = provider.get_linked_tasks(repo_name, mr.number, mr.source_branch)
@@ -196,6 +203,7 @@ def _post_discovery_comment(
     repo_name: str,
     mr_id: int,
     profile: ProjectProfile,
+    existing_comments: tuple[str, ...] = (),
 ) -> None:
     """Post discovery summary comment if appropriate.
 
@@ -207,20 +215,10 @@ def _post_discovery_comment(
         repo_name: Repository identifier.
         mr_id: Merge/Pull request number.
         profile: Discovery profile to summarize.
+        existing_comments: Bodies of existing bot comments (for duplicate detection).
     """
-    from ai_reviewer.discovery.comment import (  # noqa: PLC0415
-        format_discovery_comment,
-        should_post_discovery_comment,
-    )
-
     try:
-        # Collect existing bot comment bodies for duplicate detection
-        existing: tuple[str, ...] = ()
-        mr = provider.get_merge_request(repo_name, mr_id)
-        if mr:
-            existing = tuple(c.body for c in mr.comments if c.author_type == CommentAuthorType.BOT)
-
-        if not should_post_discovery_comment(profile, existing):
+        if not should_post_discovery_comment(profile, existing_comments):
             logger.debug("Discovery comment skipped (duplicate or .reviewbot.md present)")
             return
 
