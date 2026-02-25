@@ -109,19 +109,25 @@ _COVERAGE_PATTERNS: tuple[re.Pattern[str], ...] = (
 
 # ── Service detection ────────────────────────────────────────────────
 
-_KNOWN_SERVICES = frozenset(
-    {
-        "postgres",
-        "postgresql",
-        "mysql",
-        "mariadb",
-        "redis",
-        "mongo",
-        "mongodb",
-        "rabbitmq",
-        "elasticsearch",
-        "memcached",
-    }
+# Sorted by length (desc) so longer prefixes match first
+# (e.g. "postgresql" before "postgres", "mongodb" before "mongo").
+_KNOWN_SERVICES: tuple[str, ...] = tuple(
+    sorted(
+        [
+            "elasticsearch",
+            "postgresql",
+            "memcached",
+            "rabbitmq",
+            "mariadb",
+            "mongodb",
+            "postgres",
+            "mysql",
+            "redis",
+            "mongo",
+        ],
+        key=len,
+        reverse=True,
+    )
 )
 
 # ── Deployment detection ─────────────────────────────────────────────
