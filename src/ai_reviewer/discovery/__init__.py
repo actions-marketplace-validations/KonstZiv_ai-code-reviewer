@@ -11,6 +11,7 @@ Layers:
     3. LLM interpretation — only when deterministic layers are insufficient.
 """
 
+from ai_reviewer.discovery.config_collector import ConfigContent
 from ai_reviewer.discovery.models import (
     AutomatedChecks,
     CIInsights,
@@ -25,6 +26,7 @@ from ai_reviewer.discovery.models import (
 __all__ = [
     "AutomatedChecks",
     "CIInsights",
+    "ConfigContent",
     "DetectedTool",
     "Gap",
     "PlatformData",
