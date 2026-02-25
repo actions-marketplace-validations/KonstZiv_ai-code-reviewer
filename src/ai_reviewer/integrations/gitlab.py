@@ -12,7 +12,7 @@ Reference:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import gitlab
 from gitlab.exceptions import GitlabAuthenticationError, GitlabError
@@ -26,7 +26,7 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import ISSUE_CLOSING_RE, GitProvider, _parse_branch_issue_number
+from ai_reviewer.integrations.base import ISSUE_CLOSING_RE, GitProvider, parse_branch_issue_number
 from ai_reviewer.integrations.conversation import (
     BOT_QUESTION_MARKER,
     BotThread,
@@ -264,7 +264,7 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
         )
 
     @staticmethod
-    def _issue_to_linked_task(issue: object) -> LinkedTask:
+    def _issue_to_linked_task(issue: Any) -> LinkedTask:  # noqa: ANN401
         """Convert a python-gitlab Issue to LinkedTask.
 
         Args:
@@ -274,10 +274,10 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
             LinkedTask model.
         """
         return LinkedTask(
-            identifier=str(issue.iid),  # type: ignore[attr-defined]
-            title=issue.title,  # type: ignore[attr-defined]
-            description=issue.description or "",  # type: ignore[attr-defined]
-            url=issue.web_url,  # type: ignore[attr-defined]
+            identifier=str(issue.iid),
+            title=issue.title,
+            description=issue.description or "",
+            url=issue.web_url,
         )
 
     def get_linked_tasks(
@@ -335,7 +335,7 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
                     logger.warning("Failed to fetch issue #%s", issue_number)
 
             # Strategy 3: Branch name convention
-            branch_issue = _parse_branch_issue_number(source_branch)
+            branch_issue = parse_branch_issue_number(source_branch)
             if branch_issue and branch_issue not in seen_ids:
                 try:
                     issue = project.issues.get(branch_issue)

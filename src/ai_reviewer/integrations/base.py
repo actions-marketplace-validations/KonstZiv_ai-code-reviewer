@@ -26,7 +26,7 @@ ISSUE_CLOSING_RE = re.compile(
 )
 
 
-def _parse_branch_issue_number(branch: str) -> int | None:
+def parse_branch_issue_number(branch: str) -> int | None:
     """Extract issue number from a branch name convention.
 
     Supports formats like:
@@ -235,5 +235,5 @@ __all__ = [
     "GitProvider",
     "LineComment",
     "ReviewSubmission",
-    "_parse_branch_issue_number",
+    "parse_branch_issue_number",
 ]

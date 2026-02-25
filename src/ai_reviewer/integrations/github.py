@@ -8,7 +8,7 @@ and posting review comments.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from github import Github, GithubException, RateLimitExceededException
 from github.Auth import Token
@@ -22,7 +22,7 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import ISSUE_CLOSING_RE, GitProvider, _parse_branch_issue_number
+from ai_reviewer.integrations.base import ISSUE_CLOSING_RE, GitProvider, parse_branch_issue_number
 from ai_reviewer.integrations.conversation import (
     BOT_QUESTION_MARKER,
     BotThread,
@@ -237,7 +237,7 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
         )
 
     @staticmethod
-    def _issue_to_linked_task(issue: object) -> LinkedTask:
+    def _issue_to_linked_task(issue: Any) -> LinkedTask:  # noqa: ANN401
         """Convert a PyGithub Issue to LinkedTask.
 
         Args:
@@ -247,10 +247,10 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
             LinkedTask model.
         """
         return LinkedTask(
-            identifier=str(issue.number),  # type: ignore[attr-defined]
-            title=issue.title,  # type: ignore[attr-defined]
-            description=issue.body or "",  # type: ignore[attr-defined]
-            url=issue.html_url,  # type: ignore[attr-defined]
+            identifier=str(issue.number),
+            title=issue.title,
+            description=issue.body or "",
+            url=issue.html_url,
         )
 
     def get_linked_tasks(  # noqa: PLR0912
@@ -326,7 +326,7 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
                 logger.debug("Timeline API unavailable for PR #%s", mr_id)
 
             # Strategy 3: Branch name convention
-            branch_issue = _parse_branch_issue_number(source_branch)
+            branch_issue = parse_branch_issue_number(source_branch)
             if branch_issue and branch_issue not in seen_ids:
                 try:
                     issue = repo.get_issue(branch_issue)
