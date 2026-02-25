@@ -35,7 +35,7 @@ from ai_reviewer.utils.retry import (
 # Timeout for Gemini API requests (milliseconds).
 # Large prompts (many files) may need significant server processing time.
 # google-genai HttpOptions.timeout is in milliseconds.
-_API_TIMEOUT_MS = 300_000  # 5 minutes
+_API_TIMEOUT_MS = 600_000  # 10 minutes
 
 logger = logging.getLogger(__name__)
 
@@ -311,9 +311,15 @@ class GeminiProvider(LLMProvider):
             logger.warning("Gemini API error: %s", e)
             _log_prompt_debug_info(prompt, system_prompt)
             raise _convert_google_exception(e) from e
-        except (httpx.ReadError, httpx.ConnectError, ConnectionError, OSError) as e:
+        except (
+            httpx.TimeoutException,
+            httpx.ReadError,
+            httpx.ConnectError,
+            ConnectionError,
+            OSError,
+        ) as e:
             logger.warning(
-                "Gemini connection error (%s): %s",
+                "Gemini connection/timeout error (%s): %s",
                 type(e).__name__,
                 e,
             )

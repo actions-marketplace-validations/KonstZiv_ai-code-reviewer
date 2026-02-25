@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
+import httpx
 import pytest
 
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ class TestGeminiProviderInit:
         assert provider.model_name == DEFAULT_MODEL
         mock_client_cls.assert_called_once_with(
             api_key="key",
-            http_options=types.HttpOptions(timeout=300_000),
+            http_options=types.HttpOptions(timeout=600_000),
         )
 
     @patch("ai_reviewer.llm.gemini.genai.Client")
@@ -409,6 +410,14 @@ class TestGeminiProviderErrors:
             {"error": {"message": "Rate limit exceeded"}},
         )
         with pytest.raises(RateLimitError):
+            provider.generate("test", response_schema=_TestSchema)
+
+    def test_httpx_timeout_becomes_server_error(self, provider: GeminiProvider) -> None:
+        """Test that httpx.ReadTimeout → ServerError (retryable)."""
+        provider._client.models.generate_content.side_effect = httpx.ReadTimeout(
+            "The read operation timed out"
+        )
+        with pytest.raises(ServerError, match="connection error"):
             provider.generate("test", response_schema=_TestSchema)
 
     def test_non_retryable_exception_propagates(self, provider: GeminiProvider) -> None:
