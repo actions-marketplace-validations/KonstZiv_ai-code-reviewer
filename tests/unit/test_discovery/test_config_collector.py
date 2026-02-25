@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from ai_reviewer.discovery.config_collector import (
     MAX_CHARS_PER_FILE,
+    MAX_CHARS_TOTAL,
     ConfigCollector,
     ConfigContent,
     SmartConfigSelector,
@@ -198,6 +199,51 @@ class TestConfigCollector:
         result = collector.collect("owner/repo", paths)
         # MAX_CHARS_TOTAL / MAX_CHARS_PER_FILE = 50000 / 10000 = 5
         assert len(result) == 5
+
+    def test_collect_respects_remaining_budget(
+        self, mock_repo: MagicMock, collector: ConfigCollector
+    ) -> None:
+        """Last file is truncated to remaining budget, not per-file limit."""
+        # 4 files x 10K = 40K used, remaining = 10K -> 5th fits fully
+        # 5 files x 10K = 50K used, remaining = 0 -> 6th skipped
+        # But if 4 files x 10K = 40K, and 5th is 15K -> truncated to 10K (remaining)
+        calls = []
+
+        def side_effect(_repo: str, path: str) -> str:
+            calls.append(path)
+            if path == "cfg4.toml":
+                return "y" * (MAX_CHARS_PER_FILE + 5000)
+            return "x" * MAX_CHARS_PER_FILE
+
+        mock_repo.get_file_content.side_effect = side_effect
+        paths = [f"cfg{i}.toml" for i in range(6)]
+        result = collector.collect("owner/repo", paths)
+        assert len(result) == 5
+        total = sum(c.size_chars for c in result)
+        assert total <= MAX_CHARS_TOTAL
+
+    def test_collect_total_never_exceeded(
+        self, mock_repo: MagicMock, collector: ConfigCollector
+    ) -> None:
+        """Total chars never exceeds MAX_CHARS_TOTAL even with large files."""
+        # 45K used after 4.5 files worth, next file should be capped
+        small = "a" * 9000  # 9K each → 5 files = 45K, 6th gets 5K budget
+        big = "b" * MAX_CHARS_PER_FILE  # 10K but only 5K budget remains
+
+        def side_effect(_repo: str, path: str) -> str:
+            if path == "cfg5.toml":
+                return big
+            return small
+
+        mock_repo.get_file_content.side_effect = side_effect
+        paths = [f"cfg{i}.toml" for i in range(7)]
+        result = collector.collect("owner/repo", paths)
+        total = sum(c.size_chars for c in result)
+        assert total <= MAX_CHARS_TOTAL
+        # cfg5 should be truncated to remaining budget (50000 - 45000 = 5000)
+        cfg5 = next(c for c in result if c.path == "cfg5.toml")
+        assert cfg5.truncated is True
+        assert cfg5.size_chars == MAX_CHARS_TOTAL - 5 * 9000  # 5000
 
     def test_collect_empty_paths(self, collector: ConfigCollector) -> None:
         assert collector.collect("owner/repo", []) == ()

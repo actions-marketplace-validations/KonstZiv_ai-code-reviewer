@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
 
     from ai_reviewer.discovery.models import CIInsights, PlatformData
     from ai_reviewer.integrations.repository import RepositoryProvider
@@ -96,6 +96,35 @@ class SmartConfigSelector:
     Stateless: all data flows through method arguments.
     """
 
+    @staticmethod
+    def _filter_configs(
+        file_tree: Sequence[str],
+        keys: Iterable[str],
+        mapping: dict[str, tuple[str, ...]],
+    ) -> tuple[str, ...]:
+        """Filter and deduplicate config paths against the file tree.
+
+        Args:
+            file_tree: Repository file paths to match against.
+            keys: Lookup keys (tool names or language names).
+            mapping: Key → candidate config paths mapping.
+
+        Returns:
+            Sorted, deduplicated tuple of config paths present in file tree.
+        """
+        file_set = set(file_tree)
+        seen: set[str] = set()
+        result: list[str] = []
+
+        for key in keys:
+            for path in mapping.get(key, ()):
+                if path not in seen and path in file_set:
+                    seen.add(path)
+                    result.append(path)
+
+        result.sort()
+        return tuple(result)
+
     def select_targeted(
         self,
         platform_data: PlatformData,
@@ -110,18 +139,11 @@ class SmartConfigSelector:
         Returns:
             Sorted, deduplicated tuple of config paths present in file tree.
         """
-        file_set = set(platform_data.file_tree)
-        seen: set[str] = set()
-        result: list[str] = []
-
-        for tool in ci_insights.detected_tools:
-            for path in TOOL_CONFIG_MAP.get(tool.name, ()):
-                if path not in seen and path in file_set:
-                    seen.add(path)
-                    result.append(path)
-
-        result.sort()
-        return tuple(result)
+        return self._filter_configs(
+            platform_data.file_tree,
+            (t.name for t in ci_insights.detected_tools),
+            TOOL_CONFIG_MAP,
+        )
 
     def select_broad(
         self,
@@ -135,18 +157,11 @@ class SmartConfigSelector:
         Returns:
             Sorted, deduplicated tuple of config paths present in file tree.
         """
-        file_set = set(platform_data.file_tree)
-        seen: set[str] = set()
-        result: list[str] = []
-
-        for lang in platform_data.languages:
-            for path in LANGUAGE_CONFIG_MAP.get(lang, ()):
-                if path not in seen and path in file_set:
-                    seen.add(path)
-                    result.append(path)
-
-        result.sort()
-        return tuple(result)
+        return self._filter_configs(
+            platform_data.file_tree,
+            platform_data.languages,
+            LANGUAGE_CONFIG_MAP,
+        )
 
 
 # ── Collector ────────────────────────────────────────────────────────
@@ -180,15 +195,17 @@ class ConfigCollector:
         total_chars = 0
 
         for path in paths:
-            if total_chars >= MAX_CHARS_TOTAL:
+            remaining = MAX_CHARS_TOTAL - total_chars
+            if remaining <= 0:
                 break
 
             raw = self._repo.get_file_content(repo_name, path)
             if raw is None:
                 continue
 
-            truncated = len(raw) > MAX_CHARS_PER_FILE
-            content = raw[:MAX_CHARS_PER_FILE] if truncated else raw
+            limit = min(MAX_CHARS_PER_FILE, remaining)
+            truncated = len(raw) > limit
+            content = raw[:limit] if truncated else raw
 
             configs.append(
                 ConfigContent(
