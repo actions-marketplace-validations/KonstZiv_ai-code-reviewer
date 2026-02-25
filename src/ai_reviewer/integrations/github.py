@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from github import Github, GithubException, RateLimitExceededException
+from github import Github, GithubException, GithubObject, RateLimitExceededException
 from github.Auth import Token
 
 from ai_reviewer.core.models import (
@@ -483,7 +483,7 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
                     commit=commit,
                     body=submission.summary,
                     event=submission.event,
-                    comments=review_comments if review_comments else None,  # type: ignore[arg-type]
+                    comments=review_comments if review_comments else GithubObject.NotSet,  # type: ignore[arg-type]
                 )
             except GithubException as review_err:
                 if review_err.status != HTTP_UNPROCESSABLE_ENTITY or not review_comments:
@@ -499,7 +499,7 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
                     commit=commit,
                     body=demoted_body,
                     event=submission.event,
-                    comments=None,  # type: ignore[arg-type]
+                    comments=GithubObject.NotSet,
                 )
 
             logger.info(
