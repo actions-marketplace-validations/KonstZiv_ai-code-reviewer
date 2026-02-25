@@ -126,6 +126,10 @@ def review_pull_request(
             else None
         )
 
+        # 0.5. Post discovery comment (fail-open)
+        if profile:
+            _post_discovery_comment(provider, repo_name, mr_id, profile)
+
         # 1. Fetch MR data
         mr = provider.get_merge_request(repo_name, mr_id)
         if not mr:
@@ -185,6 +189,46 @@ def review_pull_request(
         # Fail Open strategy: Try to post a failure comment, but don't crash the CI hard
         # unless it's a critical configuration error.
         _post_error_comment(provider, repo_name, mr_id, e)
+
+
+def _post_discovery_comment(
+    provider: GitProvider,
+    repo_name: str,
+    mr_id: int,
+    profile: ProjectProfile,
+) -> None:
+    """Post discovery summary comment if appropriate.
+
+    Checks whether the comment should be posted (no duplicate, no .reviewbot.md)
+    and posts it. Failures are logged and swallowed (fail-open).
+
+    Args:
+        provider: Git provider instance.
+        repo_name: Repository identifier.
+        mr_id: Merge/Pull request number.
+        profile: Discovery profile to summarize.
+    """
+    from ai_reviewer.discovery.comment import (  # noqa: PLC0415
+        format_discovery_comment,
+        should_post_discovery_comment,
+    )
+
+    try:
+        # Collect existing bot comment bodies for duplicate detection
+        existing: tuple[str, ...] = ()
+        mr = provider.get_merge_request(repo_name, mr_id)
+        if mr:
+            existing = tuple(c.body for c in mr.comments if c.author_type == CommentAuthorType.BOT)
+
+        if not should_post_discovery_comment(profile, existing):
+            logger.debug("Discovery comment skipped (duplicate or .reviewbot.md present)")
+            return
+
+        comment = format_discovery_comment(profile)
+        provider.post_comment(repo_name, mr_id, comment)
+        logger.info("Posted discovery comment")
+    except Exception:
+        logger.warning("Failed to post discovery comment", exc_info=True)
 
 
 def _run_discovery(
