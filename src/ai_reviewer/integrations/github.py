@@ -330,6 +330,7 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
         Returns:
             Tuple of LinkedTask objects (deduplicated by issue number).
         """
+        max_tasks = 5
         tasks: list[LinkedTask] = []
         seen_ids: set[int] = set()
 
@@ -340,6 +341,8 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
             # Strategy 1: Regex in description
             if pr.body:
                 for match in ISSUE_CLOSING_RE.finditer(pr.body):
+                    if len(tasks) >= max_tasks:
+                        break
                     issue_number = int(match.group(1))
                     if issue_number in seen_ids:
                         continue
@@ -353,6 +356,8 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
             # Strategy 2: Timeline events
             try:
                 for event in pr.as_issue().get_timeline():
+                    if len(tasks) >= max_tasks:
+                        break
                     if getattr(event, "event", None) not in (
                         "cross-referenced",
                         "connected",
@@ -382,7 +387,7 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
 
             # Strategy 3: Branch name convention
             branch_issue = parse_branch_issue_number(source_branch)
-            if branch_issue and branch_issue not in seen_ids:
+            if len(tasks) < max_tasks and branch_issue and branch_issue not in seen_ids:
                 try:
                     issue = repo.get_issue(branch_issue)
                     seen_ids.add(branch_issue)

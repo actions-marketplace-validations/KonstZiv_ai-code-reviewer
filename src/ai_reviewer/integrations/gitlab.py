@@ -304,6 +304,7 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
         Returns:
             Tuple of LinkedTask objects (deduplicated by issue IID).
         """
+        max_tasks = 5
         tasks: list[LinkedTask] = []
         seen_ids: set[int] = set()
 
@@ -314,6 +315,8 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
             # Strategy 1: GitLab closes_issues API
             try:
                 for issue in mr.closes_issues():
+                    if len(tasks) >= max_tasks:
+                        break
                     iid = issue.iid
                     if iid not in seen_ids:
                         seen_ids.add(iid)
@@ -324,6 +327,8 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
             # Strategy 2: Regex fallback in description
             description = mr.description or ""
             for match in ISSUE_CLOSING_RE.finditer(description):
+                if len(tasks) >= max_tasks:
+                    break
                 issue_number = int(match.group(1))
                 if issue_number in seen_ids:
                     continue
@@ -336,7 +341,7 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
 
             # Strategy 3: Branch name convention
             branch_issue = parse_branch_issue_number(source_branch)
-            if branch_issue and branch_issue not in seen_ids:
+            if len(tasks) < max_tasks and branch_issue and branch_issue not in seen_ids:
                 try:
                     issue = project.issues.get(branch_issue)
                     seen_ids.add(branch_issue)
