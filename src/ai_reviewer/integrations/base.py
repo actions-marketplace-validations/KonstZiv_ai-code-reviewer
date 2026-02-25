@@ -12,13 +12,18 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from ai_reviewer.core.models import LinkedTask, MergeRequest
-
+from ai_reviewer.core.models import (  # noqa: TC001 — runtime for deprecated alias
+    LinkedTask,
+    MergeRequest,
+)
 
 _BRANCH_ISSUE_RE = re.compile(r"^(?:\w+/)?(?:GH-)?(\d+)[-_]")
+
+ISSUE_CLOSING_RE = re.compile(
+    r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)",
+    re.IGNORECASE,
+)
 
 
 def _parse_branch_issue_number(branch: str) -> int | None:
@@ -201,8 +206,32 @@ class GitProvider(ABC):
             Exception: If submission fails.
         """
 
+    # ── Backward compatibility alias ────────────────────────────────
+
+    def get_linked_task(
+        self,
+        repo_name: str,
+        mr: MergeRequest,
+    ) -> LinkedTask | None:
+        """Find a linked task for the merge request (deprecated).
+
+        .. deprecated::
+            Use :meth:`get_linked_tasks` instead. This alias returns
+            only the first linked task found or ``None``.
+
+        Args:
+            repo_name: Repository identifier.
+            mr: MergeRequest model.
+
+        Returns:
+            First LinkedTask or None.
+        """
+        tasks = self.get_linked_tasks(repo_name, mr.number, mr.source_branch)
+        return tasks[0] if tasks else None
+
 
 __all__ = [
+    "ISSUE_CLOSING_RE",
     "GitProvider",
     "LineComment",
     "ReviewSubmission",

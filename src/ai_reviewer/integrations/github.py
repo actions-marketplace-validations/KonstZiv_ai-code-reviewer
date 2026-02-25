@@ -8,7 +8,6 @@ and posting review comments.
 from __future__ import annotations
 
 import logging
-import re
 from typing import TYPE_CHECKING
 
 from github import Github, GithubException, RateLimitExceededException
@@ -23,7 +22,7 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import GitProvider, _parse_branch_issue_number
+from ai_reviewer.integrations.base import ISSUE_CLOSING_RE, GitProvider, _parse_branch_issue_number
 from ai_reviewer.integrations.conversation import (
     BOT_QUESTION_MARKER,
     BotThread,
@@ -237,6 +236,23 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
             updated_at=pr.updated_at,
         )
 
+    @staticmethod
+    def _issue_to_linked_task(issue: object) -> LinkedTask:
+        """Convert a PyGithub Issue to LinkedTask.
+
+        Args:
+            issue: PyGithub Issue object.
+
+        Returns:
+            LinkedTask model.
+        """
+        return LinkedTask(
+            identifier=str(issue.number),  # type: ignore[attr-defined]
+            title=issue.title,  # type: ignore[attr-defined]
+            description=issue.body or "",  # type: ignore[attr-defined]
+            url=issue.html_url,  # type: ignore[attr-defined]
+        )
+
     def get_linked_tasks(  # noqa: PLR0912
         self,
         repo_name: str,
@@ -270,21 +286,14 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
 
             # Strategy 1: Regex in description
             if pr.body:
-                for match in self._CLOSING_PATTERN.finditer(pr.body):
+                for match in ISSUE_CLOSING_RE.finditer(pr.body):
                     issue_number = int(match.group(1))
                     if issue_number in seen_ids:
                         continue
                     seen_ids.add(issue_number)
                     try:
                         issue = repo.get_issue(issue_number)
-                        tasks.append(
-                            LinkedTask(
-                                identifier=str(issue.number),
-                                title=issue.title,
-                                description=issue.body or "",
-                                url=issue.html_url,
-                            )
-                        )
+                        tasks.append(self._issue_to_linked_task(issue))
                     except (GithubException, RateLimitExceededException):
                         logger.warning("Failed to fetch issue #%s", issue_number)
 
@@ -322,14 +331,7 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
                 try:
                     issue = repo.get_issue(branch_issue)
                     seen_ids.add(branch_issue)
-                    tasks.append(
-                        LinkedTask(
-                            identifier=str(issue.number),
-                            title=issue.title,
-                            description=issue.body or "",
-                            url=issue.html_url,
-                        )
-                    )
+                    tasks.append(self._issue_to_linked_task(issue))
                 except (GithubException, RateLimitExceededException):
                     logger.debug("Branch issue #%s not found", branch_issue)
 
@@ -563,12 +565,6 @@ class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
             raise _convert_github_exception(e) from e
 
     # ── ConversationProvider implementation ──────────────────────────
-
-    # Issue-level regex for closing keywords
-    _CLOSING_PATTERN = re.compile(
-        r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)",
-        re.IGNORECASE,
-    )
 
     @with_retry
     def post_question_comment(

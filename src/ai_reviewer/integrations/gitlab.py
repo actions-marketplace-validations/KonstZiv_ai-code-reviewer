@@ -12,7 +12,6 @@ Reference:
 from __future__ import annotations
 
 import logging
-import re
 from typing import TYPE_CHECKING
 
 import gitlab
@@ -27,7 +26,7 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import GitProvider, _parse_branch_issue_number
+from ai_reviewer.integrations.base import ISSUE_CLOSING_RE, GitProvider, _parse_branch_issue_number
 from ai_reviewer.integrations.conversation import (
     BOT_QUESTION_MARKER,
     BotThread,
@@ -264,6 +263,23 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
             updated_at=mr.updated_at,
         )
 
+    @staticmethod
+    def _issue_to_linked_task(issue: object) -> LinkedTask:
+        """Convert a python-gitlab Issue to LinkedTask.
+
+        Args:
+            issue: python-gitlab ProjectIssue object.
+
+        Returns:
+            LinkedTask model.
+        """
+        return LinkedTask(
+            identifier=str(issue.iid),  # type: ignore[attr-defined]
+            title=issue.title,  # type: ignore[attr-defined]
+            description=issue.description or "",  # type: ignore[attr-defined]
+            url=issue.web_url,  # type: ignore[attr-defined]
+        )
+
     def get_linked_tasks(
         self,
         repo_name: str,
@@ -301,35 +317,20 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
                     iid = issue.iid
                     if iid not in seen_ids:
                         seen_ids.add(iid)
-                        tasks.append(
-                            LinkedTask(
-                                identifier=str(iid),
-                                title=issue.title,
-                                description=issue.description or "",
-                                url=issue.web_url,
-                            )
-                        )
+                        tasks.append(self._issue_to_linked_task(issue))
             except GitlabError:
                 logger.debug("closes_issues() unavailable for MR !%s", mr_id)
 
             # Strategy 2: Regex fallback in description
             description = mr.description or ""
-            pattern = r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)"
-            for match in re.finditer(pattern, description, re.IGNORECASE):
+            for match in ISSUE_CLOSING_RE.finditer(description):
                 issue_number = int(match.group(1))
                 if issue_number in seen_ids:
                     continue
                 seen_ids.add(issue_number)
                 try:
                     issue = project.issues.get(issue_number)
-                    tasks.append(
-                        LinkedTask(
-                            identifier=str(issue.iid),
-                            title=issue.title,
-                            description=issue.description or "",
-                            url=issue.web_url,
-                        )
-                    )
+                    tasks.append(self._issue_to_linked_task(issue))
                 except GitlabError:
                     logger.warning("Failed to fetch issue #%s", issue_number)
 
@@ -339,14 +340,7 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
                 try:
                     issue = project.issues.get(branch_issue)
                     seen_ids.add(branch_issue)
-                    tasks.append(
-                        LinkedTask(
-                            identifier=str(issue.iid),
-                            title=issue.title,
-                            description=issue.description or "",
-                            url=issue.web_url,
-                        )
-                    )
+                    tasks.append(self._issue_to_linked_task(issue))
                 except GitlabError:
                     logger.debug("Branch issue #%s not found", branch_issue)
 
