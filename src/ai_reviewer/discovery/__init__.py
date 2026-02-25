@@ -22,6 +22,7 @@ from ai_reviewer.discovery.models import (
     ReviewGuidance,
     ToolCategory,
 )
+from ai_reviewer.discovery.orchestrator import DiscoveryOrchestrator
 from ai_reviewer.discovery.prompts import (
     DISCOVERY_SYSTEM_PROMPT,
     LLMDiscoveryResponse,
@@ -38,6 +39,7 @@ __all__ = [
     "CIInsights",
     "ConfigContent",
     "DetectedTool",
+    "DiscoveryOrchestrator",
     "Gap",
     "LLMDiscoveryResponse",
     "PlatformData",
