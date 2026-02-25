@@ -370,3 +370,34 @@ jobs:
 """
         insights = analyzer.analyze(yaml_content)
         assert insights.go_version == "1"
+
+    def test_node_semver_version(self, analyzer: CIPipelineAnalyzer) -> None:
+        """Full SemVer like node-version: '20.11.1' is detected."""
+        yaml_content = """
+jobs:
+  test:
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+      - run: npm test
+"""
+        insights = analyzer.analyze(yaml_content)
+        assert insights.node_version == "20.11.1"
+
+    def test_services_inside_list_structure(self, analyzer: CIPipelineAnalyzer) -> None:
+        """Services nested inside a list are discovered via recursion."""
+        yaml_content = """
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - services:
+              - postgres:16
+              - redis:7
+            run: pytest
+"""
+        insights = analyzer.analyze(yaml_content)
+        assert "postgres" in insights.services
+        assert "redis" in insights.services

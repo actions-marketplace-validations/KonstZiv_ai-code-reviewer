@@ -73,9 +73,9 @@ _VERSION_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
         re.compile(r"python:(\d+(?:\.\d+)*)"),
     ),
     "node": (
-        re.compile(r"node-version:\s*['\"]?(\d+)"),
-        re.compile(r"node-version:\s*\[.*?['\"](\d+)['\"]"),
-        re.compile(r"node:(\d+)"),
+        re.compile(r"node-version:\s*['\"]?(\d+(?:\.\d+)*)"),
+        re.compile(r"node-version:\s*\[.*?['\"](\d+(?:\.\d+)*)['\"]"),
+        re.compile(r"node:(\d+(?:\.\d+)*)"),
     ),
     "go": (
         re.compile(r"go-version:\s*['\"]?(\d+(?:\.\d+)*)"),
@@ -360,6 +360,26 @@ def _detect_services(data: Any) -> tuple[str, ...]:  # noqa: ANN401
     return tuple(result)
 
 
+def _parse_services_value(value: Any, found: list[str]) -> None:  # noqa: ANN401
+    """Extract service names from a ``services`` YAML value.
+
+    Args:
+        value: The value associated with a ``services`` key (dict or list).
+        found: Accumulator list for found service names.
+    """
+    if isinstance(value, dict):
+        for svc_key in value:
+            normalized = _normalize_service_name(str(svc_key))
+            if normalized:
+                found.append(normalized)
+    elif isinstance(value, list):
+        for item in value:
+            name = str(item) if not isinstance(item, dict) else str(item.get("image", ""))
+            normalized = _normalize_service_name(name)
+            if normalized:
+                found.append(normalized)
+
+
 def _collect_services(data: Any, found: list[str], *, depth: int) -> None:  # noqa: ANN401
     """Recursively collect service names from YAML.
 
@@ -368,24 +388,18 @@ def _collect_services(data: Any, found: list[str], *, depth: int) -> None:  # no
         found: Accumulator list for found services.
         depth: Recursion depth limit.
     """
-    if depth > _MAX_RECURSION_DEPTH or not isinstance(data, dict):
+    if depth > _MAX_RECURSION_DEPTH:
         return
 
-    for key, value in data.items():
-        if key == "services":
-            if isinstance(value, dict):
-                for svc_key in value:
-                    normalized = _normalize_service_name(str(svc_key))
-                    if normalized:
-                        found.append(normalized)
-            elif isinstance(value, list):
-                for item in value:
-                    name = str(item) if not isinstance(item, dict) else str(item.get("image", ""))
-                    normalized = _normalize_service_name(name)
-                    if normalized:
-                        found.append(normalized)
-        elif isinstance(value, dict):
-            _collect_services(value, found, depth=depth + 1)
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if key == "services":
+                _parse_services_value(value, found)
+            else:
+                _collect_services(value, found, depth=depth + 1)
+    elif isinstance(data, list):
+        for item in data:
+            _collect_services(item, found, depth=depth + 1)
 
 
 def _normalize_service_name(raw: str) -> str | None:
