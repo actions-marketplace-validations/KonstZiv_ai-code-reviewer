@@ -12,8 +12,7 @@ Reference:
 from __future__ import annotations
 
 import logging
-import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import gitlab
 from gitlab.exceptions import GitlabAuthenticationError, GitlabError
@@ -27,7 +26,16 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.integrations.base import ISSUE_CLOSING_RE, GitProvider, parse_branch_issue_number
+from ai_reviewer.integrations.conversation import (
+    BOT_QUESTION_MARKER,
+    BotThread,
+    ConversationProvider,
+    ThreadStatus,
+    format_questions_markdown,
+    parse_questions_from_markdown,
+)
+from ai_reviewer.integrations.repository import RepositoryMetadata, RepositoryProvider
 from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
@@ -38,7 +46,10 @@ from ai_reviewer.utils.retry import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from ai_reviewer.integrations.base import ReviewSubmission
+    from ai_reviewer.integrations.conversation import BotQuestion
 
 
 logger = logging.getLogger(__name__)
@@ -109,12 +120,9 @@ def _parse_discussion_notes(
 
         author_data: dict[str, object] = note_data.get("author", {})  # type: ignore[assignment]
 
-        # Determine if it's a bot
+        # Determine if it's a bot (use GitLab API "bot" field)
         author_type = CommentAuthorType.USER
-        is_bot = author_data.get("bot", False) or (
-            "bot" in str(author_data.get("username", "")).lower()
-        )
-        if is_bot:
+        if author_data.get("bot", False):
             author_type = CommentAuthorType.BOT
 
         # Determine comment type from position
@@ -157,10 +165,11 @@ def _parse_discussion_notes(
     return comments
 
 
-class GitLabClient(GitProvider):
+class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
     """Client for interacting with GitLab API.
 
-    Implements the GitProvider interface for GitLab-specific operations.
+    Implements GitProvider, RepositoryProvider, and ConversationProvider
+    interfaces for GitLab-specific operations.
 
     Attributes:
         gitlab: The python-gitlab instance.
@@ -208,38 +217,37 @@ class GitLabClient(GitProvider):
             notes = discussion.attributes.get("notes", [])
             comments.extend(_parse_discussion_notes(notes, discussion_id))
 
-        # Fetch file changes
+        # Fetch file changes (single API call instead of N+1)
         changes: list[FileChange] = []
-        for diff in mr.diffs.list(iterator=True):
-            diff_detail = mr.diffs.get(diff.id)
-            for file_diff in diff_detail.diffs:
-                # Determine change type
-                if file_diff.get("new_file"):
-                    change_type = FileChangeType.ADDED
-                elif file_diff.get("deleted_file"):
-                    change_type = FileChangeType.DELETED
-                elif file_diff.get("renamed_file"):
-                    change_type = FileChangeType.RENAMED
-                else:
-                    change_type = FileChangeType.MODIFIED
+        mr_changes = mr.changes()
+        for file_diff in mr_changes.get("changes", []):  # type: ignore[union-attr]
+            # Determine change type
+            if file_diff.get("new_file"):
+                change_type = FileChangeType.ADDED
+            elif file_diff.get("deleted_file"):
+                change_type = FileChangeType.DELETED
+            elif file_diff.get("renamed_file"):
+                change_type = FileChangeType.RENAMED
+            else:
+                change_type = FileChangeType.MODIFIED
 
-                # Count additions/deletions from diff
-                diff_content = file_diff.get("diff", "")
-                additions = sum(1 for line in diff_content.split("\n") if line.startswith("+"))
-                deletions = sum(1 for line in diff_content.split("\n") if line.startswith("-"))
+            # Count additions/deletions from diff
+            diff_content = file_diff.get("diff", "")
+            additions = sum(1 for line in diff_content.split("\n") if line.startswith("+"))
+            deletions = sum(1 for line in diff_content.split("\n") if line.startswith("-"))
 
-                changes.append(
-                    FileChange(
-                        filename=file_diff.get("new_path", file_diff.get("old_path", "")),
-                        change_type=change_type,
-                        additions=additions,
-                        deletions=deletions,
-                        patch=diff_content if diff_content else None,
-                        previous_filename=file_diff.get("old_path")
-                        if file_diff.get("renamed_file")
-                        else None,
-                    )
+            changes.append(
+                FileChange(
+                    filename=file_diff.get("new_path", file_diff.get("old_path", "")),
+                    change_type=change_type,
+                    additions=additions,
+                    deletions=deletions,
+                    patch=diff_content if diff_content else None,
+                    previous_filename=file_diff.get("old_path")
+                    if file_diff.get("renamed_file")
+                    else None,
                 )
+            )
 
         return MergeRequest(
             number=mr.iid,
@@ -255,48 +263,96 @@ class GitLabClient(GitProvider):
             updated_at=mr.updated_at,
         )
 
-    def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
-        """Attempt to find a linked issue for the MR.
+    @staticmethod
+    def _issue_to_linked_task(issue: Any) -> LinkedTask:  # noqa: ANN401
+        """Convert a python-gitlab Issue to LinkedTask.
 
-        Looks for patterns like "Closes #123" or "Fixes #123" in the MR description.
-        If found, fetches the issue details from GitLab.
+        Args:
+            issue: python-gitlab ProjectIssue object.
 
-        Note: This method does NOT use retry as linked task is optional.
-        Failure to fetch linked task should not block the review.
+        Returns:
+            LinkedTask model.
+        """
+        return LinkedTask(
+            identifier=str(issue.iid),
+            title=issue.title,
+            description=issue.description or "",
+            url=issue.web_url,
+        )
+
+    def get_linked_tasks(
+        self,
+        repo_name: str,
+        mr_id: int,
+        source_branch: str,
+    ) -> tuple[LinkedTask, ...]:
+        """Find linked tasks via closes_issues API, regex, and branch name.
+
+        Combines three strategies (each fail-open):
+        1. GitLab's ``closes_issues()`` API endpoint.
+        2. Regex fallback for closing keywords in the MR description.
+        3. Branch name convention (e.g. ``86-task-description``).
+
+        Note: This method does NOT use ``@with_retry`` as linked tasks
+        are optional. Failure should not block the review.
 
         Args:
             repo_name: Project path (e.g., 'owner/repo').
-            mr: The MergeRequest object to check.
+            mr_id: Merge request IID.
+            source_branch: Source branch name.
 
         Returns:
-            LinkedTask if found, None otherwise.
+            Tuple of LinkedTask objects (deduplicated by issue IID).
         """
-        if not mr.description:
-            return None
-
-        # GitLab keywords for closing issues
-        # https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically
-        pattern = r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)"
-        match = re.search(pattern, mr.description, re.IGNORECASE)
-
-        if not match:
-            return None
-
-        issue_number = int(match.group(1))
+        max_tasks = 5
+        tasks: list[LinkedTask] = []
+        seen_ids: set[int] = set()
 
         try:
             project = self.gitlab.projects.get(repo_name)
-            issue = project.issues.get(issue_number)
+            mr = project.mergerequests.get(mr_id)
 
-            return LinkedTask(
-                identifier=str(issue.iid),
-                title=issue.title,
-                description=issue.description or "",
-                url=issue.web_url,
-            )
+            # Strategy 1: GitLab closes_issues API
+            try:
+                for issue in mr.closes_issues():
+                    if len(tasks) >= max_tasks:
+                        break
+                    iid = issue.iid
+                    if iid not in seen_ids:
+                        seen_ids.add(iid)
+                        tasks.append(self._issue_to_linked_task(issue))
+            except GitlabError:
+                logger.debug("closes_issues() unavailable for MR !%s", mr_id)
+
+            # Strategy 2: Regex fallback in description
+            description = mr.description or ""
+            for match in ISSUE_CLOSING_RE.finditer(description):
+                if len(tasks) >= max_tasks:
+                    break
+                issue_number = int(match.group(1))
+                if issue_number in seen_ids:
+                    continue
+                seen_ids.add(issue_number)
+                try:
+                    issue = project.issues.get(issue_number)
+                    tasks.append(self._issue_to_linked_task(issue))
+                except GitlabError:
+                    logger.warning("Failed to fetch issue #%s", issue_number)
+
+            # Strategy 3: Branch name convention
+            branch_issue = parse_branch_issue_number(source_branch)
+            if len(tasks) < max_tasks and branch_issue and branch_issue not in seen_ids:
+                try:
+                    issue = project.issues.get(branch_issue)
+                    seen_ids.add(branch_issue)
+                    tasks.append(self._issue_to_linked_task(issue))
+                except GitlabError:
+                    logger.debug("Branch issue #%s not found", branch_issue)
+
         except GitlabError as e:
-            logger.warning("Found issue link #%s but failed to fetch it: %s", issue_number, e)
-            return None
+            logger.warning("Failed task search for MR !%s: %s", mr_id, e)
+
+        return tuple(tasks)
 
     @with_retry
     def post_comment(self, repo_name: str, mr_id: int, body: str) -> None:
@@ -409,4 +465,268 @@ class GitLabClient(GitProvider):
 
         except GitlabError as e:
             logger.warning("Failed to submit review to MR !%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_gitlab_exception(e) from e
+
+    # ── RepositoryProvider implementation ──────────────────────────────
+
+    @with_retry
+    def get_languages(self, repo_name: str) -> dict[str, float]:
+        """Get repository languages as percentages.
+
+        GitLab returns percentages natively.
+
+        Args:
+            repo_name: Project path (e.g. ``owner/repo``).
+
+        Returns:
+            Mapping of language name to percentage (0-100).
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            langs: dict[str, float] = dict(project.languages())  # type: ignore[arg-type]
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+        else:
+            return langs
+
+    @with_retry
+    def get_metadata(self, repo_name: str) -> RepositoryMetadata:
+        """Get basic repository metadata from GitLab.
+
+        Args:
+            repo_name: Project path (e.g. ``owner/repo``).
+
+        Returns:
+            RepositoryMetadata populated from the GitLab API.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            return RepositoryMetadata(
+                name=project.path_with_namespace,
+                description=project.description,
+                default_branch=project.default_branch,
+                topics=tuple(project.topics or []),
+                license=None,  # GitLab: requires separate API call
+                visibility=project.visibility,
+                ci_config_path=getattr(project, "ci_config_path", None),
+            )
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    @with_retry
+    def get_file_tree(
+        self,
+        repo_name: str,
+        *,
+        ref: str | None = None,
+    ) -> tuple[str, ...]:
+        """Get file paths in the repository (blobs only).
+
+        Uses GitLab's Repository Tree API with ``recursive=True``.
+
+        Args:
+            repo_name: Project path (e.g. ``owner/repo``).
+            ref: Git ref. Defaults to the default branch.
+
+        Returns:
+            Tuple of file paths relative to the repository root.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            kwargs: dict[str, str] = {"ref": ref} if ref else {}
+            items = project.repository_tree(
+                recursive=True,
+                get_all=True,
+                per_page=100,
+                **kwargs,
+            )
+            return tuple(item["path"] for item in items if item["type"] == "blob")
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    @with_retry
+    def get_file_content(
+        self,
+        repo_name: str,
+        path: str,
+        *,
+        ref: str | None = None,
+    ) -> str | None:
+        """Get file content as text.
+
+        Args:
+            repo_name: Project path (e.g. ``owner/repo``).
+            path: File path relative to the repository root.
+            ref: Git ref. Defaults to the default branch.
+
+        Returns:
+            File content string, or ``None`` for binary files
+            or if the file does not exist.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            file_ref = ref or project.default_branch
+            f = project.files.get(path, ref=file_ref)
+            try:
+                return f.decode().decode("utf-8")
+            except UnicodeDecodeError:
+                return None  # binary file
+        except GitlabError as e:
+            if getattr(e, "response_code", None) == HTTP_NOT_FOUND:
+                return None
+            raise _convert_gitlab_exception(e) from e
+
+    # ── ConversationProvider implementation ──────────────────────────
+
+    @with_retry
+    def post_question_comment(
+        self,
+        repo_name: str,
+        mr_id: int,
+        questions: Sequence[BotQuestion],
+        *,
+        intro: str = "",
+    ) -> str:
+        """Post a discussion with structured bot questions.
+
+        Creates a new discussion (not a plain note) so that GitLab's
+        native threading is used for responses.
+
+        Args:
+            repo_name: Project path (e.g., 'owner/repo').
+            mr_id: Merge request IID.
+            questions: Questions to post.
+            intro: Optional introductory text.
+
+        Returns:
+            The discussion ID as a string.
+        """
+        try:
+            body = format_questions_markdown(questions, intro)
+            project = self.gitlab.projects.get(repo_name)
+            mr = project.mergerequests.get(mr_id)
+            discussion = mr.discussions.create({"body": body})
+            logger.info("Posted question discussion to MR !%s in %s", mr_id, repo_name)
+            return str(discussion.id)
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    @with_retry
+    def reply_in_thread(
+        self,
+        repo_name: str,
+        mr_id: int,
+        thread_id: str,
+        body: str,
+    ) -> str:
+        """Reply in an existing GitLab discussion thread.
+
+        Args:
+            repo_name: Project path (e.g., 'owner/repo').
+            mr_id: Merge request IID.
+            thread_id: Discussion ID to reply in.
+            body: Reply text (markdown supported).
+
+        Returns:
+            The new note ID as a string.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            mr = project.mergerequests.get(mr_id)
+            discussion = mr.discussions.get(thread_id)
+            note = discussion.notes.create({"body": body})
+            logger.info(
+                "Posted reply to discussion %s on MR !%s in %s",
+                thread_id,
+                mr_id,
+                repo_name,
+            )
+            return str(note["id"])  # type: ignore[index]
+        except GitlabError as e:
+            raise _convert_gitlab_exception(e) from e
+
+    @with_retry
+    def get_bot_threads(
+        self,
+        repo_name: str,
+        mr_id: int,
+    ) -> tuple[BotThread, ...]:
+        """Find all bot-initiated question threads on the MR.
+
+        Scans discussions for the bot question marker in the first note,
+        then collects subsequent non-system notes as responses. Uses
+        GitLab's native ``resolved`` status for thread resolution.
+
+        Args:
+            repo_name: Project path (e.g., 'owner/repo').
+            mr_id: Merge request IID.
+
+        Returns:
+            Tuple of BotThread objects with questions and responses.
+        """
+        try:
+            project = self.gitlab.projects.get(repo_name)
+            mr = project.mergerequests.get(mr_id)
+            threads: list[BotThread] = []
+
+            for discussion in mr.discussions.list(iterator=True):
+                notes = discussion.attributes.get("notes", [])
+                if not notes:
+                    continue
+
+                first_note = notes[0]
+                body = str(first_note.get("body", ""))
+                if BOT_QUESTION_MARKER not in body:
+                    continue
+
+                questions = parse_questions_from_markdown(body)
+                if not questions:
+                    continue
+
+                # Collect non-system responses from subsequent notes
+                responses: list[Comment] = []
+                for note_data in notes[1:]:
+                    if note_data.get("system", False):
+                        continue
+
+                    author_data: dict[str, object] = note_data.get("author", {})
+                    is_bot = bool(author_data.get("bot", False))
+
+                    responses.append(
+                        Comment(
+                            author=str(author_data.get("username", "unknown")),
+                            author_type=(
+                                CommentAuthorType.BOT if is_bot else CommentAuthorType.USER
+                            ),
+                            body=str(note_data.get("body", "")),
+                            type=CommentType.ISSUE,
+                            created_at=note_data.get("created_at"),
+                            comment_id=str(note_data.get("id", "")),
+                            thread_id=str(discussion.id),
+                        )
+                    )
+
+                # Determine status
+                is_resolved = discussion.attributes.get("resolved", False)
+                if is_resolved:
+                    status = ThreadStatus.RESOLVED
+                elif responses:
+                    status = ThreadStatus.ANSWERED
+                else:
+                    status = ThreadStatus.PENDING
+
+                discussion_id = str(discussion.id)
+                threads.append(
+                    BotThread(
+                        thread_id=discussion_id,
+                        platform_thread_id=discussion_id,
+                        mr_id=mr_id,
+                        questions=tuple(questions),
+                        responses=tuple(responses),
+                        status=status,
+                    )
+                )
+
+            return tuple(threads)
+        except GitlabError as e:
             raise _convert_gitlab_exception(e) from e

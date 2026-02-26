@@ -100,6 +100,15 @@ All settings are configured via environment variables.
     When `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (default), comments are grouped into
     conversation threads so the AI understands reply chains. Set to `false` for flat rendering.
 
+### Discovery
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Enable project discovery before review | `true` |
+
+!!! info "Project Discovery"
+    When enabled, AI ReviewBot automatically analyzes your repository (languages, CI pipeline, config files) before each review to provide smarter feedback. Set to `false` to disable. See [Discovery →](discovery.md) for details.
+
 ### GitLab
 
 | Variable | Description | Default |

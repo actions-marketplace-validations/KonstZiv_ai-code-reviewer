@@ -96,6 +96,15 @@ Alle Einstellungen werden über Umgebungsvariablen konfiguriert.
     Wenn `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (Standard), werden Kommentare in
     Konversations-Threads gruppiert, damit die KI Antwort-Ketten versteht. Setzen Sie auf `false` für flache Darstellung.
 
+### Discovery
+
+| Variable | Beschreibung | Standard |
+|----------|--------------|----------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Projektanalyse vor dem Review aktivieren | `true` |
+
+!!! info "Projektanalyse"
+    Wenn aktiviert, analysiert AI ReviewBot automatisch Ihr Repository (Sprachen, CI-Pipeline, Config-Dateien) vor jedem Review für intelligenteres Feedback. Setzen Sie auf `false` zum Deaktivieren. Details: [Discovery →](discovery.md).
+
 ### GitLab
 
 | Variable | Beschreibung | Standard |

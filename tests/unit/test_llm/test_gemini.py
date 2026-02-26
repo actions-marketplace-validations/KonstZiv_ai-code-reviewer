@@ -5,11 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
+import httpx
 import pytest
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
 from google.api_core import exceptions as google_exceptions
+from google.genai import types
 from pydantic import BaseModel
 
 from ai_reviewer.llm.base import LLMResponse
@@ -24,6 +26,7 @@ from ai_reviewer.llm.gemini import (
 from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
+    QuotaExhaustedError,
     RateLimitError,
     ServerError,
 )
@@ -49,7 +52,10 @@ class TestGeminiProviderInit:
         """Test provider initializes with default model."""
         provider = GeminiProvider(api_key="key")
         assert provider.model_name == DEFAULT_MODEL
-        mock_client_cls.assert_called_once_with(api_key="key")
+        mock_client_cls.assert_called_once_with(
+            api_key="key",
+            http_options=types.HttpOptions(timeout=600_000),
+        )
 
     @patch("ai_reviewer.llm.gemini.genai.Client")
     def test_custom_model(self, mock_client_cls: MagicMock) -> None:
@@ -261,10 +267,32 @@ class TestConvertGoogleException:
     """Tests for _convert_google_exception."""
 
     def test_resource_exhausted_becomes_rate_limit(self) -> None:
-        """Test ResourceExhausted → RateLimitError."""
+        """Test ResourceExhausted → RateLimitError (per-minute quota)."""
         exc = google_exceptions.ResourceExhausted("Quota exceeded")
         result = _convert_google_exception(exc)
         assert isinstance(result, RateLimitError)
+
+    def test_daily_quota_becomes_quota_exhausted(self) -> None:
+        """Test ResourceExhausted with PerDay quotaId → QuotaExhaustedError."""
+        msg = (
+            "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, "
+            "'message': 'You exceeded your current quota', "
+            "'details': [{'@type': 'QuotaFailure', "
+            "'violations': [{'quotaMetric': 'generate_content_free_tier_requests', "
+            "'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', "
+            "'quotaValue': '20'}]}]}}"
+        )
+        exc = google_exceptions.ResourceExhausted(msg)
+        result = _convert_google_exception(exc)
+        assert isinstance(result, QuotaExhaustedError)
+        assert result.quota_id == "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+
+    def test_free_tier_quota_becomes_quota_exhausted(self) -> None:
+        """Test ResourceExhausted with FreeTier quotaId → QuotaExhaustedError."""
+        msg = "'quotaId': 'SomeFreeTierQuota'"
+        exc = google_exceptions.ResourceExhausted(msg)
+        result = _convert_google_exception(exc)
+        assert isinstance(result, QuotaExhaustedError)
 
     def test_unauthenticated_becomes_auth_error(self) -> None:
         """Test Unauthenticated → AuthenticationError."""
@@ -308,9 +336,29 @@ class TestConvertGoogleException:
         result = _convert_google_exception(exc)
         assert isinstance(result, RateLimitError)
 
+    def test_429_daily_in_message_becomes_quota_exhausted(self) -> None:
+        """Test fallback: '429' with PerDay quotaId → QuotaExhaustedError."""
+        exc = Exception(
+            "429 quota exceeded, 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier'"
+        )
+        result = _convert_google_exception(exc)
+        assert isinstance(result, QuotaExhaustedError)
+
     def test_500_in_message_becomes_server_error(self) -> None:
         """Test fallback: '500' in error message → ServerError."""
         exc = Exception("HTTP 500 Internal Server Error")
+        result = _convert_google_exception(exc)
+        assert isinstance(result, ServerError)
+
+    def test_504_in_message_becomes_server_error(self) -> None:
+        """Test fallback: '504' in error message → ServerError."""
+        exc = Exception("504 DEADLINE_EXCEEDED")
+        result = _convert_google_exception(exc)
+        assert isinstance(result, ServerError)
+
+    def test_deadline_in_message_becomes_server_error(self) -> None:
+        """Test fallback: 'deadline' in error message → ServerError."""
+        exc = Exception("Deadline expired before operation could complete")
         result = _convert_google_exception(exc)
         assert isinstance(result, ServerError)
 
@@ -367,6 +415,56 @@ class TestGeminiProviderErrors:
             "Rate limit exceeded for project"
         )
         with pytest.raises(RateLimitError):
+            provider.generate("test", response_schema=_TestSchema)
+
+    def test_genai_server_error_becomes_retryable(self, provider: GeminiProvider) -> None:
+        """Test that google.genai.errors.ServerError → our ServerError (retryable).
+
+        This covers 504 DEADLINE_EXCEEDED and other server-side errors from
+        the genai SDK (distinct from google.api_core.exceptions).
+        """
+        from google.genai.errors import ServerError as GenaiServerError
+
+        provider._client.models.generate_content.side_effect = GenaiServerError(
+            504,
+            {"error": {"message": "Deadline expired before operation could complete"}},
+        )
+        with pytest.raises(ServerError, match="Gemini"):
+            provider.generate("test", response_schema=_TestSchema)
+
+    def test_genai_client_error_converted(self, provider: GeminiProvider) -> None:
+        """Test that google.genai.errors.ClientError is converted via _convert_google_exception."""
+        from google.genai.errors import ClientError as GenaiClientError
+
+        provider._client.models.generate_content.side_effect = GenaiClientError(
+            429,
+            {"error": {"message": "Rate limit exceeded"}},
+        )
+        with pytest.raises(RateLimitError):
+            provider.generate("test", response_schema=_TestSchema)
+
+    def test_daily_quota_not_retried(self, provider: GeminiProvider) -> None:
+        """Test that daily quota 429 raises QuotaExhaustedError without retry."""
+        from google.genai.errors import ClientError as GenaiClientError
+
+        msg = (
+            "429 RESOURCE_EXHAUSTED. 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier'"
+        )
+        provider._client.models.generate_content.side_effect = GenaiClientError(
+            429,
+            {"error": {"message": msg}},
+        )
+        with pytest.raises(QuotaExhaustedError):
+            provider.generate("test", response_schema=_TestSchema)
+        # QuotaExhaustedError is not RetryableError → only 1 attempt
+        assert provider._client.models.generate_content.call_count == 1
+
+    def test_httpx_timeout_becomes_server_error(self, provider: GeminiProvider) -> None:
+        """Test that httpx.ReadTimeout → ServerError (retryable)."""
+        provider._client.models.generate_content.side_effect = httpx.ReadTimeout(
+            "The read operation timed out"
+        )
+        with pytest.raises(ServerError, match="connection error"):
             provider.generate("test", response_schema=_TestSchema)
 
     def test_non_retryable_exception_propagates(self, provider: GeminiProvider) -> None:

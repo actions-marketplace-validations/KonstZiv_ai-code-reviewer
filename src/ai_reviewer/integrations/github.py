@@ -8,10 +8,9 @@ and posting review comments.
 from __future__ import annotations
 
 import logging
-import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from github import Github, GithubException, RateLimitExceededException
+from github import Github, GithubException, GithubObject, RateLimitExceededException
 from github.Auth import Token
 
 from ai_reviewer.core.models import (
@@ -23,18 +22,35 @@ from ai_reviewer.core.models import (
     LinkedTask,
     MergeRequest,
 )
-from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.integrations.base import (
+    ISSUE_CLOSING_RE,
+    GitProvider,
+    ReviewSubmission,  # noqa: TC001 — runtime for _build_demoted_summary
+    parse_branch_issue_number,
+)
+from ai_reviewer.integrations.conversation import (
+    BOT_QUESTION_MARKER,
+    BotThread,
+    ConversationProvider,
+    ThreadStatus,
+    format_questions_markdown,
+    parse_questions_from_markdown,
+)
+from ai_reviewer.integrations.repository import RepositoryMetadata, RepositoryProvider
 from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
     NotFoundError,
     RateLimitError,
     ServerError,
+    ValidationError,
     with_retry,
 )
 
 if TYPE_CHECKING:
-    from ai_reviewer.integrations.base import ReviewSubmission
+    from collections.abc import Sequence
+
+    from ai_reviewer.integrations.conversation import BotQuestion
 
 
 logger = logging.getLogger(__name__)
@@ -43,10 +59,11 @@ logger = logging.getLogger(__name__)
 HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 HTTP_NOT_FOUND = 404
+HTTP_UNPROCESSABLE_ENTITY = 422
 HTTP_INTERNAL_SERVER_ERROR = 500
 
 
-def _convert_github_exception(e: GithubException) -> Exception:
+def _convert_github_exception(e: GithubException) -> Exception:  # noqa: PLR0911
     """Convert PyGithub exception to our exception hierarchy.
 
     Args:
@@ -70,6 +87,9 @@ def _convert_github_exception(e: GithubException) -> Exception:
     if status == HTTP_NOT_FOUND:
         return NotFoundError(f"GitHub: {message}")
 
+    if status == HTTP_UNPROCESSABLE_ENTITY:
+        return ValidationError(f"GitHub: {message}")
+
     if status >= HTTP_INTERNAL_SERVER_ERROR:
         return ServerError(f"GitHub: {message}", status_code=status)
 
@@ -77,10 +97,39 @@ def _convert_github_exception(e: GithubException) -> Exception:
     return e
 
 
-class GitHubClient(GitProvider):
+def _build_demoted_summary(submission: ReviewSubmission) -> str:
+    """Build summary text with demoted inline comments appended.
+
+    When inline comments fail (e.g., GitHub 422 "Line could not be
+    resolved"), their content is appended to the review summary so
+    the feedback is not lost.
+
+    Args:
+        submission: The original review submission.
+
+    Returns:
+        Summary text with demoted inline comments.
+    """
+    if not submission.line_comments:
+        return submission.summary
+
+    parts = [submission.summary]
+    parts.append("\n\n---\n")
+    parts.append(
+        "**Note:** The following inline comments could not be posted "
+        "and are included here instead:\n"
+    )
+    for lc in submission.line_comments:
+        body = lc.format_body_with_suggestion()
+        parts.append(f"\n**`{lc.path}:{lc.line}`**\n{body}\n")
+    return "".join(parts)
+
+
+class GitHubClient(GitProvider, RepositoryProvider, ConversationProvider):
     """Client for interacting with GitHub API.
 
-    Implements the GitProvider interface for GitHub-specific operations.
+    Implements GitProvider, RepositoryProvider, and ConversationProvider
+    interfaces for GitHub-specific operations.
 
     Attributes:
         github: The PyGithub instance.
@@ -224,48 +273,132 @@ class GitHubClient(GitProvider):
             updated_at=pr.updated_at,
         )
 
-    def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
-        """Attempt to find a linked task/issue for the PR.
+    @staticmethod
+    def _get_attr(obj: Any, key: str) -> Any:  # noqa: ANN401
+        """Get a value from a dict or object attribute.
 
-        Looks for patterns like "Fixes #123" or "Closes #123" in the PR description.
-        If found, fetches the issue details from GitHub.
+        PyGithub timeline events may return dicts or typed objects
+        depending on version. This helper handles both.
 
-        Note: This method does NOT use retry as linked task is optional.
-        Failure to fetch linked task should not block the review.
+        Args:
+            obj: Dict or object to read from.
+            key: Key/attribute name.
+
+        Returns:
+            The value, or None if not found.
+        """
+        return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
+
+    @staticmethod
+    def _issue_to_linked_task(issue: Any) -> LinkedTask:  # noqa: ANN401
+        """Convert a PyGithub Issue to LinkedTask.
+
+        Args:
+            issue: PyGithub Issue object.
+
+        Returns:
+            LinkedTask model.
+        """
+        return LinkedTask(
+            identifier=str(issue.number),
+            title=issue.title,
+            description=issue.body or "",
+            url=issue.html_url,
+        )
+
+    def get_linked_tasks(  # noqa: PLR0912
+        self,
+        repo_name: str,
+        mr_id: int,
+        source_branch: str,
+    ) -> tuple[LinkedTask, ...]:
+        """Find linked tasks via regex, timeline events, and branch name.
+
+        Combines three strategies (each fail-open):
+        1. Regex matching of closing keywords in the PR description.
+        2. GitHub timeline events (cross-referenced, connected).
+        3. Branch name convention (e.g. ``86-task-description``).
+
+        Note: This method does NOT use ``@with_retry`` as linked tasks
+        are optional. Failure should not block the review.
 
         Args:
             repo_name: Repository name in 'owner/repo' format.
-            mr: The MergeRequest object to check.
+            mr_id: Pull request number.
+            source_branch: Source branch name.
 
         Returns:
-            LinkedTask if found, None otherwise.
+            Tuple of LinkedTask objects (deduplicated by issue number).
         """
-        if not mr.description:
-            return None
-
-        # Common GitHub keywords for closing issues
-        # https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue
-        pattern = r"(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)"
-        match = re.search(pattern, mr.description, re.IGNORECASE)
-
-        if not match:
-            return None
-
-        issue_number = int(match.group(1))
+        max_tasks = 5
+        tasks: list[LinkedTask] = []
+        seen_ids: set[int] = set()
 
         try:
             repo = self.github.get_repo(repo_name)
-            issue = repo.get_issue(issue_number)
+            pr = repo.get_pull(mr_id)
 
-            return LinkedTask(
-                identifier=str(issue.number),
-                title=issue.title,
-                description=issue.body or "",
-                url=issue.html_url,
-            )
+            # Strategy 1: Regex in description
+            if pr.body:
+                for match in ISSUE_CLOSING_RE.finditer(pr.body):
+                    if len(tasks) >= max_tasks:
+                        break
+                    issue_number = int(match.group(1))
+                    if issue_number in seen_ids:
+                        continue
+                    seen_ids.add(issue_number)
+                    try:
+                        issue = repo.get_issue(issue_number)
+                        tasks.append(self._issue_to_linked_task(issue))
+                    except (GithubException, RateLimitExceededException):
+                        logger.warning("Failed to fetch issue #%s", issue_number)
+
+            # Strategy 2: Timeline events
+            try:
+                for event in pr.as_issue().get_timeline():
+                    if len(tasks) >= max_tasks:
+                        break
+                    if getattr(event, "event", None) not in (
+                        "cross-referenced",
+                        "connected",
+                    ):
+                        continue
+                    source = getattr(event, "source", None)
+                    if not source:
+                        continue
+                    # source can be a dict or an object depending on PyGithub version
+                    issue_data = self._get_attr(source, "issue")
+                    if not issue_data:
+                        continue
+
+                    issue_number = self._get_attr(issue_data, "number")
+                    if issue_number and issue_number not in seen_ids:
+                        seen_ids.add(issue_number)
+                        tasks.append(
+                            LinkedTask(
+                                identifier=str(issue_number),
+                                title=self._get_attr(issue_data, "title") or "",
+                                description=self._get_attr(issue_data, "body") or "",
+                                url=self._get_attr(issue_data, "html_url") or "",
+                            )
+                        )
+            except (GithubException, RateLimitExceededException):
+                logger.debug("Timeline API unavailable for PR #%s", mr_id)
+
+            # Strategy 3: Branch name convention
+            branch_issue = parse_branch_issue_number(source_branch)
+            if len(tasks) < max_tasks and branch_issue and branch_issue not in seen_ids:
+                try:
+                    issue = repo.get_issue(branch_issue)
+                    seen_ids.add(branch_issue)
+                    tasks.append(self._issue_to_linked_task(issue))
+                except (GithubException, RateLimitExceededException):
+                    logger.debug("Branch issue #%s not found", branch_issue)
+
         except (GithubException, RateLimitExceededException) as e:
-            logger.warning("Found issue link #%s but failed to fetch it: %s", issue_number, e)
-            return None
+            logger.warning("Failed task search for PR #%s: %s", mr_id, e)
+
+        return tuple(tasks)
 
     @with_retry
     def post_comment(self, repo_name: str, mr_id: int, body: str) -> None:
@@ -328,6 +461,7 @@ class GitHubClient(GitProvider):
 
             # Get the latest commit SHA (required for creating review comments)
             commit_sha = pr.head.sha
+            commit = repo.get_commit(commit_sha)
 
             # Build review comments for the API
             # PyGithub's create_review expects a list of dicts
@@ -344,12 +478,29 @@ class GitHubClient(GitProvider):
             # Create the review
             # event can be: APPROVE, REQUEST_CHANGES, COMMENT
             # Note: PyGithub accepts dicts at runtime but type stubs expect ReviewComment
-            pr.create_review(
-                commit=repo.get_commit(commit_sha),
-                body=submission.summary,
-                event=submission.event,
-                comments=review_comments if review_comments else None,  # type: ignore[arg-type]
-            )
+            try:
+                pr.create_review(
+                    commit=commit,
+                    body=submission.summary,
+                    event=submission.event,
+                    comments=review_comments if review_comments else GithubObject.NotSet,  # type: ignore[arg-type]
+                )
+            except GithubException as review_err:
+                if review_err.status != HTTP_UNPROCESSABLE_ENTITY or not review_comments:
+                    raise
+                # 422 with inline comments: demote to summary-only
+                logger.warning(
+                    "GitHub 422 on inline comments for PR #%s, demoting %d comments to summary",
+                    mr_id,
+                    len(review_comments),
+                )
+                demoted_body = _build_demoted_summary(submission)
+                pr.create_review(
+                    commit=commit,
+                    body=demoted_body,
+                    event=submission.event,
+                    comments=GithubObject.NotSet,
+                )
 
             logger.info(
                 "Submitted review to PR #%s in %s with %d inline comments",
@@ -364,6 +515,290 @@ class GitHubClient(GitProvider):
             raise RateLimitError(msg) from e
         except GithubException as e:
             logger.warning("Failed to submit review to PR #%s in %s: %s", mr_id, repo_name, e)
+            raise _convert_github_exception(e) from e
+
+    # ── RepositoryProvider implementation ──────────────────────────────
+
+    @with_retry
+    def get_languages(self, repo_name: str) -> dict[str, float]:
+        """Get repository languages as percentages.
+
+        GitHub returns bytes per language; this method converts to percentages.
+
+        Args:
+            repo_name: Repository name in ``owner/repo`` format.
+
+        Returns:
+            Mapping of language name to percentage (0-100).
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            langs = repo.get_languages()  # {name: bytes}
+            total = sum(langs.values())
+            if total == 0:
+                return {}
+            return {name: round(bytes_ / total * 100, 1) for name, bytes_ in langs.items()}
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def get_metadata(self, repo_name: str) -> RepositoryMetadata:
+        """Get basic repository metadata from GitHub.
+
+        Args:
+            repo_name: Repository name in ``owner/repo`` format.
+
+        Returns:
+            RepositoryMetadata populated from the GitHub API.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            return RepositoryMetadata(
+                name=repo.full_name,
+                description=repo.description,
+                default_branch=repo.default_branch,
+                topics=tuple(repo.get_topics()),
+                license=repo.license.spdx_id if repo.license else None,
+                visibility="public" if not repo.private else "private",
+            )
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def get_file_tree(
+        self,
+        repo_name: str,
+        *,
+        ref: str | None = None,
+    ) -> tuple[str, ...]:
+        """Get file paths in the repository (blobs only).
+
+        Uses GitHub's Git Trees API with ``recursive=True``.
+        Limited to ~10 000 entries by the API.
+
+        Args:
+            repo_name: Repository name in ``owner/repo`` format.
+            ref: Git ref. Defaults to the default branch.
+
+        Returns:
+            Tuple of file paths relative to the repository root.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            branch = ref or repo.default_branch
+            tree = repo.get_git_tree(branch, recursive=True)
+            if getattr(tree, "truncated", False):
+                logger.warning(
+                    "Git tree for %s is truncated (exceeds 10,000 entries)",
+                    repo_name,
+                )
+            return tuple(item.path for item in tree.tree if item.type == "blob")
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def get_file_content(
+        self,
+        repo_name: str,
+        path: str,
+        *,
+        ref: str | None = None,
+    ) -> str | None:
+        """Get file content as text.
+
+        Args:
+            repo_name: Repository name in ``owner/repo`` format.
+            path: File path relative to the repository root.
+            ref: Git ref. Defaults to the default branch.
+
+        Returns:
+            File content string, or ``None`` for binary files,
+            directories, or if the file does not exist.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            kwargs: dict[str, str] = {"ref": ref} if ref else {}
+            content_file = repo.get_contents(path, **kwargs)
+            if isinstance(content_file, list) or content_file.type != "file":
+                return None  # directory, submodule, or symlink
+            try:
+                return content_file.decoded_content.decode("utf-8")
+            except UnicodeDecodeError:
+                return None  # binary file
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            if getattr(e, "status", None) == HTTP_NOT_FOUND:
+                return None
+            raise _convert_github_exception(e) from e
+
+    # ── ConversationProvider implementation ──────────────────────────
+
+    @with_retry
+    def post_question_comment(
+        self,
+        repo_name: str,
+        mr_id: int,
+        questions: Sequence[BotQuestion],
+        *,
+        intro: str = "",
+    ) -> str:
+        """Post a comment with structured bot questions.
+
+        Creates an issue comment with the bot question marker so it can
+        be found later by :meth:`get_bot_threads`.
+
+        Note:
+            GitHub issue comments have no native threading. Responses
+            are identified by temporal ordering (comments posted after
+            the question comment by non-bot users).
+
+        Args:
+            repo_name: Repository name in 'owner/repo' format.
+            mr_id: Pull request number.
+            questions: Questions to post.
+            intro: Optional introductory text.
+
+        Returns:
+            The issue comment ID as a string.
+        """
+        try:
+            body = format_questions_markdown(questions, intro)
+            repo = self.github.get_repo(repo_name)
+            pr = repo.get_pull(mr_id)
+            comment = pr.create_issue_comment(body)
+            logger.info("Posted question comment to PR #%s in %s", mr_id, repo_name)
+            return str(comment.id)
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def reply_in_thread(
+        self,
+        repo_name: str,
+        mr_id: int,
+        thread_id: str,
+        body: str,
+    ) -> str:
+        """Reply in an existing conversation thread.
+
+        Note:
+            GitHub issue comments do not support native threading.
+            This creates a new issue comment on the PR. For review
+            comment threads, use the review API instead.
+
+        Args:
+            repo_name: Repository name in 'owner/repo' format.
+            mr_id: Pull request number.
+            thread_id: Comment ID to reply to (used for context only).
+            body: Reply text (markdown supported).
+
+        Returns:
+            The new comment ID as a string.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            pr = repo.get_pull(mr_id)
+            comment = pr.create_issue_comment(body)
+            logger.info("Posted reply to PR #%s in %s (thread %s)", mr_id, repo_name, thread_id)
+            return str(comment.id)
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
+            raise _convert_github_exception(e) from e
+
+    @with_retry
+    def get_bot_threads(
+        self,
+        repo_name: str,
+        mr_id: int,
+    ) -> tuple[BotThread, ...]:
+        """Find all bot-initiated question threads on the PR.
+
+        Scans issue comments in a single pass: identifies bot question
+        comments (by marker), then collects subsequent non-bot comments
+        as responses.
+
+        Args:
+            repo_name: Repository name in 'owner/repo' format.
+            mr_id: Pull request number.
+
+        Returns:
+            Tuple of BotThread objects with questions and responses.
+        """
+        try:
+            repo = self.github.get_repo(repo_name)
+            pr = repo.get_pull(mr_id)
+
+            # Single pass: collect all comments, then group
+            all_comments = list(pr.get_issue_comments())
+
+            threads: list[BotThread] = []
+            for idx, issue_comment in enumerate(all_comments):
+                if BOT_QUESTION_MARKER not in (issue_comment.body or ""):
+                    continue
+
+                questions = parse_questions_from_markdown(issue_comment.body)
+                if not questions:
+                    continue
+
+                bot_login = issue_comment.user.login
+                bot_time = issue_comment.created_at
+
+                # Responses: comments after bot's, not from bot
+                responses: list[Comment] = []
+                for later_comment in all_comments[idx + 1 :]:
+                    if later_comment.user.login == bot_login:
+                        continue
+                    if later_comment.created_at <= bot_time:
+                        continue
+                    responses.append(
+                        Comment(
+                            author=later_comment.user.login,
+                            author_type=(
+                                CommentAuthorType.BOT
+                                if later_comment.user.type == "Bot"
+                                else CommentAuthorType.USER
+                            ),
+                            body=later_comment.body,
+                            type=CommentType.ISSUE,
+                            created_at=later_comment.created_at,
+                            comment_id=str(later_comment.id),
+                        )
+                    )
+
+                comment_id = str(issue_comment.id)
+                status = ThreadStatus.ANSWERED if responses else ThreadStatus.PENDING
+                threads.append(
+                    BotThread(
+                        thread_id=comment_id,
+                        platform_thread_id=comment_id,
+                        mr_id=mr_id,
+                        questions=tuple(questions),
+                        responses=tuple(responses),
+                        status=status,
+                    )
+                )
+
+            return tuple(threads)
+        except RateLimitExceededException as e:
+            msg = f"GitHub: {e}"
+            raise RateLimitError(msg) from e
+        except GithubException as e:
             raise _convert_github_exception(e) from e
 
     # Backward compatibility alias

@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 # Retry configuration
 MAX_ATTEMPTS = 5
-MIN_WAIT_SECONDS = 2
-MAX_WAIT_SECONDS = 30
+MIN_WAIT_SECONDS = 4
+MAX_WAIT_SECONDS = 60
 
 # =============================================================================
 # Custom Exceptions
@@ -86,6 +86,29 @@ class ServerError(RetryableError):
         self.status_code = status_code
 
 
+class QuotaExhaustedError(Exception):
+    """Daily or free-tier quota exhausted (HTTP 429 with PerDay/FreeTier quotaId).
+
+    Unlike ``RateLimitError``, this is NOT retryable because the quota
+    will not reset within a reasonable retry window.  The caller should
+    fall back to another model or abort immediately.
+    """
+
+    def __init__(
+        self,
+        message: str = "API daily quota exhausted",
+        quota_id: str | None = None,
+    ) -> None:
+        """Initialize QuotaExhaustedError.
+
+        Args:
+            message: Error message.
+            quota_id: The Gemini quotaId that was exceeded.
+        """
+        super().__init__(message)
+        self.quota_id = quota_id
+
+
 class APIClientError(Exception):
     """Base class for client errors that should NOT trigger retry (Fail Fast)."""
 
@@ -123,6 +146,18 @@ class NotFoundError(APIClientError):
         super().__init__(message)
 
 
+class ValidationError(APIClientError):
+    """Validation error (HTTP 422).
+
+    Request was well-formed but could not be processed.
+    For example, inline comment on a line not in the diff.
+    """
+
+    def __init__(self, message: str = "Validation failed: unprocessable entity") -> None:
+        """Initialize ValidationError."""
+        super().__init__(message)
+
+
 class APIError(Exception):
     """Generic API error with details.
 
@@ -155,7 +190,9 @@ class APIError(Exception):
         Returns:
             Markdown-formatted error message.
         """
-        parts = ["## :x: AI Code Review Failed", ""]
+        from ai_reviewer.core.config import BOT_NAME  # noqa: PLC0415
+
+        parts = [f"## :x: {BOT_NAME}: Review Failed", ""]
         parts.append(f"**Error:** {self}")
 
         if self.provider:
@@ -221,7 +258,7 @@ def with_retry[**P, R](func: Callable[P, R]) -> Callable[P, R]:
 
     Configuration:
         - Max attempts: 5
-        - Wait: exponential backoff (2s to 30s)
+        - Wait: exponential backoff (4s to 60s)
         - Retryable: RateLimitError, ServerError
 
     Example:
@@ -290,6 +327,7 @@ def with_retry_and_context[**P, R](
 HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 HTTP_NOT_FOUND = 404
+HTTP_UNPROCESSABLE_ENTITY = 422
 HTTP_TOO_MANY_REQUESTS = 429
 HTTP_INTERNAL_SERVER_ERROR = 500
 
@@ -305,6 +343,7 @@ def raise_for_status(status_code: int, message: str = "") -> None:
         AuthenticationError: For 401 status.
         ForbiddenError: For 403 status (non-rate-limit).
         NotFoundError: For 404 status.
+        ValidationError: For 422 status.
         RateLimitError: For 429 status.
         ServerError: For 5xx status codes.
     """
@@ -317,6 +356,9 @@ def raise_for_status(status_code: int, message: str = "") -> None:
 
     if status_code == HTTP_NOT_FOUND:
         raise NotFoundError(message or "Resource not found")
+
+    if status_code == HTTP_UNPROCESSABLE_ENTITY:
+        raise ValidationError(message or "Validation failed: unprocessable entity")
 
     if status_code == HTTP_TOO_MANY_REQUESTS:
         raise RateLimitError(message or "API rate limit exceeded")

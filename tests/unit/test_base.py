@@ -6,6 +6,8 @@ from ai_reviewer.integrations.base import (
     GitProvider,
     LineComment,
     ReviewSubmission,
+    parse_branch_issue_number,
+    parse_diff_valid_lines,
 )
 
 
@@ -163,8 +165,10 @@ class TestGitProvider:
             def get_merge_request(self, repo_name: str, mr_id: int) -> MergeRequest | None:
                 return None
 
-            def get_linked_task(self, repo_name: str, mr: MergeRequest) -> LinkedTask | None:
-                return None
+            def get_linked_tasks(
+                self, repo_name: str, mr_id: int, source_branch: str
+            ) -> tuple[LinkedTask, ...]:
+                return ()
 
             def post_comment(self, repo_name: str, mr_id: int, body: str) -> None:
                 pass
@@ -176,3 +180,89 @@ class TestGitProvider:
 
         provider = MockProvider()
         assert isinstance(provider, GitProvider)
+
+
+class TestParseBranchIssueNumber:
+    """Tests for parse_branch_issue_number helper."""
+
+    def test_plain_number_prefix(self) -> None:
+        """Test branch like '86-task-22-ci'."""
+        assert parse_branch_issue_number("86-task-22-ci") == 86
+
+    def test_feature_prefix(self) -> None:
+        """Test branch like 'feature/123-login'."""
+        assert parse_branch_issue_number("feature/123-login") == 123
+
+    def test_gh_prefix(self) -> None:
+        """Test branch like 'GH-789-refactor'."""
+        assert parse_branch_issue_number("GH-789-refactor") == 789
+
+    def test_underscore_separator(self) -> None:
+        """Test branch like '42_fix_bug'."""
+        assert parse_branch_issue_number("42_fix_bug") == 42
+
+    def test_plain_branch_returns_none(self) -> None:
+        """Test branch like 'main' returns None."""
+        assert parse_branch_issue_number("main") is None
+
+    def test_no_number_returns_none(self) -> None:
+        """Test branch like 'no-number' returns None."""
+        assert parse_branch_issue_number("no-number") is None
+
+    def test_prefix_slash_number_only(self) -> None:
+        """Test branch like 'fix/456' (number at end, no trailing separator)."""
+        assert parse_branch_issue_number("fix/456") == 456
+
+    def test_bare_number(self) -> None:
+        """Test branch like '123' (just a number)."""
+        assert parse_branch_issue_number("123") == 123
+
+    def test_number_in_middle_returns_none(self) -> None:
+        """Test branch like 'feature-add-42' (number not at start)."""
+        assert parse_branch_issue_number("feature-add-42") is None
+
+
+class TestParseDiffValidLines:
+    """Tests for parse_diff_valid_lines helper."""
+
+    def test_none_patch(self) -> None:
+        """Test that None patch returns empty frozenset."""
+        assert parse_diff_valid_lines(None) == frozenset()
+
+    def test_empty_patch(self) -> None:
+        """Test that empty string patch returns empty frozenset."""
+        assert parse_diff_valid_lines("") == frozenset()
+
+    def test_single_hunk(self) -> None:
+        """Test parsing a single hunk with context, additions, and deletions."""
+        patch = "@@ -10,3 +10,4 @@\n context\n-removed\n+added1\n+added2\n context2\n"
+        result = parse_diff_valid_lines(patch)
+        # new-side: 10 (context), 11 (added1), 12 (added2), 13 (context2)
+        assert result == frozenset({10, 11, 12, 13})
+
+    def test_multiple_hunks(self) -> None:
+        """Test parsing multiple hunks."""
+        patch = "@@ -1,2 +1,2 @@\n-old\n+new\n ctx\n@@ -20,2 +20,3 @@\n ctx\n+added\n ctx2\n"
+        result = parse_diff_valid_lines(patch)
+        # Hunk 1: 1 (new), 2 (ctx)
+        # Hunk 2: 20 (ctx), 21 (added), 22 (ctx2)
+        assert result == frozenset({1, 2, 20, 21, 22})
+
+    def test_additions_only(self) -> None:
+        """Test hunk with only additions."""
+        patch = "@@ -5,0 +6,2 @@\n+line1\n+line2\n"
+        result = parse_diff_valid_lines(patch)
+        assert result == frozenset({6, 7})
+
+    def test_deletions_excluded(self) -> None:
+        """Test that deletion-only lines don't appear in result."""
+        patch = "@@ -1,3 +1,1 @@\n-removed1\n-removed2\n ctx\n"
+        result = parse_diff_valid_lines(patch)
+        # Only context line gets new-side number 1
+        assert result == frozenset({1})
+
+    def test_no_newline_marker_ignored(self) -> None:
+        r"""Test that '\\ No newline at end of file' is ignored."""
+        patch = "@@ -1,2 +1,2 @@\n-old\n+new\n\\ No newline at end of file\n"
+        result = parse_diff_valid_lines(patch)
+        assert result == frozenset({1})

@@ -1,0 +1,18 @@
+{
+  "primary_language": "Python",
+  "languages": {"Python": 100.0},
+  "framework": null,
+  "language_version": null,
+  "package_manager": null,
+  "ci_file_path": null,
+  "ci_provider": null,
+  "linting": [],
+  "formatting": [],
+  "type_checking": [],
+  "testing": [],
+  "security": [],
+  "skip_in_review": [],
+  "focus_in_review": [],
+  "gaps": [],
+  "uses_llm": true
+}

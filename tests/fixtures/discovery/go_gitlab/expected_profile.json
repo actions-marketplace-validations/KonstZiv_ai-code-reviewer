@@ -1,0 +1,28 @@
+{
+  "primary_language": "Go",
+  "languages": {"Go": 100.0},
+  "framework": null,
+  "language_version": "1.22",
+  "package_manager": null,
+  "ci_file_path": ".gitlab-ci.yml",
+  "ci_provider": "GitLab CI",
+  "linting": ["go vet", "golangci-lint"],
+  "formatting": ["gofmt"],
+  "type_checking": [],
+  "testing": ["go test"],
+  "security": [],
+  "skip_in_review": [
+    "Code style and lint issues (handled by CI)",
+    "Code formatting (handled by CI)"
+  ],
+  "focus_in_review": [
+    "Security vulnerabilities (no SAST in CI)"
+  ],
+  "gaps": [
+    {
+      "observation": "No security scanner detected in CI",
+      "default_assumption": "No automated security scanning"
+    }
+  ],
+  "uses_llm": false
+}

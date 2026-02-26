@@ -61,12 +61,12 @@ Layer 3: LLM          → інтерпретація (тільки якщо тр
 
 ## Definition of Done
 
-- [ ] `ProjectProfile.to_prompt_context()` генерує compact text
-- [ ] CI Analyzer парсить GitHub Actions і GitLab CI YAML
-- [ ] Config Collector читає файли з лімітами
-- [ ] `.reviewbot.md` roundtrip: generate → parse → equal
-- [ ] Orchestrator проходить 4 сценарії (повний стек, без CI, без конфігів, з відповідями)
-- [ ] Coverage ≥ 80%
+- [x] `ProjectProfile.to_prompt_context()` генерує compact text
+- [x] CI Analyzer парсить GitHub Actions і GitLab CI YAML
+- [x] Config Collector читає файли з лімітами
+- [x] `.reviewbot.md` roundtrip: generate → parse → equal
+- [x] Orchestrator проходить 4 сценарії (повний стек, без CI, без конфігів, з відповідями)
+- [x] Coverage ≥ 80%
 
 ---
 
@@ -75,9 +75,36 @@ Layer 3: LLM          → інтерпретація (тільки якщо тр
 Перед Фазою 3 перевірити:
 
 1. `ProjectProfile.to_prompt_context()` — чи достатньо інформації для review prompt?
+   ✅ Так — генерує 200-400 token compact text з усіма секціями
 2. Чи формат discovery comment (task 3.3) відповідає реальним даним?
+   ✅ Так — всі поля з Phase 3 doc існують в моделях. `stats` параметр прибрано (token tracking — Beta-1)
 3. Чи orchestrator повертає дані в форматі зручному для `build_review_prompt()`?
+   ✅ Так — `to_prompt_context()` повертає plain text для вставки в prompt
 4. Чи `ConversationProvider` API виявився зручним під час інтеграції в orchestrator?
+   ✅ Так — `get_bot_threads()` і `post_question_comment()` використовуються без проблем
+
+**Виявлені розбіжності (виправлено в Phase 3 IMPLEMENTATION.md):**
+- Task 3.1: `ReviewContext.task` → реальний код має `tasks: tuple[LinkedTask, ...]`
+- Task 3.2: `llm.generate()` напряму → реальний код використовує `analyze_code_changes()`
+- Task 3.3: `stats: dict` параметр прибрано — orchestrator не збирає метрики
+
+---
+
+## 📌 Backlog
+
+### Оптимізація review-контексту для великих PR
+
+**Проблема:** при великих PR промпт перевищує ~38K chars, що провокує
+503 UNAVAILABLE та Connection reset від Gemini API. Тестові файли —
+найбільша частина контексту, але дають найменшу цінність для review.
+
+**Запропоноване рішення:**
+- Виключати тестові файли з review prompt при перевищенні порогу символів
+- Пріоритизувати production-код (src/) над тестами (tests/)
+- Можливо: окремий lightweight review pass для тестів
+- Інтегрувати з Discovery (ProjectProfile знає які файли — тести)
+
+**Scope:** review prompt builder (не Discovery prompts)
 
 ---
 

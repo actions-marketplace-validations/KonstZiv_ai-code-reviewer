@@ -106,23 +106,19 @@ class TestGitLabClient:
         )
         mock_mr.discussions.list.return_value = [discussion]
 
-        # Mock Diffs
-        mock_diff = Mock()
-        mock_diff.id = 1
-        mock_mr.diffs.list.return_value = [mock_diff]
-
-        mock_diff_detail = Mock()
-        mock_diff_detail.diffs = [
-            {
-                "new_file": False,
-                "deleted_file": False,
-                "renamed_file": False,
-                "new_path": "test.py",
-                "old_path": "test.py",
-                "diff": "@@ -1,1 +1,2 @@\n-old\n+new\n+added",
-            }
-        ]
-        mock_mr.diffs.get.return_value = mock_diff_detail
+        # Mock changes (single API call instead of N+1 diffs)
+        mock_mr.changes.return_value = {
+            "changes": [
+                {
+                    "new_file": False,
+                    "deleted_file": False,
+                    "renamed_file": False,
+                    "new_path": "test.py",
+                    "old_path": "test.py",
+                    "diff": "@@ -1,1 +1,2 @@\n-old\n+new\n+added",
+                }
+            ]
+        }
 
         # Execute
         mr = client.get_merge_request("owner/repo", 1)
@@ -157,7 +153,7 @@ class TestGitLabClient:
         mock_mr.web_url = "url"
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
-        mock_mr.diffs.list.return_value = []
+        mock_mr.changes.return_value = {"changes": []}
 
         # Mock discussion with bot note
         discussion = _make_discussion(
@@ -200,7 +196,7 @@ class TestGitLabClient:
         mock_mr.web_url = "url"
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
-        mock_mr.diffs.list.return_value = []
+        mock_mr.changes.return_value = {"changes": []}
 
         # Mock discussion with system note
         discussion = _make_discussion(
@@ -239,7 +235,7 @@ class TestGitLabClient:
         mock_mr.web_url = "url"
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
-        mock_mr.diffs.list.return_value = []
+        mock_mr.changes.return_value = {"changes": []}
 
         # Discussion with note that has no position key
         discussion = _make_discussion(
@@ -278,7 +274,7 @@ class TestGitLabClient:
         mock_mr.web_url = "url"
         mock_mr.created_at = "2024-01-01T00:00:00Z"
         mock_mr.updated_at = "2024-01-01T00:00:00Z"
-        mock_mr.diffs.list.return_value = []
+        mock_mr.changes.return_value = {"changes": []}
 
         # Discussion with 2 notes (root + reply)
         discussion = _make_discussion(
@@ -316,58 +312,121 @@ class TestGitLabClient:
         assert mr.comments[1].comment_id == "2"
         assert mr.comments[1].parent_comment_id == "1"
 
-    def test_get_linked_task_found(self, client: GitLabClient) -> None:
-        """Test finding linked issue."""
+    def test_get_linked_tasks_closes_issues(self, client: GitLabClient) -> None:
+        """Test finding linked tasks via closes_issues API."""
         mock_project = Mock()
+        mock_mr = Mock()
         client.gitlab.projects.get.return_value = mock_project
-
-        # Mock Issue
-        mock_issue = Mock()
-        mock_issue.iid = 123
-        mock_issue.title = "Task Title"
-        mock_issue.description = "Task Body"
-        mock_issue.web_url = "https://gitlab.com/issue/123"
-        mock_project.issues.get.return_value = mock_issue
-
-        # Mock MR
-        mr = MagicMock(spec=MergeRequest)
-        mr.description = "Closes #123"
-
-        task = client.get_linked_task("owner/repo", mr)
-
-        assert task is not None
-        assert task.identifier == "123"
-        assert task.title == "Task Title"
-        mock_project.issues.get.assert_called_once_with(123)
-
-    def test_get_linked_task_not_found(self, client: GitLabClient) -> None:
-        """Test when no linked issue is found."""
-        mr = MagicMock(spec=MergeRequest)
-        mr.description = "No issue link here"
-
-        task = client.get_linked_task("owner/repo", mr)
-
-        assert task is None
-
-    def test_get_linked_task_fixes_pattern(self, client: GitLabClient) -> None:
-        """Test finding linked issue with 'Fixes' pattern."""
-        mock_project = Mock()
-        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+        mock_mr.description = ""
 
         mock_issue = Mock()
-        mock_issue.iid = 456
+        mock_issue.iid = 42
         mock_issue.title = "Bug"
+        mock_issue.description = "desc"
+        mock_issue.web_url = "https://gitlab.com/g/r/-/issues/42"
+        mock_mr.closes_issues.return_value = [mock_issue]
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "feat")
+
+        assert len(tasks) == 1
+        assert tasks[0].identifier == "42"
+        assert tasks[0].title == "Bug"
+
+    def test_get_linked_tasks_regex_fallback(self, client: GitLabClient) -> None:
+        """Test regex fallback when closes_issues returns nothing."""
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+        mock_mr.description = "Fixes #99"
+        mock_mr.closes_issues.return_value = []
+
+        mock_issue = Mock()
+        mock_issue.iid = 99
+        mock_issue.title = "Feature"
         mock_issue.description = ""
         mock_issue.web_url = "url"
         mock_project.issues.get.return_value = mock_issue
 
-        mr = MagicMock(spec=MergeRequest)
-        mr.description = "Fixes #456"
+        tasks = client.get_linked_tasks("owner/repo", 1, "feat")
 
-        task = client.get_linked_task("owner/repo", mr)
+        assert len(tasks) == 1
+        assert tasks[0].identifier == "99"
 
-        assert task is not None
-        assert task.identifier == "456"
+    def test_get_linked_tasks_branch_name(self, client: GitLabClient) -> None:
+        """Test finding linked tasks via branch name convention."""
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+        mock_mr.description = ""
+        mock_mr.closes_issues.return_value = []
+
+        mock_issue = Mock()
+        mock_issue.iid = 86
+        mock_issue.title = "From Branch"
+        mock_issue.description = ""
+        mock_issue.web_url = "url"
+        mock_project.issues.get.return_value = mock_issue
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "86-task-22-ci")
+
+        assert len(tasks) == 1
+        assert tasks[0].identifier == "86"
+
+    def test_get_linked_tasks_deduplication(self, client: GitLabClient) -> None:
+        """Test deduplication between API and regex results."""
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+        mock_mr.description = "Fixes #42"
+
+        mock_issue = Mock()
+        mock_issue.iid = 42
+        mock_issue.title = "Bug"
+        mock_issue.description = ""
+        mock_issue.web_url = "url"
+        mock_mr.closes_issues.return_value = [mock_issue]
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "42-fix")
+
+        assert len(tasks) == 1
+
+    def test_get_linked_tasks_fail_open(self, client: GitLabClient) -> None:
+        """Test graceful handling when closes_issues fails."""
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+        mock_mr.description = "Fixes #10"
+        mock_mr.closes_issues.side_effect = GitlabError("403")
+
+        mock_issue = Mock()
+        mock_issue.iid = 10
+        mock_issue.title = "Task"
+        mock_issue.description = ""
+        mock_issue.web_url = "url"
+        mock_project.issues.get.return_value = mock_issue
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "feat")
+
+        assert len(tasks) == 1
+        assert tasks[0].identifier == "10"
+
+    def test_get_linked_tasks_empty(self, client: GitLabClient) -> None:
+        """Test when no linked tasks found."""
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+        mock_mr.description = "No links"
+        mock_mr.closes_issues.return_value = []
+
+        tasks = client.get_linked_tasks("owner/repo", 1, "main")
+
+        assert tasks == ()
 
     def test_post_comment_success(self, client: GitLabClient) -> None:
         """Test successful comment posting."""

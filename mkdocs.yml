@@ -140,6 +140,7 @@ plugins:
             Installation: Встановлення
             Quick Start: Швидкий старт
             Configuration: Конфігурація
+            Discovery: Аналіз проєкту
             GitHub: GitHub
             GitLab: GitLab
             CLI Reference: CLI Довідник
@@ -153,6 +154,7 @@ plugins:
             Installation: Installation
             Quick Start: Schnellstart
             Configuration: Konfiguration
+            Discovery: Projektanalyse
             GitHub: GitHub
             GitLab: GitLab
             CLI Reference: CLI Referenz
@@ -166,6 +168,7 @@ plugins:
             Installation: Instalación
             Quick Start: Inicio rápido
             Configuration: Configuración
+            Discovery: Análisis de proyecto
             GitHub: GitHub
             GitLab: GitLab
             CLI Reference: Referencia CLI
@@ -179,6 +182,7 @@ plugins:
             Installation: Instalacija
             Quick Start: Brzi početak
             Configuration: Konfiguracija
+            Discovery: Analiza projekta
             GitHub: GitHub
             GitLab: GitLab
             CLI Reference: CLI Referenca
@@ -192,6 +196,7 @@ plugins:
             Installation: Installazione
             Quick Start: Avvio rapido
             Configuration: Configurazione
+            Discovery: Analisi del progetto
             GitHub: GitHub
             GitLab: GitLab
             CLI Reference: Riferimento CLI
@@ -203,6 +208,7 @@ nav:
   - Installation: installation.md
   - Quick Start: quick-start.md
   - Configuration: configuration.md
+  - Discovery: discovery.md
   - GitHub: github.md
   - GitLab: gitlab.md
   - CLI Reference: api.md

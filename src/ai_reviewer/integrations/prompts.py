@@ -88,6 +88,14 @@ are from previous AI reviews
 indented with "> "). Understand the full thread context before commenting. If a \
 discussion thread already reached a resolution, do not reopen it
 - Respond in the language specified in the user prompt
+
+## Project Context Awareness
+
+If a "Project Context" section is provided in the user prompt:
+- Respect automated checks. Do NOT comment on issues that CI tools already handle.
+- If "Skip" items are listed, do not comment on those categories.
+- Focus your review effort on "Focus" items — these are gaps in automation.
+- Follow any listed "Conventions" when evaluating code style.
 """
 
 
@@ -487,11 +495,21 @@ def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
     language_instruction = build_language_instruction(context, settings)
     parts.append(f"## Language\n{language_instruction}")
 
+    # 0.5. Project Context (from Discovery)
+    if context.project_profile:
+        parts.append("\n## Project Context")
+        parts.append(context.project_profile.to_prompt_context())
+
     # 1. Linked Task Context
-    if context.task:
+    if len(context.tasks) == 1:
         parts.append("\n## Linked Task")
-        parts.append(f"Title: {context.task.title}")
-        parts.append(f"Description:\n{context.task.description}")
+        parts.append(f"Title: {context.tasks[0].title}")
+        parts.append(f"Description:\n{context.tasks[0].description}")
+    elif len(context.tasks) > 1:
+        parts.append("\n## Linked Tasks")
+        for i, task in enumerate(context.tasks, 1):
+            parts.append(f"### Task {i}: {task.title}")
+            parts.append(f"Description:\n{task.description}")
     else:
         parts.append("\n## Linked Task")
         parts.append("No linked task provided.")

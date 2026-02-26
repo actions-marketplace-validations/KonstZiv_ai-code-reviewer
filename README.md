@@ -26,6 +26,24 @@ AI-powered code review tool for **GitHub** and **GitLab** that provides intellig
 - 📊 **Transparent Metrics** — Shows tokens, latency, and estimated cost
 - 🦊 **GitHub & GitLab** — Native support for both platforms
 
+## 🔍 Project Discovery
+
+AI ReviewBot automatically analyzes your repository before each review:
+
+- **Languages & frameworks** detected from GitHub/GitLab API
+- **CI pipeline** parsed to understand what's already automated (linters, formatters, type checkers)
+- **Config files** read to understand project conventions
+
+This means the bot **won't duplicate** feedback that your CI already catches — no formatting nits when you run Prettier, no type errors when you run mypy.
+
+Discovery runs on the first PR/MR and posts a one-time summary comment with what it found. Create [`.reviewbot.md`](./examples/.reviewbot.md) in your repo root to customize skip/focus areas.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | `true` | Enable/disable project discovery |
+
+> See [Discovery documentation](https://konstziv.github.io/ai-code-reviewer/discovery/) for details.
+
 ## 🚀 Quick Start
 
 ### GitHub Actions (Recommended)
@@ -63,8 +81,8 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token with 'api' scope
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token with 'api' scope
 ```
 
 ### PyPI
@@ -118,6 +136,7 @@ Full documentation available in **6 languages**:
 | `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | `true` | Include bot comments in context |
 | `AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS` | `true` | Post inline comments on code lines |
 | `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE` | `true` | Enable dialogue threading |
+| `AI_REVIEWER_DISCOVERY_ENABLED` | `true` | Enable project discovery before review |
 
 > **Note:** Old variable names without `AI_REVIEWER_` prefix still work as fallback.
 
@@ -188,7 +207,7 @@ uv run mkdocs serve
 
 ## 💰 Cost Estimate
 
-Using Gemini 2.5 Flash:
+Using Gemini 3 Flash Preview:
 - **Input:** $0.075 / 1M tokens
 - **Output:** $0.30 / 1M tokens
 - **Average review:** ~$0.002 (1,500 tokens)

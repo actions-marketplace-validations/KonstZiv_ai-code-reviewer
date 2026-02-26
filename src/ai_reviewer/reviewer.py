@@ -13,18 +13,25 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from ai_reviewer.core.config import BOT_NAME
 from ai_reviewer.core.formatter import (
     format_inline_comment,
     format_review_comment,
     format_review_summary,
 )
 from ai_reviewer.core.models import CommentAuthorType, ReviewContext
-from ai_reviewer.integrations.base import LineComment, ReviewSubmission
+from ai_reviewer.discovery.comment import (
+    format_discovery_comment,
+    should_post_discovery_comment,
+)
+from ai_reviewer.integrations.base import LineComment, ReviewSubmission, parse_diff_valid_lines
 from ai_reviewer.integrations.gemini import analyze_code_changes
+from ai_reviewer.utils.language import get_language_for_review
 
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
-    from ai_reviewer.core.models import CodeIssue, ReviewResult
+    from ai_reviewer.core.models import CodeIssue, FileChange, ReviewResult
+    from ai_reviewer.discovery.models import ProjectProfile
     from ai_reviewer.integrations.base import GitProvider
 
 logger = logging.getLogger(__name__)
@@ -33,24 +40,45 @@ logger = logging.getLogger(__name__)
 def _build_review_submission(
     result: ReviewResult,
     language: str | None,
+    changes: tuple[FileChange, ...] = (),
 ) -> ReviewSubmission:
     """Build a ReviewSubmission by partitioning issues into inline and fallback.
 
-    Issues with both file_path and line_number (>= 1) become inline comments.
-    Remaining issues are included in the summary body as fallback.
+    Issues with both file_path and line_number (>= 1) become inline comments,
+    **provided** the line number exists in the diff. Issues whose line is
+    outside the diff are demoted to the summary (fallback) so that the
+    GitHub Review API does not reject them with 422.
 
     Args:
         result: The structured review result from AI analysis.
         language: ISO 639 language code for formatting.
+        changes: File changes from the MR (used for diff-line validation).
+            When empty, validation is skipped (backward compatibility).
 
     Returns:
         ReviewSubmission with summary and inline line comments.
     """
+    # Build valid-line lookup from diff patches
+    valid_lines_by_file: dict[str, frozenset[int]] = {}
+    for change in changes:
+        valid_lines_by_file[change.filename] = parse_diff_valid_lines(change.patch)
+
     inline_issues: list[CodeIssue] = []
     fallback_issues: list[CodeIssue] = []
 
     for issue in result.issues:
         if issue.file_path and issue.line_number and issue.line_number >= 1:
+            # Validate line against diff when change data is available
+            if valid_lines_by_file:
+                file_lines = valid_lines_by_file.get(issue.file_path, frozenset())
+                if issue.line_number not in file_lines:
+                    logger.warning(
+                        "Line %d not in diff for %s, demoting to summary",
+                        issue.line_number,
+                        issue.file_path,
+                    )
+                    fallback_issues.append(issue)
+                    continue
             inline_issues.append(issue)
         else:
             fallback_issues.append(issue)
@@ -97,6 +125,13 @@ def review_pull_request(
     try:
         logger.info("Starting review for MR #%s in %s", mr_id, repo_name)
 
+        # 0. Discovery step (fail-open)
+        profile = (
+            _run_discovery(provider, repo_name, mr_id, settings)
+            if settings.discovery_enabled
+            else None
+        )
+
         # 1. Fetch MR data
         mr = provider.get_merge_request(repo_name, mr_id)
         if not mr:
@@ -105,15 +140,34 @@ def review_pull_request(
 
         logger.info("Fetched MR: %s", mr.title)
 
-        # 2. Get linked task
-        task = provider.get_linked_task(repo_name, mr)
-        if task:
-            logger.info("Found linked task: %s", task.identifier)
+        # 2. Get linked tasks (multi-strategy discovery)
+        tasks = provider.get_linked_tasks(repo_name, mr.number, mr.source_branch)
+        if tasks:
+            logger.info(
+                "Found %d linked task(s): %s",
+                len(tasks),
+                ", ".join(t.identifier for t in tasks),
+            )
         else:
-            logger.info("No linked task found")
+            logger.info("No linked tasks found")
 
-        # 3. Build context
-        context = ReviewContext(mr=mr, task=task, repository=repo_name)
+        # 3. Build context (needed for language detection)
+        context = ReviewContext(mr=mr, tasks=tasks, repository=repo_name, project_profile=profile)
+        language = get_language_for_review(context, settings)
+
+        # 3.5. Post discovery comment (fail-open, after language is known)
+        if profile:
+            existing_bot = tuple(
+                c.body for c in mr.comments if c.author_type == CommentAuthorType.BOT
+            )
+            _post_discovery_comment(
+                provider,
+                repo_name,
+                mr_id,
+                profile,
+                existing_comments=existing_bot,
+                language=language,
+            )
 
         # 4. Analyze with AI
         result = analyze_code_changes(context, settings)
@@ -127,7 +181,7 @@ def review_pull_request(
 
         # 6. Post results
         if settings.review_post_inline_comments:
-            submission = _build_review_submission(result, result.detected_language)
+            submission = _build_review_submission(result, result.detected_language, mr.changes)
 
             # Duplicate detection: compare summary only
             if last_bot_comment and last_bot_comment.body.strip() == submission.summary.strip():
@@ -154,6 +208,86 @@ def review_pull_request(
         _post_error_comment(provider, repo_name, mr_id, e)
 
 
+def _post_discovery_comment(  # noqa: PLR0913
+    provider: GitProvider,
+    repo_name: str,
+    mr_id: int,
+    profile: ProjectProfile,
+    *,
+    existing_comments: tuple[str, ...] = (),
+    language: str | None = None,
+) -> None:
+    """Post discovery summary comment if appropriate.
+
+    Checks whether the comment should be posted (no duplicate, no .reviewbot.md)
+    and posts it. Failures are logged and swallowed (fail-open).
+
+    Args:
+        provider: Git provider instance.
+        repo_name: Repository identifier.
+        mr_id: Merge/Pull request number.
+        profile: Discovery profile to summarize.
+        existing_comments: Bodies of existing bot comments (for duplicate detection).
+        language: ISO 639 language code for comment formatting.
+    """
+    try:
+        if not should_post_discovery_comment(profile, existing_comments):
+            logger.debug("Discovery comment skipped (duplicate or .reviewbot.md present)")
+            return
+
+        comment = format_discovery_comment(profile, language=language)
+        provider.post_comment(repo_name, mr_id, comment)
+        logger.info("Posted discovery comment")
+    except Exception:
+        logger.warning("Failed to post discovery comment", exc_info=True)
+
+
+def _run_discovery(
+    provider: GitProvider,
+    repo_name: str,
+    mr_id: int,
+    settings: Settings,
+) -> ProjectProfile | None:
+    """Run the Discovery pipeline, fail-open on any error.
+
+    Args:
+        provider: Git provider (triple inheritance: Git + Repository + Conversation).
+        repo_name: Repository identifier.
+        mr_id: Merge/Pull request number.
+        settings: Application settings.
+
+    Returns:
+        ProjectProfile if discovery succeeds, None otherwise.
+    """
+    from ai_reviewer.discovery import DiscoveryOrchestrator  # noqa: PLC0415
+    from ai_reviewer.llm.gemini import GeminiProvider  # noqa: PLC0415
+
+    try:
+        llm = GeminiProvider(
+            api_key=settings.google_api_key.get_secret_value(),
+            model_name=settings.gemini_model,
+        )
+        # GitHubClient/GitLabClient implement RepositoryProvider + ConversationProvider
+        # via triple inheritance, so the cast is safe at runtime.
+        discovery = DiscoveryOrchestrator(
+            repo_provider=provider,  # type: ignore[arg-type]
+            conversation=provider,  # type: ignore[arg-type]
+            llm=llm,
+        )
+        profile = discovery.discover(repo_name, mr_id)
+        tool_count = len(profile.ci_insights.detected_tools) if profile.ci_insights else 0
+        logger.info(
+            "Discovery: %s project, %d CI tool(s)",
+            profile.platform_data.primary_language,
+            tool_count,
+        )
+    except Exception:
+        logger.warning("Discovery failed, continuing without profile", exc_info=True)
+        return None
+    else:
+        return profile
+
+
 def _post_error_comment(
     provider: GitProvider,
     repo_name: str,
@@ -170,7 +304,7 @@ def _post_error_comment(
     """
     try:
         error_msg = (
-            "## ❌ AI Review Failed\n\n"
+            f"## \u274c {BOT_NAME}: Review Failed\n\n"
             "The AI reviewer encountered an error while processing this PR.\n"
             f"**Error:** `{error!s}`\n\n"
             "_Please check the CI logs for more details._"

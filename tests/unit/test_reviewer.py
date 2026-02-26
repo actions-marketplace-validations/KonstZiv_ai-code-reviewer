@@ -1,14 +1,29 @@
 """Unit tests for reviewer module."""
 
+from unittest.mock import MagicMock, Mock, patch
+
+from pydantic import SecretStr
+
+from ai_reviewer.core.config import LanguageMode, Settings
 from ai_reviewer.core.models import (
     CodeIssue,
+    FileChange,
+    FileChangeType,
     GoodPractice,
     IssueCategory,
     IssueSeverity,
     ReviewResult,
     TaskAlignmentStatus,
 )
-from ai_reviewer.reviewer import _build_review_submission
+from ai_reviewer.discovery.comment import DISCOVERY_COMMENT_HEADING
+from ai_reviewer.discovery.models import Gap
+from ai_reviewer.integrations.base import GitProvider
+from ai_reviewer.reviewer import (
+    _build_review_submission,
+    _post_discovery_comment,
+    _run_discovery,
+)
+from tests.helpers import make_profile
 
 
 class TestBuildReviewSubmission:
@@ -181,3 +196,290 @@ class TestBuildReviewSubmission:
         submission = _build_review_submission(result, None)
 
         assert submission.event == "COMMENT"
+
+    def test_valid_line_stays_inline(self) -> None:
+        """Test that issue with line in diff remains inline."""
+        issue = CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
+            title="Bug",
+            description="Desc",
+            file_path="app.py",
+            line_number=10,
+        )
+        result = ReviewResult(issues=(issue,), summary="Review")
+        changes = (
+            FileChange(
+                filename="app.py",
+                change_type=FileChangeType.MODIFIED,
+                patch="@@ -8,4 +8,5 @@\n ctx\n ctx\n+new\n ctx\n ctx\n",
+            ),
+        )
+
+        submission = _build_review_submission(result, None, changes)
+
+        assert len(submission.line_comments) == 1
+        assert submission.line_comments[0].line == 10
+
+    def test_invalid_line_demoted_to_summary(self) -> None:
+        """Test that issue with line outside diff is demoted to fallback."""
+        issue = CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
+            title="Bug",
+            description="Desc",
+            file_path="app.py",
+            line_number=99,
+        )
+        result = ReviewResult(issues=(issue,), summary="Review")
+        changes = (
+            FileChange(
+                filename="app.py",
+                change_type=FileChangeType.MODIFIED,
+                patch="@@ -8,3 +8,3 @@\n ctx\n-old\n+new\n",
+            ),
+        )
+
+        submission = _build_review_submission(result, None, changes)
+
+        assert len(submission.line_comments) == 0
+        assert "Bug" in submission.summary
+
+    def test_no_changes_skips_validation(self) -> None:
+        """Test that empty changes tuple skips validation (backward compat)."""
+        issue = CodeIssue(
+            category=IssueCategory.SECURITY,
+            severity=IssueSeverity.CRITICAL,
+            title="Bug",
+            description="Desc",
+            file_path="app.py",
+            line_number=99,
+        )
+        result = ReviewResult(issues=(issue,), summary="Review")
+
+        submission = _build_review_submission(result, None)
+
+        assert len(submission.line_comments) == 1
+
+    def test_file_not_in_changes_demoted(self) -> None:
+        """Test that issue referencing a file not in changes is demoted."""
+        issue = CodeIssue(
+            category=IssueCategory.CODE_QUALITY,
+            severity=IssueSeverity.WARNING,
+            title="Issue",
+            description="Desc",
+            file_path="other.py",
+            line_number=5,
+        )
+        result = ReviewResult(issues=(issue,), summary="Review")
+        changes = (
+            FileChange(
+                filename="app.py",
+                change_type=FileChangeType.MODIFIED,
+                patch="@@ -1,2 +1,2 @@\n-old\n+new\n ctx\n",
+            ),
+        )
+
+        submission = _build_review_submission(result, None, changes)
+
+        assert len(submission.line_comments) == 0
+        assert "Issue" in submission.summary
+
+
+# ── Helpers ──────────────────────────────────────────────────────────
+
+
+def _make_settings() -> Mock:
+    """Build a mock Settings object with all required attributes."""
+    settings = Mock(spec=Settings)
+    settings.google_api_key = SecretStr("test-key")
+    settings.gemini_model = "gemini-pro"
+    settings.gemini_model_fallback = "gemini-2.5-flash"
+    settings.discovery_enabled = True
+    settings.language_mode = LanguageMode.FIXED
+    settings.language = "en"
+    return settings
+
+
+# ── TestRunDiscovery ─────────────────────────────────────────────────
+
+
+class TestRunDiscovery:
+    """Tests for _run_discovery."""
+
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    def test_success_returns_profile(
+        self,
+        mock_orch_cls: MagicMock,
+        mock_gemini_cls: MagicMock,
+    ) -> None:
+        """Test that successful discovery returns a ProjectProfile."""
+        profile = make_profile()
+        mock_orch_cls.return_value.discover.return_value = profile
+        provider = MagicMock(spec=GitProvider)
+        settings = _make_settings()
+
+        result = _run_discovery(provider, "owner/repo", 1, settings)
+
+        assert result is profile
+        mock_orch_cls.return_value.discover.assert_called_once_with("owner/repo", 1)
+
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    def test_failure_returns_none(
+        self,
+        mock_orch_cls: MagicMock,
+        mock_gemini_cls: MagicMock,
+    ) -> None:
+        """Test that discovery failure returns None (fail-open)."""
+        mock_orch_cls.return_value.discover.side_effect = RuntimeError("API down")
+        provider = MagicMock(spec=GitProvider)
+        settings = _make_settings()
+
+        result = _run_discovery(provider, "owner/repo", 1, settings)
+
+        assert result is None
+
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    def test_gemini_provider_receives_settings(
+        self,
+        mock_orch_cls: MagicMock,
+        mock_gemini_cls: MagicMock,
+    ) -> None:
+        """Test that GeminiProvider is created with correct settings."""
+        profile = make_profile()
+        mock_orch_cls.return_value.discover.return_value = profile
+        provider = MagicMock(spec=GitProvider)
+        settings = _make_settings()
+
+        _run_discovery(provider, "owner/repo", 1, settings)
+
+        mock_gemini_cls.assert_called_once_with(
+            api_key="test-key",
+            model_name="gemini-pro",
+        )
+
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    def test_provider_passed_as_repo_and_conversation(
+        self,
+        mock_orch_cls: MagicMock,
+        mock_gemini_cls: MagicMock,
+    ) -> None:
+        """Test that provider is used for both repo_provider and conversation."""
+        profile = make_profile()
+        mock_orch_cls.return_value.discover.return_value = profile
+        provider = MagicMock(spec=GitProvider)
+        settings = _make_settings()
+
+        _run_discovery(provider, "owner/repo", 1, settings)
+
+        call_kwargs = mock_orch_cls.call_args
+        assert call_kwargs.kwargs["repo_provider"] is provider
+        assert call_kwargs.kwargs["conversation"] is provider
+
+
+# ── TestPostDiscoveryComment ─────────────────────────────────────────
+
+
+class TestPostDiscoveryComment:
+    """Tests for _post_discovery_comment."""
+
+    def test_posts_when_should_post(self) -> None:
+        """Test that comment is posted when should_post returns True."""
+        profile = make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        provider = MagicMock(spec=GitProvider)
+
+        _post_discovery_comment(provider, "owner/repo", 1, profile)
+
+        provider.post_comment.assert_called_once()
+        args, _ = provider.post_comment.call_args
+        assert args[0] == "owner/repo"
+        assert args[1] == 1
+        assert DISCOVERY_COMMENT_HEADING in args[2]
+
+    def test_skips_when_no_gaps(self) -> None:
+        """Test that comment is NOT posted when profile has no gaps (silent mode)."""
+        profile = make_profile(gaps=())
+        provider = MagicMock(spec=GitProvider)
+
+        _post_discovery_comment(provider, "owner/repo", 1, profile)
+
+        provider.post_comment.assert_not_called()
+
+    def test_skips_when_duplicate_exists(self) -> None:
+        """Test that duplicate comment is not posted."""
+        profile = make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        provider = MagicMock(spec=GitProvider)
+        existing = (f"{DISCOVERY_COMMENT_HEADING}\nold content",)
+
+        _post_discovery_comment(
+            provider,
+            "owner/repo",
+            1,
+            profile,
+            existing_comments=existing,
+        )
+
+        provider.post_comment.assert_not_called()
+
+    def test_skips_when_reviewbot_md_present(self) -> None:
+        """Test that comment is not posted when .reviewbot.md exists."""
+        profile = make_profile(
+            file_tree=("src/main.py", ".reviewbot.md"),
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        provider = MagicMock(spec=GitProvider)
+
+        _post_discovery_comment(provider, "owner/repo", 1, profile)
+
+        provider.post_comment.assert_not_called()
+
+    def test_fail_open_on_provider_error(self) -> None:
+        """Test that provider error is swallowed (fail-open)."""
+        profile = make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        provider = MagicMock(spec=GitProvider)
+        provider.post_comment.side_effect = RuntimeError("API error")
+
+        # Should not raise
+        _post_discovery_comment(provider, "owner/repo", 1, profile)
+
+    def test_language_passed_to_formatter(self) -> None:
+        """Test that language parameter is forwarded to format_discovery_comment."""
+        profile = make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        provider = MagicMock(spec=GitProvider)
+
+        _post_discovery_comment(
+            provider,
+            "owner/repo",
+            1,
+            profile,
+            language="ru",
+        )
+
+        args, _ = provider.post_comment.call_args
+        comment_body = args[2]
+        # Russian disclaimer should be present
+        assert "россиянин" in comment_body
+
+    def test_language_none_no_disclaimer(self) -> None:
+        """Test that no disclaimer when language is None."""
+        profile = make_profile(
+            gaps=(Gap(observation="No tests", default_assumption="No testing"),),
+        )
+        provider = MagicMock(spec=GitProvider)
+
+        _post_discovery_comment(provider, "owner/repo", 1, profile, language=None)
+
+        args, _ = provider.post_comment.call_args
+        assert "россиянин" not in args[2]

@@ -1,0 +1,32 @@
+image: golang:1.22
+
+stages:
+  - lint
+  - test
+  - deploy
+
+variables:
+  GOPATH: /go
+
+lint:
+  stage: lint
+  script:
+    - go vet ./...
+    - golangci-lint run
+    - gofmt -l .
+
+test:
+  stage: test
+  services:
+    - postgres:15
+  script:
+    - go test ./... -coverprofile=coverage.out -covermode=atomic
+    - go tool cover -func=coverage.out
+
+deploy:
+  stage: deploy
+  script:
+    - docker build -t myapp .
+    - docker push myapp:latest
+  only:
+    - main

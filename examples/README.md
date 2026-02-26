@@ -26,10 +26,17 @@ Or copy the job from `gitlab-ci.yml` to your pipeline.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `LANGUAGE` | Response language (ISO 639 code) | `en` |
-| `LANGUAGE_MODE` | `adaptive` (detect from PR) or `fixed` | `adaptive` |
-| `GEMINI_MODEL` | Gemini model to use | `gemini-2.5-flash` |
-| `LOG_LEVEL` | Logging verbosity | `INFO` |
+| `AI_REVIEWER_LANGUAGE` | Response language (ISO 639 code) | `en` |
+| `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` (detect from PR) or `fixed` | `adaptive` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model to use | `gemini-3-flash-preview` |
+| `AI_REVIEWER_LOG_LEVEL` | Logging verbosity | `INFO` |
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Enable project discovery | `true` |
+
+> **Note:** Old variable names without `AI_REVIEWER_` prefix still work as fallback.
+
+## Project Discovery
+
+AI ReviewBot automatically analyzes your repository before each review to understand your stack, CI pipeline, and conventions. See [`.reviewbot.md`](.reviewbot.md) for an example configuration file.
 
 ## Docker Usage
 
@@ -41,8 +48,8 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
 
 # Run with environment variables
 docker run --rm \
-  -e GITHUB_TOKEN="ghp_xxx" \
-  -e GOOGLE_API_KEY="xxx" \
+  -e AI_REVIEWER_GITHUB_TOKEN="ghp_xxx" \
+  -e AI_REVIEWER_GOOGLE_API_KEY="xxx" \
   -e GITHUB_REPOSITORY="owner/repo" \
   -e GITHUB_REF="refs/pull/123/merge" \
   ghcr.io/konstziv/ai-code-reviewer:1
@@ -53,7 +60,7 @@ docker run --rm \
 | Platform | Method | Token |
 |----------|--------|-------|
 | GitHub | GitHub Action | `GITHUB_TOKEN` (automatic) |
-| GitLab | Docker image | Project Access Token (`GITLAB_TOKEN`) |
+| GitLab | Docker image | Project Access Token (`AI_REVIEWER_GITLAB_TOKEN`) |
 
 ## Troubleshooting
 
@@ -63,7 +70,7 @@ The default `GITHUB_TOKEN` may lack permissions. Create a Personal Access Token 
 
 ### GitLab: "403 Forbidden"
 
-Create a Project Access Token with `api` scope and add it as `GITLAB_TOKEN` variable.
+Create a Project Access Token with `api` scope and add it as `AI_REVIEWER_GITLAB_TOKEN` variable.
 
 ### Rate Limiting
 
@@ -86,12 +93,11 @@ Both GitHub and GitLab have API rate limits. The reviewer automatically handles 
 ### Using Different Model
 
 ```yaml
-# Use Gemini 1.5 Pro for more complex reviews
 - uses: KonstZiv/ai-code-reviewer@v1
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
     google_api_key: ${{ secrets.GOOGLE_API_KEY }}
-    gemini_model: 'gemini-1.5-pro'
+    gemini_model: 'gemini-2.5-flash'
 ```
 
 ## Cost Estimation
@@ -100,5 +106,6 @@ The reviewer displays estimated costs in the review footer. Typical costs:
 
 | Model | ~2000 tokens | ~10000 tokens |
 |-------|--------------|---------------|
+| gemini-3-flash-preview | ~$0.0002 | ~$0.001 |
 | gemini-2.5-flash | ~$0.0002 | ~$0.001 |
 | gemini-1.5-pro | ~$0.005 | ~$0.025 |

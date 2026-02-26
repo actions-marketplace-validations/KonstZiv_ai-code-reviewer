@@ -11,8 +11,12 @@ from __future__ import annotations
 
 from datetime import datetime  # noqa: TC003 - required at runtime for Pydantic
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+if TYPE_CHECKING:
+    from ai_reviewer.discovery.models import ProjectProfile
 
 
 def _validate_timezone_aware(v: datetime | None, field_name: str) -> datetime | None:
@@ -205,20 +209,24 @@ class LinkedTask(BaseModel):
 class ReviewContext(BaseModel):
     """Context for performing a code review.
 
-    Combines the merge request data with an optional linked task
-    to provide full context for the AI reviewer.
+    Combines the merge request data with linked tasks
+    and optional project profile to provide full context for the AI reviewer.
 
     Attributes:
         mr: The merge request to review.
-        task: The linked task (if any).
+        tasks: Linked tasks discovered via all strategies.
         repository: Repository name in owner/repo format.
+        project_profile: Discovery profile for project context.
     """
 
     model_config = ConfigDict(frozen=True)
 
     mr: MergeRequest = Field(..., description="The merge request to review")
-    task: LinkedTask | None = Field(default=None, description="Linked task if available")
+    tasks: tuple[LinkedTask, ...] = Field(default=(), description="Linked tasks")
     repository: str = Field(..., min_length=1, description="Repository name (owner/repo)")
+    project_profile: ProjectProfile | None = Field(
+        default=None, description="Discovery profile for project context"
+    )
 
     @field_validator("repository")
     @classmethod
@@ -234,9 +242,9 @@ class ReviewContext(BaseModel):
         return v
 
     @property
-    def has_linked_task(self) -> bool:
-        """Check if a task is linked to this review context."""
-        return self.task is not None
+    def has_linked_tasks(self) -> bool:
+        """Check if any tasks are linked to this review context."""
+        return bool(self.tasks)
 
 
 class IssueSeverity(str, Enum):
@@ -363,6 +371,10 @@ class ReviewMetrics(BaseModel):
     total_tokens: int = Field(default=0, ge=0, description="Total tokens used")
     api_latency_ms: int = Field(default=0, ge=0, description="API latency in milliseconds")
     estimated_cost_usd: float = Field(default=0.0, ge=0.0, description="Estimated cost in USD")
+    fallback_reason: str | None = Field(
+        default=None,
+        description="Why fallback model was used (None = primary succeeded)",
+    )
 
     @property
     def cost_formatted(self) -> str:
@@ -474,6 +486,20 @@ class ReviewResult(BaseModel):
         if self.task_alignment == TaskAlignmentStatus.MISALIGNED:
             return False
         return None
+
+
+# Deferred model rebuild — resolves forward reference to ProjectProfile
+# which cannot be imported at module level due to circular dependency:
+# core.models → discovery.models → discovery.__init__ → orchestrator → conversation → core.models
+def _rebuild_models() -> None:
+    """Rebuild ReviewContext to resolve forward references."""
+    from ai_reviewer.discovery.models import ProjectProfile  # noqa: PLC0415
+
+    ReviewContext.model_rebuild(_types_namespace={"ProjectProfile": ProjectProfile})
+
+
+_rebuild_models()
+del _rebuild_models  # keep module namespace clean
 
 
 # Public API - explicitly define what should be imported from this module

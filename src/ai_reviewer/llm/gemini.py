@@ -12,11 +12,14 @@ Typical usage:
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import overload
 
+import httpx
 from google import genai
 from google.api_core import exceptions as google_exceptions
+from google.genai import errors as genai_errors
 from google.genai import types
 from pydantic import BaseModel, ValidationError
 
@@ -24,10 +27,16 @@ from ai_reviewer.llm.base import LLMProvider, LLMResponse
 from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
+    QuotaExhaustedError,
     RateLimitError,
     ServerError,
     with_retry,
 )
+
+# Timeout for Gemini API requests (milliseconds).
+# Large prompts (many files) may need significant server processing time.
+# google-genai HttpOptions.timeout is in milliseconds.
+_API_TIMEOUT_MS = 600_000  # 10 minutes
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +91,54 @@ def calculate_cost(
 
 _PARSING_ERROR_MSG = "Gemini response could not be parsed"
 
+# Regex to extract file paths from "File: path (type)" headers in the prompt.
+_FILE_HEADER_RE = re.compile(r"^File:\s*(\S+)\s*\(", re.MULTILINE)
+
+
+def _log_prompt_debug_info(prompt: str, system_prompt: str | None) -> None:
+    """Log diagnostic information about the prompt for debugging API errors.
+
+    Logs prompt length (chars), system prompt length, and the list of
+    files included in the prompt (extracted from ``### File:`` headers).
+
+    Args:
+        prompt: The user prompt sent to the API.
+        system_prompt: The system prompt, if any.
+    """
+    files = _FILE_HEADER_RE.findall(prompt)
+    system_len = len(system_prompt) if system_prompt else 0
+    logger.warning(
+        "Prompt debug: %d chars (system: %d chars), %d files: %s",
+        len(prompt),
+        system_len,
+        len(files),
+        files,
+    )
+
+
+# Keywords in quotaId that indicate a daily or free-tier quota (not retryable).
+_DAILY_QUOTA_KEYWORDS = ("perday", "freetier", "daily")
+
+
+def _is_daily_quota_error(error_msg: str) -> str | None:
+    """Check if a 429 error is caused by daily/free-tier quota exhaustion.
+
+    Parses the error message for ``quotaId`` values containing keywords
+    like ``PerDay`` or ``FreeTier``.
+
+    Args:
+        error_msg: The stringified error message from Gemini API.
+
+    Returns:
+        The matched quotaId string if daily quota detected, None otherwise.
+    """
+    match = re.search(r"'quotaId':\s*'([^']+)'", error_msg)
+    if match:
+        quota_id = match.group(1)
+        if any(kw in quota_id.lower() for kw in _DAILY_QUOTA_KEYWORDS):
+            return quota_id
+    return None
+
 
 def _match_by_error_message(e: Exception) -> Exception:
     """Match exception by error message keywords (fallback heuristic).
@@ -92,10 +149,14 @@ def _match_by_error_message(e: Exception) -> Exception:
     Returns:
         Converted exception or the original if no keyword matched.
     """
-    error_msg = str(e).lower()
+    error_msg_str = str(e)
+    error_msg = error_msg_str.lower()
     if "rate limit" in error_msg or "quota" in error_msg or "429" in error_msg:
+        quota_id = _is_daily_quota_error(error_msg_str)
+        if quota_id:
+            return QuotaExhaustedError(f"Gemini: {e}", quota_id=quota_id)
         return RateLimitError(f"Gemini: {e}")
-    if "503" in error_msg or "500" in error_msg or "server error" in error_msg:
+    if any(kw in error_msg for kw in ("500", "502", "503", "504", "server error", "deadline")):
         return ServerError(f"Gemini: {e}")
     return e
 
@@ -114,6 +175,9 @@ def _convert_google_exception(e: Exception) -> Exception:
         or the original exception if no match is found.
     """
     if isinstance(e, google_exceptions.ResourceExhausted):
+        quota_id = _is_daily_quota_error(str(e))
+        if quota_id:
+            return QuotaExhaustedError(f"Gemini: {e}", quota_id=quota_id)
         return RateLimitError(f"Gemini: {e}")
 
     if isinstance(e, google_exceptions.Unauthenticated):
@@ -154,7 +218,10 @@ class GeminiProvider(LLMProvider):
                 for extracting from ``SecretStr`` if needed).
             model_name: Gemini model to use.
         """
-        self._client = genai.Client(api_key=api_key)
+        self._client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=_API_TIMEOUT_MS),
+        )
         self.model_name = model_name
         logger.debug("GeminiProvider initialized with model %s", model_name)
 
@@ -260,17 +327,44 @@ class GeminiProvider(LLMProvider):
         except ValidationError:
             logger.exception("Failed to validate Gemini response structure")
             raise
+        except genai_errors.ServerError as e:
+            logger.warning("Gemini SDK server error (retryable): %s", e)
+            _log_prompt_debug_info(prompt, system_prompt)
+            msg = f"Gemini: {e}"
+            raise ServerError(msg) from e
+        except genai_errors.ClientError as e:
+            logger.warning("Gemini SDK client error: %s", e)
+            _log_prompt_debug_info(prompt, system_prompt)
+            raise _convert_google_exception(e) from e
         except (
             google_exceptions.GoogleAPIError,
             google_exceptions.RetryError,
         ) as e:
             logger.warning("Gemini API error: %s", e)
+            _log_prompt_debug_info(prompt, system_prompt)
             raise _convert_google_exception(e) from e
+        except (
+            httpx.TimeoutException,
+            httpx.ReadError,
+            httpx.ConnectError,
+            ConnectionError,
+            OSError,
+        ) as e:
+            logger.warning(
+                "Gemini connection/timeout error (%s): %s",
+                type(e).__name__,
+                e,
+            )
+            _log_prompt_debug_info(prompt, system_prompt)
+            msg = f"Gemini: connection error - {e}"
+            raise ServerError(msg) from e
         except Exception as e:
             converted = _convert_google_exception(e)
             if converted is not e:
                 logger.warning("Gemini API error: %s", e)
+                _log_prompt_debug_info(prompt, system_prompt)
                 raise converted from e
+            _log_prompt_debug_info(prompt, system_prompt)
             logger.exception("Gemini API call failed")
             raise
 

@@ -39,6 +39,9 @@ class LanguageMode(str, Enum):
     FIXED = "fixed"
 
 
+# Bot display name used in all user-facing comments
+BOT_NAME = "AI ReviewBot"
+
 # Minimum length for API tokens/keys validation
 MIN_SECRET_LENGTH = 10
 
@@ -168,6 +171,7 @@ class Settings(BaseSettings):
         AI_REVIEWER_GITLAB_TOKEN / GITLAB_TOKEN: GitLab personal access token
         AI_REVIEWER_GITLAB_URL / GITLAB_URL: GitLab server URL
         AI_REVIEWER_GEMINI_MODEL / GEMINI_MODEL: Model name
+        AI_REVIEWER_GEMINI_MODEL_FALLBACK / GEMINI_MODEL_FALLBACK: Fallback model
         AI_REVIEWER_LOG_LEVEL / LOG_LEVEL: Logging level
         AI_REVIEWER_REVIEW_MAX_FILES / REVIEW_MAX_FILES: Max files in context
         AI_REVIEWER_REVIEW_MAX_DIFF_LINES / REVIEW_MAX_DIFF_LINES: Max diff lines
@@ -219,6 +223,11 @@ class Settings(BaseSettings):
         default="gemini-3-flash-preview",
         validation_alias=AliasChoices("AI_REVIEWER_GEMINI_MODEL", "GEMINI_MODEL"),
         description="Gemini model to use for analysis",
+    )
+    gemini_model_fallback: str | None = Field(
+        default="gemini-2.5-flash",
+        validation_alias=AliasChoices("AI_REVIEWER_GEMINI_MODEL_FALLBACK", "GEMINI_MODEL_FALLBACK"),
+        description="Fallback model when primary is unavailable (None to disable)",
     )
     log_level: LogLevel = Field(
         default="INFO",
@@ -288,6 +297,13 @@ class Settings(BaseSettings):
         description="Group comments into threaded dialogues in AI prompt",
     )
 
+    # Discovery
+    discovery_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("AI_REVIEWER_DISCOVERY_ENABLED", "DISCOVERY_ENABLED"),
+        description="Enable project discovery before review",
+    )
+
     # Inline comments
     review_post_inline_comments: bool = Field(
         default=True,
@@ -336,6 +352,7 @@ def clear_settings_cache() -> None:
 
 
 __all__ = [
+    "BOT_NAME",
     "MIN_SECRET_LENGTH",
     "VALID_LOG_LEVELS",
     "LanguageMode",

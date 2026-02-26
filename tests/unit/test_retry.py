@@ -10,6 +10,7 @@ from ai_reviewer.utils.retry import (
     AuthenticationError,
     ForbiddenError,
     NotFoundError,
+    QuotaExhaustedError,
     RateLimitError,
     RetryableError,
     ServerError,
@@ -32,6 +33,26 @@ class TestExceptionHierarchy:
         assert issubclass(AuthenticationError, APIClientError)
         assert issubclass(ForbiddenError, APIClientError)
         assert issubclass(NotFoundError, APIClientError)
+
+    def test_quota_exhausted_is_not_retryable(self) -> None:
+        """Test that QuotaExhaustedError is NOT a RetryableError."""
+        assert not issubclass(QuotaExhaustedError, RetryableError)
+        assert not issubclass(QuotaExhaustedError, APIClientError)
+
+    def test_quota_exhausted_error_with_quota_id(self) -> None:
+        """Test QuotaExhaustedError stores quota_id."""
+        error = QuotaExhaustedError(
+            "Daily quota exceeded",
+            quota_id="GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+        )
+        assert "Daily quota" in str(error)
+        assert error.quota_id == "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+
+    def test_quota_exhausted_error_default(self) -> None:
+        """Test QuotaExhaustedError with default values."""
+        error = QuotaExhaustedError()
+        assert "quota" in str(error).lower()
+        assert error.quota_id is None
 
     def test_rate_limit_error_with_retry_after(self) -> None:
         """Test RateLimitError with retry_after attribute."""
@@ -107,7 +128,7 @@ class TestAPIError:
         )
         formatted = error.format_for_comment()
 
-        assert "AI Code Review Failed" in formatted
+        assert "AI ReviewBot: Review Failed" in formatted
         assert "Rate limit exhausted" in formatted
         assert "github" in formatted
         assert "submit_review" in formatted
@@ -255,3 +276,13 @@ class TestWithRetryDecorator:
 
         # Should have tried MAX_ATTEMPTS times
         assert mock_func.call_count == 5  # MAX_ATTEMPTS = 5
+
+    def test_quota_exhausted_not_retried(self) -> None:
+        """Test that QuotaExhaustedError fails immediately without retry."""
+        mock_func = MagicMock(side_effect=QuotaExhaustedError("Daily quota exceeded"))
+        decorated = with_retry(mock_func)
+
+        with pytest.raises(QuotaExhaustedError):
+            decorated()
+
+        assert mock_func.call_count == 1

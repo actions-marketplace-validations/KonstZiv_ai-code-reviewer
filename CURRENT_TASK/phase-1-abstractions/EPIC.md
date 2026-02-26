@@ -8,7 +8,8 @@ phase-1-abstractions/
 ├── task-1.1-llm-provider/             LLMProvider ABC + GeminiProvider
 ├── task-1.2-repository-provider/      RepositoryProvider ABC + GitHub/GitLab impl
 ├── task-1.3-conversation-provider/    ConversationProvider ABC + impl
-└── task-1.4-housekeeping/             Залежності, N+1, ініціалізація
+├── task-1.4-housekeeping/             Залежності, N+1, ініціалізація
+└── task-1.5-linked-task-strategy/     Strategy-based linked task resolver
 ```
 
 **Батьківський документ:** [../SPRINT.md](../SPRINT.md)
@@ -52,9 +53,11 @@ CLI, action.yml, reviewer.py — все працює як раніше.
 | 1.2 | RepositoryProvider ABC + GitHub/GitLab | 4-5 год | — |
 | 1.3 | ConversationProvider ABC + GitHub/GitLab | 5-7 год | — |
 | 1.4 | Housekeeping (deps, N+1, init) | 2-3 год | 1.1 |
+| 1.5 | Linked Task Discovery Strategy | 3-4 год | Фаза 1 (GitProvider ABC) |
 
 Задачі 1.1–1.3 незалежні — можна паралелити.
 Задача 1.4 залежить від 1.1 (GeminiProvider для fix ініціалізації).
+Задача 1.5 — розширення ABC: єдиний multi-strategy resolver для linked tasks.
 
 ---
 
