@@ -96,6 +96,15 @@ Todas las configuraciones se hacen mediante variables de entorno.
     Cuando `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (por defecto), los comentarios se agrupan en
     hilos de conversación para que la IA entienda las cadenas de respuestas. Configura `false` para renderizado plano.
 
+### Discovery
+
+| Variable | Descripción | Por defecto |
+|----------|-------------|-------------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Activar análisis de proyecto antes de la revisión | `true` |
+
+!!! info "Análisis de proyecto"
+    Cuando está activado, AI ReviewBot analiza automáticamente tu repositorio (lenguajes, pipeline CI, archivos de config) antes de cada revisión para proporcionar feedback más inteligente. Configura `false` para desactivar. Detalles: [Discovery →](discovery.md).
+
 ### GitLab
 
 | Variable | Descripción | Por defecto |

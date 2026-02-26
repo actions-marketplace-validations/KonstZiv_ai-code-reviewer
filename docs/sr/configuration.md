@@ -96,6 +96,15 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
     Kada je `AI_REVIEWER_REVIEW_ENABLE_DIALOGUE=true` (podrazumijevano), komentari se grupišu u
     konverzacijske niti kako bi AI razumio lance odgovora. Postavite na `false` za ravno prikazivanje.
 
+### Discovery
+
+| Varijabla | Opis | Podrazumijevano |
+|----------|-------------|---------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Aktiviranje analize projekta prije pregleda | `true` |
+
+!!! info "Analiza projekta"
+    Kada je aktivirano, AI ReviewBot automatski analizira vaš repozitorijum (jezici, CI pipeline, config fajlovi) prije svakog pregleda za pametniji feedback. Postavite na `false` za deaktivaciju. Detalji: [Discovery →](discovery.md).
+
 ### GitLab
 
 | Varijabla | Opis | Podrazumijevano |
