@@ -112,7 +112,8 @@ class TestMonorepoMultipleLanguages:
         orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
         profile = orch.discover("org/monorepo")
 
-        tool_names = {t.name for t in (profile.ci_insights or _empty()).detected_tools}
+        assert profile.ci_insights is not None
+        tool_names = {t.name for t in profile.ci_insights.detected_tools}
         # Python tools
         assert "ruff" in tool_names
         assert "mypy" in tool_names
@@ -343,13 +344,3 @@ class TestDiscoveryLogging:
             orch.discover("owner/repo")
 
         assert any("Failed to analyze CI file" in msg for msg in caplog.messages)
-
-
-# ── Helpers ──────────────────────────────────────────────────────────
-
-
-def _empty() -> MagicMock:
-    """Stub with empty detected_tools for safe attribute access."""
-    m = MagicMock()
-    m.detected_tools = ()
-    return m
