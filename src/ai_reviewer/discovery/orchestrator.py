@@ -21,6 +21,11 @@ from ai_reviewer.discovery.config_collector import (
     ConfigCollector,
     SmartConfigSelector,
 )
+from ai_reviewer.discovery.config_parser import (
+    detect_framework,
+    detect_layout,
+    extract_conventions,
+)
 from ai_reviewer.discovery.models import (
     AutomatedChecks,
     CIInsights,
@@ -233,11 +238,11 @@ class DiscoveryOrchestrator:
             llm_result = response.content
             if not isinstance(llm_result, LLMDiscoveryResponse):
                 logger.warning("LLM returned unexpected type: %s", type(llm_result))
-                return _build_fallback_profile(platform_data, ci_insights)
+                return _build_fallback_profile(platform_data, ci_insights, configs)
             return _merge_llm_result(platform_data, ci_insights, llm_result)
         except Exception:
             logger.warning("LLM interpretation failed, using fallback", exc_info=True)
-            return _build_fallback_profile(platform_data, ci_insights)
+            return _build_fallback_profile(platform_data, ci_insights, configs)
 
     # ── Conversation ─────────────────────────────────────────────
 
@@ -359,12 +364,20 @@ def _has_enough_data(ci_insights: CIInsights | None) -> bool:
 def _build_profile_deterministic(
     platform_data: PlatformData,
     ci_insights: CIInsights,
-    _configs: tuple[ConfigContent, ...],
+    configs: tuple[ConfigContent, ...],
 ) -> ProjectProfile:
     """Build a ProjectProfile from deterministic data only."""
     ac = _build_automated_checks(ci_insights)
     guidance = _build_review_guidance(ci_insights)
     gaps = _detect_gaps(ci_insights)
+
+    # Enrich from configs
+    framework = detect_framework(configs)
+    layout = detect_layout(platform_data)
+    conventions = extract_conventions(configs)
+
+    if conventions:
+        guidance = guidance.model_copy(update={"conventions": conventions})
 
     return ProjectProfile(
         platform_data=platform_data,
@@ -373,6 +386,8 @@ def _build_profile_deterministic(
         or ci_insights.node_version
         or ci_insights.go_version,
         package_manager=ci_insights.package_manager,
+        framework=framework,
+        layout=layout,
         automated_checks=ac,
         guidance=guidance,
         gaps=gaps,
@@ -474,13 +489,23 @@ def _detect_gaps(ci_insights: CIInsights) -> tuple[Gap, ...]:
 def _build_fallback_profile(
     platform_data: PlatformData,
     ci_insights: CIInsights | None,
+    configs: tuple[ConfigContent, ...] = (),
 ) -> ProjectProfile:
     """Build a minimal profile when LLM interpretation fails."""
     ac = _build_automated_checks(ci_insights) if ci_insights else AutomatedChecks()
+
+    framework = detect_framework(configs)
+    layout = detect_layout(platform_data)
+    conventions = extract_conventions(configs)
+    guidance = ReviewGuidance(conventions=conventions) if conventions else ReviewGuidance()
+
     return ProjectProfile(
         platform_data=platform_data,
         ci_insights=ci_insights,
+        framework=framework,
+        layout=layout,
         automated_checks=ac,
+        guidance=guidance,
     )
 
 
