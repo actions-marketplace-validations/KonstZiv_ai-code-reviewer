@@ -1,0 +1,28 @@
+{
+  "primary_language": "Rust",
+  "languages": {},
+  "framework": "Actix Web",
+  "language_version": "1.78",
+  "package_manager": "cargo",
+  "ci_file_path": null,
+  "ci_provider": null,
+  "linting": ["clippy"],
+  "formatting": ["rustfmt"],
+  "type_checking": [],
+  "testing": ["cargo test"],
+  "security": [],
+  "skip_in_review": [
+    "Code style (handled by clippy)",
+    "Formatting (handled by rustfmt)"
+  ],
+  "focus_in_review": [
+    "Unsafe code usage",
+    "Memory safety patterns"
+  ],
+  "conventions": [
+    "Use thiserror for error types",
+    "Prefer &str over String in function arguments"
+  ],
+  "gaps": [],
+  "uses_llm": false
+}

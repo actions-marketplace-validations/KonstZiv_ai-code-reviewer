@@ -1,0 +1,28 @@
+{
+  "primary_language": "Python",
+  "languages": {"Python": 85.0, "Makefile": 15.0},
+  "framework": null,
+  "language_version": "3.9",
+  "package_manager": "pip",
+  "ci_file_path": ".github/workflows/ci.yml",
+  "ci_provider": "GitHub Actions",
+  "linting": ["flake8"],
+  "formatting": ["black", "isort"],
+  "type_checking": [],
+  "testing": ["pytest"],
+  "security": [],
+  "skip_in_review": [
+    "Code style and lint issues (handled by CI)",
+    "Code formatting (handled by CI)"
+  ],
+  "focus_in_review": [
+    "Security vulnerabilities (no SAST in CI)"
+  ],
+  "gaps": [
+    {
+      "observation": "No security scanner detected in CI",
+      "default_assumption": "No automated security scanning"
+    }
+  ],
+  "uses_llm": false
+}
