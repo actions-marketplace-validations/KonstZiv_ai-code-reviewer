@@ -36,7 +36,7 @@ AI ReviewBot automatically analyzes your repository before each review:
 
 This means the bot **won't duplicate** feedback that your CI already catches — no formatting nits when you run Prettier, no type errors when you run mypy.
 
-Discovery runs on the first PR/MR and posts a one-time summary comment with what it found. Create [`.reviewbot.md`](examples/.reviewbot.md) in your repo root to customize skip/focus areas.
+Discovery runs on the first PR/MR and posts a one-time summary comment with what it found. Create [`.reviewbot.md`](./examples/.reviewbot.md) in your repo root to customize skip/focus areas.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
