@@ -65,7 +65,7 @@ Mock `LLMProvider` повертає заздалегідь визначені в
 ## Чеклист
 
 - [x] Integration tests через mock providers (27 тестів — Phase 3 revision)
-- [ ] 6 fixture directories
-- [ ] Expected profiles для кожного
-- [ ] Fixture-based `discover()` integration tests
-- [ ] `make check` проходить
+- [x] 6 fixture directories
+- [x] Expected profiles для кожного
+- [x] Fixture-based `discover()` integration tests (6 tests in `test_discovery_fixtures.py`)
+- [x] `make check` проходить

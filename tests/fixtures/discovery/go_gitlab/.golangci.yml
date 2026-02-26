@@ -1,0 +1,8 @@
+linters:
+  enable:
+    - govet
+    - revive
+    - errcheck
+    - staticcheck
+  disable:
+    - deadcode

@@ -1,0 +1,22 @@
+{
+  "primary_language": "Python",
+  "languages": {"Python": 90.0, "Shell": 10.0},
+  "framework": null,
+  "language_version": "3.13",
+  "package_manager": "uv",
+  "ci_file_path": ".github/workflows/ci.yml",
+  "ci_provider": "GitHub Actions",
+  "linting": ["ruff"],
+  "formatting": ["ruff format"],
+  "type_checking": ["mypy"],
+  "testing": ["pytest"],
+  "security": ["bandit"],
+  "skip_in_review": [
+    "Code style and lint issues (handled by CI)",
+    "Code formatting (handled by CI)",
+    "Basic type errors (handled by CI)"
+  ],
+  "focus_in_review": [],
+  "gaps": [],
+  "uses_llm": false
+}
