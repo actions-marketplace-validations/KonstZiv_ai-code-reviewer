@@ -83,11 +83,11 @@ def test_reviewbot_md_suppresses_even_with_gaps():
 
 ## Чеклист
 
-- [ ] Monorepo test
-- [ ] Large file tree test
-- [ ] API failure graceful degradation test
-- [ ] Second run answers test (mock `_fetch_threads` + `_enrich_from_threads`)
-- [ ] Broken .reviewbot.md test
-- [ ] Russian disclaimer edge case test
-- [ ] Debug logging verification (caplog)
-- [ ] `make check` проходить
+- [x] Monorepo test (4 tests in `test_edge_cases.py::TestMonorepoMultipleLanguages`)
+- [x] Large file tree test (pre-existing: `test_config_collector.py` — 3 tests)
+- [x] API failure graceful degradation test (pre-existing: `test_orchestrator.py` — 2 tests)
+- [x] Second run answers test (pre-existing: `test_orchestrator.py` — 3 tests)
+- [x] Broken .reviewbot.md test (pre-existing: `test_reviewbot_config.py` — 3 tests)
+- [x] Russian disclaimer edge case test (pre-existing: `test_comment.py` + `test_reviewer.py` — 4 tests)
+- [x] Debug logging verification (8 caplog tests in `test_edge_cases.py::TestDiscoveryLogging`)
+- [x] `make check` проходить
