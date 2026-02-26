@@ -8,7 +8,7 @@ Covers:
 from __future__ import annotations
 
 import logging
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -149,11 +149,16 @@ class TestMonorepoMultipleLanguages:
         profile = orch.discover("org/monorepo")
 
         # Linting + formatting + type checking covered -> should skip
-        assert any("lint" in s.lower() for s in profile.guidance.skip_in_review)
-        assert any("formatting" in s.lower() for s in profile.guidance.skip_in_review)
-        assert any("type" in s.lower() for s in profile.guidance.skip_in_review)
+        skip_lower = [s.lower() for s in profile.guidance.skip_in_review]
+        for keyword in ("lint", "formatting", "type"):
+            assert any(keyword in s for s in skip_lower), (
+                f"'{keyword}' not found in skip_in_review: {profile.guidance.skip_in_review}"
+            )
         # Security not covered -> should focus
-        assert any("security" in f.lower() for f in profile.guidance.focus_in_review)
+        focus_lower = [f.lower() for f in profile.guidance.focus_in_review]
+        assert any("security" in f for f in focus_lower), (
+            f"'security' not found in focus_in_review: {profile.guidance.focus_in_review}"
+        )
 
 
 # ── Caplog logging tests ─────────────────────────────────────────────
@@ -335,12 +340,11 @@ class TestDiscoveryLogging:
             content=LLMDiscoveryResponse(),
         )
         orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
-        # Force the CI analyzer to raise
-        orch._ci_analyzer.analyze = MagicMock(  # type: ignore[method-assign]
-            side_effect=ValueError("broken"),
-        )
-
-        with caplog.at_level(logging.WARNING, logger=_ORCHESTRATOR_LOGGER):
+        # Force the CI analyzer to raise using patch.object
+        with (
+            patch.object(orch._ci_analyzer, "analyze", side_effect=ValueError("broken")),
+            caplog.at_level(logging.WARNING, logger=_ORCHESTRATOR_LOGGER),
+        ):
             orch.discover("owner/repo")
 
         assert any("Failed to analyze CI file" in msg for msg in caplog.messages)
