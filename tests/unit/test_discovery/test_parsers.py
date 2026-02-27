@@ -119,6 +119,11 @@ class TestDetectPackageManagers:
         tree = ("main.go", "go.mod", "go.sum")
         assert detect_package_managers(tree) == ("go modules",)
 
+    def test_go_mod_without_sum(self) -> None:
+        """go.mod alone (before go mod tidy) should detect go modules."""
+        tree = ("main.go", "go.mod")
+        assert detect_package_managers(tree) == ("go modules",)
+
     def test_cargo(self) -> None:
         tree = ("src/main.rs", "Cargo.toml", "Cargo.lock")
         assert detect_package_managers(tree) == ("cargo",)
@@ -189,6 +194,16 @@ class TestDetectLayout:
     def test_monorepo_multiple_dep_dirs(self) -> None:
         """Multiple top-level dirs with package files → monorepo."""
         tree = ("frontend/package.json", "backend/pyproject.toml", "shared/lib.py")
+        assert detect_layout(tree) == "monorepo"
+
+    def test_monorepo_nested_dep_files(self) -> None:
+        """Dep files at deeper nesting (services/api/package.json) → monorepo."""
+        tree = (
+            "services/api/package.json",
+            "services/api/src/index.ts",
+            "services/worker/pyproject.toml",
+            "services/worker/main.py",
+        )
         assert detect_layout(tree) == "monorepo"
 
     def test_apps_only_without_src_not_monorepo(self) -> None:

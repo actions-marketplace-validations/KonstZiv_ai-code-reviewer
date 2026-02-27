@@ -86,7 +86,7 @@ PACKAGE_MANAGER_INDICATORS: dict[str, str] = {
     "yarn.lock": "yarn",
     "pnpm-lock.yaml": "pnpm",
     "package-lock.json": "npm",
-    "go.sum": "go modules",
+    "go.mod": "go modules",
     "Cargo.lock": "cargo",
     "Gemfile.lock": "bundler",
 }
@@ -229,17 +229,16 @@ def detect_layout(file_tree: Sequence[str]) -> str | None:
     has_packages = any(p.startswith("packages/") for p in file_tree)
     has_apps = any(p.startswith("apps/") for p in file_tree)
 
-    # Monorepo: multiple top-level dirs with their own package files
-    top_dirs_with_packages: set[str] = set()
+    # Monorepo: multiple dirs containing their own dependency files
+    dirs_with_packages: set[str] = set()
     for path in file_tree:
         parts = PurePath(path).parts
-        if len(parts) >= _MIN_PARTS_FOR_SUBDIR and parts[1] in DEPENDENCY_FILES:
-            top_dirs_with_packages.add(parts[0])
+        if len(parts) >= _MIN_PARTS_FOR_SUBDIR and parts[-1] in DEPENDENCY_FILES:
+            # Use parent dir as the "package" identity
+            dirs_with_packages.add(str(PurePath(*parts[:-1])))
 
     is_monorepo = (
-        has_packages
-        or (has_apps and has_src)
-        or len(top_dirs_with_packages) >= _MIN_DIRS_FOR_MONOREPO
+        has_packages or (has_apps and has_src) or len(dirs_with_packages) >= _MIN_DIRS_FOR_MONOREPO
     )
     if is_monorepo:
         return "monorepo"
