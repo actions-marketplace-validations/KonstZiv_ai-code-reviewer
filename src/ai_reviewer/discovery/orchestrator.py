@@ -577,12 +577,12 @@ def _build_automated_checks_from_llm(
 ) -> AutomatedChecks:
     """Build AutomatedChecks by combining CI analysis with LLM zones.
 
-    CI-detected tools take priority; LLM zones fill in any gaps.
+    CI-detected tools form the base; LLM zones fill in any gaps
+    (categories that CI analysis missed).
     """
-    if ci_insights:
-        return _build_automated_checks(ci_insights)
+    base = _build_automated_checks(ci_insights) if ci_insights else AutomatedChecks()
 
-    # No CI insights — derive from LLM attention zones
+    # Collect LLM-detected tools by category
     linting: list[str] = []
     formatting: list[str] = []
     type_checking: list[str] = []
@@ -610,12 +610,13 @@ def _build_automated_checks_from_llm(
         if bucket is not None and zone.status == "well_covered":
             bucket.extend(zone.tools)
 
+    # Merge: CI base + LLM fills gaps (dedup via set)
     return AutomatedChecks(
-        linting=tuple(linting),
-        formatting=tuple(formatting),
-        type_checking=tuple(type_checking),
-        testing=tuple(testing),
-        security=tuple(security),
+        linting=tuple(dict.fromkeys(base.linting + tuple(linting))),
+        formatting=tuple(dict.fromkeys(base.formatting + tuple(formatting))),
+        type_checking=tuple(dict.fromkeys(base.type_checking + tuple(type_checking))),
+        testing=tuple(dict.fromkeys(base.testing + tuple(testing))),
+        security=tuple(dict.fromkeys(base.security + tuple(security))),
     )
 
 
@@ -627,13 +628,13 @@ def _build_guidance_from_zones(
     focus: list[str] = []
 
     for zone in zones:
-        label = f"{zone.area} ({', '.join(zone.tools)})" if zone.tools else zone.area
+        tools_str = f" ({', '.join(zone.tools)})" if zone.tools else ""
         if zone.status == "well_covered":
-            skip.append(f"{label} (covered by CI)")
+            skip.append(f"{zone.area}{tools_str}")
         elif zone.status == "not_covered":
-            focus.append(f"{label} (not automated)")
+            focus.append(f"{zone.area}{tools_str} — not automated")
         elif zone.status == "weakly_covered":
-            focus.append(f"{label} (weakly covered)")
+            focus.append(f"{zone.area}{tools_str} — weak coverage")
 
     return ReviewGuidance(
         skip_in_review=tuple(skip),
