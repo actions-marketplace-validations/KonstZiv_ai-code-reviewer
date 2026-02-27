@@ -381,6 +381,51 @@ class TestScenarioNoCI:
         assert any("security" in f for f in profile.guidance.focus_in_review)
         assert "Google docstrings" in profile.guidance.conventions
 
+    def test_llm_passes_attention_zones(
+        self,
+        mock_repo: MagicMock,
+        mock_conversation: MagicMock,
+        mock_llm: MagicMock,
+    ) -> None:
+        """Attention zones from LLM are stored on the profile."""
+        mock_repo.get_file_tree.return_value = ("src/main.py",)
+        mock_repo.get_file_content.return_value = None
+
+        zones = (
+            AttentionZone(
+                area="formatting",
+                status="well_covered",
+                tools=("ruff",),
+                reason="enforced in CI",
+            ),
+            AttentionZone(
+                area="security",
+                status="not_covered",
+                reason="no SAST tool",
+            ),
+            AttentionZone(
+                area="testing",
+                status="weakly_covered",
+                tools=("pytest",),
+                reason="no coverage gate",
+                recommendation="add --cov-fail-under=80",
+            ),
+        )
+        llm_response = LLMResponse(
+            content=LLMDiscoveryResult(attention_zones=zones),
+        )
+        mock_llm.generate.return_value = llm_response
+
+        orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
+        profile = orch.discover("owner/repo")
+
+        assert profile.attention_zones == zones
+        # Zone-driven prompt context should have SKIP/FOCUS/CHECK
+        ctx = profile.to_prompt_context()
+        assert "## SKIP in review" in ctx
+        assert "## FOCUS in review" in ctx
+        assert "## CHECK and improve" in ctx
+
 
 class TestScenarioReviewbotMd:
     """Scenario: .reviewbot.md exists -> skip pipeline entirely."""

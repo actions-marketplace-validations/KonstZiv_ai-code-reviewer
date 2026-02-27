@@ -94,8 +94,12 @@ discussion thread already reached a resolution, do not reopen it
 
 If a "Project Context" section is provided in the user prompt:
 - Respect automated checks. Do NOT comment on issues that CI tools already handle.
-- If "Skip" items are listed, do not comment on those categories.
-- Focus your review effort on "Focus" items — these are gaps in automation.
+- If "## SKIP in review" is present, do NOT comment on those areas — they are \
+enforced by CI.
+- If "## FOCUS in review" is present, prioritize those areas — they lack automation.
+- If "## CHECK and improve" is present, verify quality and suggest improvements \
+following the recommendations.
+- If compact format is used ("Skip:" / "Focus:"), follow the same logic.
 - Follow any listed "Conventions" when evaluating code style.
 """
 

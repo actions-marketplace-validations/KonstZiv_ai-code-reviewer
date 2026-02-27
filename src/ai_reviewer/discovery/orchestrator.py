@@ -568,6 +568,7 @@ def _merge_llm_result(
         automated_checks=ac,
         guidance=guidance,
         gaps=tuple(llm_result.gaps),
+        attention_zones=llm_result.attention_zones,
     )
 
 

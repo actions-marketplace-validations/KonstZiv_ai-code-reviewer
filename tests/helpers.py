@@ -43,6 +43,8 @@ def make_profile(**kw: object) -> ProjectProfile:
     language = kw.pop("language", "Python")
     file_tree = kw.pop("file_tree", ("src/main.py",))
 
+    attention_zones = kw.pop("attention_zones", ())
+
     ci = CIInsights(ci_file_path=ci_file_path, detected_tools=ci_tools) if ci_tools else None
     return ProjectProfile(
         platform_data=PlatformData(
@@ -57,4 +59,5 @@ def make_profile(**kw: object) -> ProjectProfile:
         automated_checks=AutomatedChecks(ci_provider=ci_provider),
         guidance=ReviewGuidance(skip_in_review=skip, focus_in_review=focus),
         gaps=kw.pop("gaps", ()),
+        attention_zones=attention_zones,
     )
