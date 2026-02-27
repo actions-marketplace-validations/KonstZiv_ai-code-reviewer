@@ -11,7 +11,19 @@ Layers:
     3. LLM interpretation — only when deterministic layers are insufficient.
 """
 
+from ai_reviewer.discovery.cache import (
+    DiscoveryCache,
+    DiscoveryCacheStorage,
+    InMemoryDiscoveryCache,
+)
 from ai_reviewer.discovery.config_collector import ConfigContent
+from ai_reviewer.discovery.diff_analysis import (
+    DiffDepsChange,
+    DiffLanguageProfile,
+    analyze_diff_languages,
+    check_watch_files_in_diff,
+    detect_deps_changes,
+)
 from ai_reviewer.discovery.models import (
     AttentionZone,
     AutomatedChecks,
@@ -42,14 +54,22 @@ __all__ = [
     "CIInsights",
     "ConfigContent",
     "DetectedTool",
+    "DiffDepsChange",
+    "DiffLanguageProfile",
+    "DiscoveryCache",
+    "DiscoveryCacheStorage",
     "DiscoveryOrchestrator",
     "Gap",
+    "InMemoryDiscoveryCache",
     "LLMDiscoveryResult",
     "PlatformData",
     "ProjectProfile",
     "RawProjectData",
     "ReviewGuidance",
     "ToolCategory",
+    "analyze_diff_languages",
+    "check_watch_files_in_diff",
+    "detect_deps_changes",
     "format_discovery_prompt",
     "generate_reviewbot_md",
     "parse_reviewbot_md",

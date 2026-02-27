@@ -15,6 +15,12 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from ai_reviewer.core.models import CommentAuthorType, CommentType
+from ai_reviewer.discovery.diff_analysis import (
+    analyze_diff_languages,
+    detect_deps_changes,
+    format_deps_change_context,
+    format_diff_language_context,
+)
 from ai_reviewer.utils.language import build_language_instruction
 
 if TYPE_CHECKING:
@@ -94,8 +100,12 @@ discussion thread already reached a resolution, do not reopen it
 
 If a "Project Context" section is provided in the user prompt:
 - Respect automated checks. Do NOT comment on issues that CI tools already handle.
-- If "Skip" items are listed, do not comment on those categories.
-- Focus your review effort on "Focus" items — these are gaps in automation.
+- If "## SKIP in review" is present, do NOT comment on those areas — they are \
+enforced by CI.
+- If "## FOCUS in review" is present, prioritize those areas — they lack automation.
+- If "## CHECK and improve" is present, verify quality and suggest improvements \
+following the recommendations.
+- If compact format is used ("Skip:" / "Focus:"), follow the same logic.
 - Follow any listed "Conventions" when evaluating code style.
 """
 
@@ -480,6 +490,31 @@ def _format_file_change(change: FileChange, max_lines: int) -> str:
     return f"{header}\n{change.patch}"
 
 
+def _build_mr_aware_context(context: ReviewContext) -> str:
+    """Build MR-specific context from diff analysis.
+
+    Detects language mismatch and dependency changes, returns prompt
+    sections (or empty string if nothing noteworthy).
+    """
+    if not context.mr.changes:
+        return ""
+
+    parts: list[str] = []
+
+    # Language mismatch
+    repo_langs = context.project_profile.platform_data.languages if context.project_profile else {}
+    diff_lang = analyze_diff_languages(context.mr.changes, repo_langs)
+    if diff_lang and not diff_lang.matches_repo:
+        parts.append(format_diff_language_context(diff_lang))
+
+    # Dependency changes
+    deps = detect_deps_changes(context.mr.changes)
+    if deps:
+        parts.append(format_deps_change_context(deps))
+
+    return "".join(parts)
+
+
 def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
     """Construct the full user prompt for the review.
 
@@ -500,6 +535,11 @@ def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
     if context.project_profile:
         parts.append("\n## Project Context")
         parts.append(context.project_profile.to_prompt_context())
+
+    # 0.6. MR-aware diff analysis (language mismatch + dep changes)
+    mr_context = _build_mr_aware_context(context)
+    if mr_context:
+        parts.append(mr_context)
 
     # 1. Linked Task Context
     if len(context.tasks) == 1:

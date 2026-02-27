@@ -49,6 +49,10 @@ inputs:
     description: 'Enable project discovery before review'
     required: false
     default: 'true'
+  discovery_verbose:
+    description: 'Always post discovery comment (default: only on gaps)'
+    required: false
+    default: 'false'
 
 runs:
   using: 'docker'
@@ -66,4 +70,5 @@ runs:
     AI_REVIEWER_REVIEW_POST_INLINE_COMMENTS: ${{ inputs.review_post_inline_comments }}
     AI_REVIEWER_REVIEW_ENABLE_DIALOGUE: ${{ inputs.review_enable_dialogue }}
     AI_REVIEWER_DISCOVERY_ENABLED: ${{ inputs.discovery_enabled }}
+    AI_REVIEWER_DISCOVERY_VERBOSE: ${{ inputs.discovery_verbose }}
     GITHUB_ACTIONS: 'true'

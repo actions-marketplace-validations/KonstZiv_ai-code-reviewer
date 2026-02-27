@@ -331,13 +331,16 @@ class ProjectProfile(BaseModel):
     )
     guidance: ReviewGuidance = Field(default_factory=ReviewGuidance, description="Review guidance")
     gaps: tuple[Gap, ...] = Field(default=(), description="Unresolved knowledge gaps")
+    attention_zones: tuple[AttentionZone, ...] = Field(
+        default=(), description="LLM-detected attention zones with reasons"
+    )
 
     def to_prompt_context(self) -> str:
-        """Produce a compact text summary for the review prompt.
+        """Produce a structured text summary for the review prompt.
 
-        Generates ~200-400 tokens of structured context describing the
-        project's language, framework, automated checks, and review
-        guidance. Designed to be injected into the LLM system prompt.
+        When ``attention_zones`` are present, generates directive
+        SKIP/FOCUS/CHECK sections with reasons and recommendations.
+        Falls back to the compact format when no zones are available.
 
         Returns:
             Multi-line text summary of the project profile.
@@ -369,14 +372,54 @@ class ProjectProfile(BaseModel):
             parts.append(f"Automated: {'; '.join(auto_parts)}")
 
         g = self.guidance
-        if g.skip_in_review:
-            parts.append(f"Skip: {'; '.join(g.skip_in_review)}")
-        if g.focus_in_review:
-            parts.append(f"Focus: {'; '.join(g.focus_in_review)}")
+        if self.attention_zones:
+            parts.extend(self._render_zone_sections())
+        else:
+            if g.skip_in_review:
+                parts.append(f"Skip: {'; '.join(g.skip_in_review)}")
+            if g.focus_in_review:
+                parts.append(f"Focus: {'; '.join(g.focus_in_review)}")
+
         if g.conventions:
             parts.append(f"Conventions: {'; '.join(g.conventions)}")
 
         return "\n".join(parts)
+
+    def _render_zone_sections(self) -> list[str]:
+        """Render SKIP / FOCUS / CHECK sections from attention zones."""
+        skip_lines: list[str] = []
+        focus_lines: list[str] = []
+        check_lines: list[str] = []
+
+        def _format_entry(zone: AttentionZone) -> str:
+            tools_str = f" ({', '.join(zone.tools)})" if zone.tools else ""
+            entry = f"- {zone.area}{tools_str}"
+            if zone.reason:
+                entry += f": {zone.reason}"
+            return entry
+
+        for zone in self.attention_zones:
+            if zone.status == "well_covered":
+                skip_lines.append(_format_entry(zone))
+            elif zone.status == "not_covered":
+                focus_lines.append(_format_entry(zone))
+            elif zone.status == "weakly_covered":
+                entry = _format_entry(zone)
+                if zone.recommendation:
+                    entry += f"\n  → Recommendation: {zone.recommendation}"
+                check_lines.append(entry)
+
+        parts: list[str] = []
+        if skip_lines:
+            parts.append("\n## SKIP in review (covered by CI):")
+            parts.extend(skip_lines)
+        if focus_lines:
+            parts.append("\n## FOCUS in review (not covered):")
+            parts.extend(focus_lines)
+        if check_lines:
+            parts.append("\n## CHECK and improve:")
+            parts.extend(check_lines)
+        return parts
 
 
 __all__ = [

@@ -314,6 +314,11 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("AI_REVIEWER_DISCOVERY_ENABLED", "DISCOVERY_ENABLED"),
         description="Enable project discovery before review",
     )
+    discovery_verbose: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("AI_REVIEWER_DISCOVERY_VERBOSE", "DISCOVERY_VERBOSE"),
+        description="Always post discovery comment (default: only on gaps)",
+    )
 
     # Inline comments
     review_post_inline_comments: bool = Field(

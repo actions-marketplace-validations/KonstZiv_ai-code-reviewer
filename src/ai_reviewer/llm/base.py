@@ -52,6 +52,12 @@ class LLMProvider(ABC):
     Implementations: GeminiProvider, (future) ClaudeProvider, OpenAIProvider.
     """
 
+    @property
+    @abstractmethod
+    def model_name(self) -> str:
+        """Return the model identifier (e.g. ``gemini-3-flash-preview``)."""
+        ...
+
     @overload
     @abstractmethod
     def generate[T: BaseModel](

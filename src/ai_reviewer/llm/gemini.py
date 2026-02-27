@@ -221,8 +221,13 @@ class GeminiProvider(LLMProvider):
             api_key=api_key,
             http_options=types.HttpOptions(timeout=_API_TIMEOUT_MS),
         )
-        self.model_name = model_name
+        self._model_name = model_name
         logger.debug("GeminiProvider initialized with model %s", model_name)
+
+    @property
+    def model_name(self) -> str:
+        """Return the Gemini model identifier."""
+        return self._model_name
 
     @overload
     def generate[T: BaseModel](
