@@ -209,14 +209,17 @@ class RawProjectData(BaseModel):
     ci_files: dict[str, str] = Field(
         default_factory=dict,
         description="Path → content of CI config files",
+        repr=False,
     )
     dependency_files: dict[str, str] = Field(
         default_factory=dict,
         description="Path → content (pyproject.toml, package.json, go.mod, etc.)",
+        repr=False,
     )
     config_files: dict[str, str] = Field(
         default_factory=dict,
         description="Path → content (ruff.toml, .eslintrc, tsconfig.json, etc.)",
+        repr=False,
     )
     detected_package_managers: tuple[str, ...] = Field(
         default=(),
@@ -229,6 +232,7 @@ class RawProjectData(BaseModel):
     reviewbot_config: str | None = Field(
         default=None,
         description="Content of .reviewbot.md if exists",
+        repr=False,
     )
 
 

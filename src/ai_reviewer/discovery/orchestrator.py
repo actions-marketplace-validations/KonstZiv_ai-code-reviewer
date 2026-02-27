@@ -36,6 +36,7 @@ from ai_reviewer.discovery.parsers import (
     classify_collected_files,
     detect_layout,
     detect_package_managers,
+    sanitize_secrets,
 )
 from ai_reviewer.discovery.prompts import (
     DISCOVERY_SYSTEM_PROMPT,
@@ -383,6 +384,11 @@ def _collect_raw_data(
     # Also include raw_yaml from CI insights if available and not already present
     if ci_insights and ci_insights.raw_yaml and ci_insights.ci_file_path:
         ci_files.setdefault(ci_insights.ci_file_path, ci_insights.raw_yaml)
+
+    # Sanitize all file contents to prevent secret leakage to LLM / logs
+    ci_files = {p: sanitize_secrets(c) for p, c in ci_files.items()}
+    dep_files = {p: sanitize_secrets(c) for p, c in dep_files.items()}
+    cfg_files = {p: sanitize_secrets(c) for p, c in cfg_files.items()}
 
     return RawProjectData(
         languages=dict(platform_data.languages),

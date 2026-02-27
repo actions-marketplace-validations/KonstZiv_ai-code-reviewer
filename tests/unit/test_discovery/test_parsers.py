@@ -10,6 +10,7 @@ from ai_reviewer.discovery.parsers import (
     classify_collected_files,
     detect_layout,
     detect_package_managers,
+    sanitize_secrets,
 )
 
 # ── classify_collected_files ──────────────────────────────────────────
@@ -244,3 +245,113 @@ class TestCheckFileTreeTruncation:
     def test_below_limit_cases(self, count: int) -> None:
         tree = [f"f{i}.py" for i in range(count)]
         assert check_file_tree_truncation(tree) is False
+
+
+# ── sanitize_secrets ──────────────────────────────────────────────────
+
+
+class TestSanitizeSecrets:
+    """Secret value redaction from file contents."""
+
+    # -- env-style KEY=value / KEY: value --
+
+    def test_api_key_yaml(self) -> None:
+        content = "env:\n  API_KEY: sk-abc123def456"
+        result = sanitize_secrets(content)
+        assert "sk-abc123def456" not in result
+        assert "API_KEY" in result
+        assert "***" in result
+
+    def test_token_equals(self) -> None:
+        content = "GITHUB_TOKEN=ghp_xxxxxxxxxxxx"
+        result = sanitize_secrets(content)
+        assert "ghp_xxxxxxxxxxxx" not in result
+        assert "GITHUB_TOKEN" in result
+
+    def test_secret_with_quotes(self) -> None:
+        content = 'MY_SECRET: "super-secret-value"'
+        result = sanitize_secrets(content)
+        assert "super-secret-value" not in result
+        assert "MY_SECRET" in result
+
+    def test_password_yaml_key(self) -> None:
+        content = "password: hunter2"
+        result = sanitize_secrets(content)
+        assert "hunter2" not in result
+        assert "password" in result
+
+    def test_auth_token_yaml_key(self) -> None:
+        content = "auth_token: tok_123abc"
+        result = sanitize_secrets(content)
+        assert "tok_123abc" not in result
+        assert "auth_token" in result
+
+    # -- Template references preserved --
+
+    def test_github_secrets_ref_preserved(self) -> None:
+        content = "API_KEY: ${{ secrets.API_KEY }}"
+        result = sanitize_secrets(content)
+        assert "${{ secrets.API_KEY }}" in result
+
+    def test_env_var_ref_preserved(self) -> None:
+        content = "password: ${DATABASE_PASSWORD}"
+        result = sanitize_secrets(content)
+        assert "${DATABASE_PASSWORD}" in result
+
+    # -- URL credentials --
+
+    def test_url_with_credentials(self) -> None:
+        content = "registry: https://user:s3cret@registry.example.com/v2"
+        result = sanitize_secrets(content)
+        assert "s3cret" not in result
+        assert "user" not in result
+        assert "https://***@" in result
+
+    def test_url_without_credentials_unchanged(self) -> None:
+        content = "homepage: https://example.com"
+        result = sanitize_secrets(content)
+        assert content == result
+
+    # -- Non-secret content unchanged --
+
+    def test_normal_yaml_unchanged(self) -> None:
+        content = "name: CI\non:\n  push:\n    branches: [main]"
+        result = sanitize_secrets(content)
+        assert result == content
+
+    def test_tool_commands_unchanged(self) -> None:
+        content = "run: ruff check --fix src/\nrun: pytest --cov=80"
+        result = sanitize_secrets(content)
+        assert result == content
+
+    def test_version_strings_unchanged(self) -> None:
+        content = "python-version: '3.13'\nnode-version: 22"
+        result = sanitize_secrets(content)
+        assert result == content
+
+    def test_empty_string(self) -> None:
+        assert sanitize_secrets("") == ""
+
+    # -- Mixed content --
+
+    def test_mixed_secrets_and_normal(self) -> None:
+        content = (
+            "name: CI\n"
+            "env:\n"
+            "  DB_PASSWORD: mysecretpass\n"
+            "  NODE_ENV: production\n"
+            "steps:\n"
+            "  - run: pytest\n"
+        )
+        result = sanitize_secrets(content)
+        assert "mysecretpass" not in result
+        assert "DB_PASSWORD" in result
+        assert "NODE_ENV: production" in result
+        assert "pytest" in result
+
+    def test_multiple_secrets_redacted(self) -> None:
+        content = "API_KEY: key123\nAPI_SECRET: secret456\ntoken: tok789\n"
+        result = sanitize_secrets(content)
+        assert "key123" not in result
+        assert "secret456" not in result
+        assert "tok789" not in result

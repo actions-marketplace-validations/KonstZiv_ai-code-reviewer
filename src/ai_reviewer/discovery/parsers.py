@@ -7,6 +7,7 @@ file contents — interpretation is delegated to LLM (task 1.2).
 
 from __future__ import annotations
 
+import re
 from pathlib import PurePath
 from typing import TYPE_CHECKING
 
@@ -95,9 +96,68 @@ _SOURCE_EXTENSIONS: tuple[str, ...] = (".py", ".js", ".ts", ".go", ".rs", ".java
 FILE_TREE_LIMIT: int = 500
 _MIN_DIRS_FOR_MONOREPO: int = 2
 _MIN_PARTS_FOR_SUBDIR: int = 2
+_REDACTED: str = "***"
+
+# Patterns that look like secret values (API keys, tokens, passwords).
+# Each pattern replaces the VALUE portion, preserving the key name.
+_SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
+    # KEY=value or KEY: value in env blocks (common in CI YAML)
+    # Matches: API_KEY: sk-abc123, TOKEN=ghp_xxxx, PASSWORD: "secret"
+    # Skips template refs: ${{ secrets.X }}, ${VAR}, $VAR
+    re.compile(
+        r"(?P<key>[A-Z][A-Z0-9_]*(?:_KEY|_TOKEN|_SECRET|_PASSWORD|_CREDENTIAL|_AUTH))"
+        r"(?P<sep>\s*[:=]\s*)"
+        r"(?P<val>['\"]?(?!\$\{)[^\s'\"#\n]+['\"]?)",
+        re.IGNORECASE,
+    ),
+    # password/secret/token as YAML keys with literal values
+    re.compile(
+        r"(?P<key>(?:password|secret|token|api_key|apikey|auth_token|access_key))"
+        r"(?P<sep>\s*:\s*)"
+        r"(?P<val>['\"]?(?!\$\{)[^\s'\"#\n]+['\"]?)",
+        re.IGNORECASE,
+    ),
+    # URLs with embedded credentials: https://user:pass@host
+    re.compile(
+        r"(?P<key>https?://)(?P<sep>[^@\s]+@)(?P<val>)",
+    ),
+)
 
 
 # ── Public API ────────────────────────────────────────────────────────
+
+
+def sanitize_secrets(content: str) -> str:
+    """Remove potential secret values from file content.
+
+    Preserves key names and structure so LLM can still understand
+    what tools/services are configured, but replaces actual values
+    with ``***``.
+
+    Template references like ``${{ secrets.X }}`` and ``${VAR}``
+    are preserved — they are not actual secrets.
+
+    Args:
+        content: Raw file content (YAML, TOML, JSON, etc.).
+
+    Returns:
+        Content with secret values replaced by ``***``.
+    """
+    result = content
+    for pattern in _SECRET_PATTERNS:
+        result = pattern.sub(_secret_replacer, result)
+    return result
+
+
+def _secret_replacer(match: re.Match[str]) -> str:
+    """Replace secret value keeping the key and separator."""
+    groups = match.groupdict()
+    key = groups.get("key", "")
+    sep = groups.get("sep", "")
+    # For URL credentials: https://***@
+    if key.startswith("http"):
+        return f"{key}{_REDACTED}@"
+    return f"{key}{sep}{_REDACTED}"
 
 
 def classify_collected_files(
@@ -226,4 +286,5 @@ __all__ = [
     "classify_collected_files",
     "detect_layout",
     "detect_package_managers",
+    "sanitize_secrets",
 ]
