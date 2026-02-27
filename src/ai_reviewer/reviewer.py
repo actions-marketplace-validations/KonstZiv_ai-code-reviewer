@@ -11,6 +11,8 @@ The reviewer is provider-agnostic and works with any GitProvider implementation.
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import TYPE_CHECKING
 
 from ai_reviewer.core.config import BOT_NAME
@@ -27,6 +29,7 @@ from ai_reviewer.discovery.comment import (
 from ai_reviewer.integrations.base import LineComment, ReviewSubmission, parse_diff_valid_lines
 from ai_reviewer.integrations.gemini import analyze_code_changes
 from ai_reviewer.utils.language import get_language_for_review
+from ai_reviewer.utils.retry import QuotaExhaustedError
 
 if TYPE_CHECKING:
     from ai_reviewer.core.config import Settings
@@ -280,13 +283,19 @@ def _run_discovery(
             conversation=provider,  # type: ignore[arg-type]
             llm=llm,
         )
-        profile = discovery.discover(repo_name, mr_id)
+        timeout = settings.discovery_timeout
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(discovery.discover, repo_name, mr_id)
+            profile = future.result(timeout=timeout)
         tool_count = len(profile.ci_insights.detected_tools) if profile.ci_insights else 0
         logger.info(
             "Discovery: %s project, %d CI tool(s)",
             profile.platform_data.primary_language,
             tool_count,
         )
+    except FuturesTimeoutError:
+        logger.warning("Discovery timed out after %ds, continuing without profile", timeout)
+        return None
     except Exception:
         logger.warning("Discovery failed, continuing without profile", exc_info=True)
         return None
@@ -309,12 +318,23 @@ def _post_error_comment(
         error: The exception that caused the failure.
     """
     try:
-        error_msg = (
-            f"## \u274c {BOT_NAME}: Review Failed\n\n"
-            "The AI reviewer encountered an error while processing this PR.\n"
-            f"**Error:** `{error!s}`\n\n"
-            "_Please check the CI logs for more details._"
-        )
+        if isinstance(error, QuotaExhaustedError):
+            error_msg = (
+                f"## \u26a0\ufe0f {BOT_NAME}: API Quota Exhausted\n\n"
+                "All configured Gemini models have exceeded their API quota.\n"
+                f"**Details:** `{error!s}`\n\n"
+                "**What to do:**\n"
+                "- Wait for quota to reset (usually resets daily)\n"
+                "- Upgrade your [Gemini API plan](https://ai.google.dev/pricing)\n"
+                "- Re-run this workflow once quota is available\n"
+            )
+        else:
+            error_msg = (
+                f"## \u274c {BOT_NAME}: Review Failed\n\n"
+                "The AI reviewer encountered an error while processing this PR.\n"
+                f"**Error:** `{error!s}`\n\n"
+                "_Please check the CI logs for more details._"
+            )
         provider.post_comment(repo_name, mr_id, error_msg)
     except Exception:
         logger.exception("Failed to post error comment")

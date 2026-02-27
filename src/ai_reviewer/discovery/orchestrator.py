@@ -372,7 +372,7 @@ def _find_ci_files(file_tree: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(matched)
 
 
-def _first_non_none(*values: str | int | None) -> str | int | None:
+def _first_non_none[T](*values: T | None) -> T | None:
     """Return the first non-None value, or None."""
     for v in values:
         if v is not None:
@@ -414,11 +414,11 @@ def _merge_ci_insights(results: list[CIInsights]) -> CIInsights:
         detected_tools=tuple(merged_tools),
         services=tuple(merged_services),
         deployment_targets=tuple(merged_targets),
-        python_version=_first_non_none(*(r.python_version for r in results)),  # type: ignore[arg-type]
-        node_version=_first_non_none(*(r.node_version for r in results)),  # type: ignore[arg-type]
-        go_version=_first_non_none(*(r.go_version for r in results)),  # type: ignore[arg-type]
-        package_manager=_first_non_none(*(r.package_manager for r in results)),  # type: ignore[arg-type]
-        min_coverage=_first_non_none(*(r.min_coverage for r in results)),  # type: ignore[arg-type]
+        python_version=_first_non_none(*(r.python_version for r in results)),
+        node_version=_first_non_none(*(r.node_version for r in results)),
+        go_version=_first_non_none(*(r.go_version for r in results)),
+        package_manager=_first_non_none(*(r.package_manager for r in results)),
+        min_coverage=_first_non_none(*(r.min_coverage for r in results)),
     )
 
 

@@ -1,11 +1,18 @@
-"""Shared test helpers for building discovery models.
+"""Shared test helpers for building discovery models and mock objects.
 
 Provides factory functions used across unit, integration, and E2E tests
-to construct ProjectProfile and related objects with sensible defaults.
+to construct ProjectProfile, mock Settings, and related objects with
+sensible defaults.
 """
 
 from __future__ import annotations
 
+from typing import Any
+from unittest.mock import Mock
+
+from pydantic import SecretStr
+
+from ai_reviewer.core.config import LanguageMode, Settings
 from ai_reviewer.discovery.models import (
     AutomatedChecks,
     CIInsights,
@@ -15,7 +22,7 @@ from ai_reviewer.discovery.models import (
 )
 
 
-def make_profile(**kw: object) -> ProjectProfile:
+def make_profile(**kw: Any) -> ProjectProfile:  # noqa: ANN401
     """Build a ProjectProfile with sensible defaults, overridable via kwargs.
 
     Supports shorthand kwargs for common fields:
@@ -61,3 +68,33 @@ def make_profile(**kw: object) -> ProjectProfile:
         gaps=kw.pop("gaps", ()),
         attention_zones=attention_zones,
     )
+
+
+def make_mock_settings(**overrides: object) -> Mock:
+    """Build a mock Settings with all required attributes.
+
+    Returns a ``Mock(spec=Settings)`` pre-configured with sensible defaults
+    for every attribute that production code touches.  Use ``overrides`` to
+    change individual values::
+
+        settings = make_mock_settings(discovery_enabled=False, language="uk")
+    """
+    settings = Mock(spec=Settings)
+    settings.google_api_key = SecretStr("test-key-for-unit-tests")
+    settings.gemini_model = "gemini-test"
+    settings.gemini_model_fallback = "gemini-2.5-flash"
+    settings.review_max_files = 20
+    settings.review_max_diff_lines = 500
+    settings.review_split_threshold = 30_000
+    settings.review_max_comment_chars = 3000
+    settings.review_include_bot_comments = True
+    settings.review_post_inline_comments = True
+    settings.review_enable_dialogue = True
+    settings.language = "en"
+    settings.language_mode = LanguageMode.FIXED
+    settings.discovery_enabled = True
+    settings.discovery_verbose = False
+    settings.discovery_timeout = 30
+    for k, v in overrides.items():
+        setattr(settings, k, v)
+    return settings
