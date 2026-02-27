@@ -167,6 +167,7 @@ def review_pull_request(
                 profile,
                 existing_comments=existing_bot,
                 language=language,
+                verbose=settings.discovery_verbose,
             )
 
         # 4. Analyze with AI
@@ -216,6 +217,7 @@ def _post_discovery_comment(  # noqa: PLR0913
     *,
     existing_comments: tuple[str, ...] = (),
     language: str | None = None,
+    verbose: bool = False,
 ) -> None:
     """Post discovery summary comment if appropriate.
 
@@ -229,13 +231,17 @@ def _post_discovery_comment(  # noqa: PLR0913
         profile: Discovery profile to summarize.
         existing_comments: Bodies of existing bot comments (for duplicate detection).
         language: ISO 639 language code for comment formatting.
+        verbose: Always post discovery comment (not just on gaps).
     """
     try:
-        if not should_post_discovery_comment(profile, existing_comments):
+        if not should_post_discovery_comment(profile, existing_comments, verbose=verbose):
             logger.debug("Discovery comment skipped (duplicate or .reviewbot.md present)")
             return
 
-        comment = format_discovery_comment(profile, language=language)
+        comment = format_discovery_comment(profile, verbose=verbose, language=language)
+        if comment is None:
+            logger.debug("Discovery comment is empty, skipping")
+            return
         provider.post_comment(repo_name, mr_id, comment)
         logger.info("Posted discovery comment")
     except Exception:
