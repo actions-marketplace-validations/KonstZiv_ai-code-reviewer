@@ -25,6 +25,10 @@ inputs:
     description: 'Gemini model to use'
     required: false
     default: 'gemini-2.5-flash'
+  gemini_model_fallback:
+    description: 'Fallback model when primary is unavailable (empty to disable)'
+    required: false
+    default: 'gemini-3-flash-preview'
   log_level:
     description: 'Log level (DEBUG, INFO, WARNING, ERROR)'
     required: false
@@ -76,4 +80,5 @@ runs:
     AI_REVIEWER_DISCOVERY_ENABLED: ${{ inputs.discovery_enabled }}
     AI_REVIEWER_DISCOVERY_VERBOSE: ${{ inputs.discovery_verbose }}
     AI_REVIEWER_DISCOVERY_TIMEOUT: ${{ inputs.discovery_timeout }}
+    AI_REVIEWER_GEMINI_MODEL_FALLBACK: ${{ inputs.gemini_model_fallback }}
     GITHUB_ACTIONS: 'true'
