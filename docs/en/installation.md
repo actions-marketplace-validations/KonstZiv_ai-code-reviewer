@@ -72,7 +72,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
       -e AI_REVIEWER_GOOGLE_API_KEY=your_api_key \
       -e AI_REVIEWER_GITHUB_TOKEN=your_token \
       ghcr.io/konstziv/ai-code-reviewer:1 \
-      --repo owner/repo --pr-number 123
+      --repo owner/repo --pr 123
     ```
 
 === "GitLab MR"
@@ -82,7 +82,7 @@ docker pull ghcr.io/konstziv/ai-code-reviewer:1
       -e AI_REVIEWER_GOOGLE_API_KEY=your_api_key \
       -e AI_REVIEWER_GITLAB_TOKEN=your_token \
       ghcr.io/konstziv/ai-code-reviewer:1 \
-      --provider gitlab --project owner/repo --mr-iid 123
+      --provider gitlab --repo owner/repo --pr 123
     ```
 
 !!! tip "Docker images"
@@ -106,13 +106,13 @@ Installation as a Python package.
 === "uv"
 
     ```bash
-    uv tool install ai-code-reviewer
+    uv tool install ai-reviewbot
     ```
 
 === "pipx"
 
     ```bash
-    pipx install ai-code-reviewer
+    pipx install ai-reviewbot
     ```
 
 !!! note "Python version"
@@ -130,13 +130,13 @@ export AI_REVIEWER_GITHUB_TOKEN=your_token  # or AI_REVIEWER_GITLAB_TOKEN for Gi
 === "GitHub PR"
 
     ```bash
-    ai-review --repo owner/repo --pr-number 123
+    ai-review --repo owner/repo --pr 123
     ```
 
 === "GitLab MR"
 
     ```bash
-    ai-review --provider gitlab --project owner/repo --mr-iid 123
+    ai-review --provider gitlab --repo owner/repo --pr 123
     ```
 
 ---
@@ -149,7 +149,7 @@ Additional variables are available for fine-tuning:
 |----------|---------|--------|
 | `AI_REVIEWER_LANGUAGE` | `en` | Response language (ISO 639) |
 | `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` | Language detection mode |
-| `AI_REVIEWER_GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model |
+| `AI_REVIEWER_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model |
 | `AI_REVIEWER_LOG_LEVEL` | `INFO` | Logging level |
 
 :point_right: [Full list of variables →](configuration.md#optional)
@@ -176,7 +176,7 @@ Running reviews on a schedule — for resource savings or when instant feedback 
           # Run review for each MR
           for MR_IID in $MR_LIST; do
             echo "Reviewing MR !$MR_IID"
-            ai-review --provider gitlab --project $CI_PROJECT_PATH --pr $MR_IID || true
+            ai-review --provider gitlab --repo $CI_PROJECT_PATH --pr $MR_IID || true
           done
       rules:
         - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -252,7 +252,7 @@ for MR_IID in $MR_LIST; do
   docker run --rm \
     -e AI_REVIEWER_GOOGLE_API_KEY -e AI_REVIEWER_GITLAB_TOKEN \
     ghcr.io/konstziv/ai-code-reviewer:1 \
-    --provider gitlab --project group/repo --pr $MR_IID
+    --provider gitlab --repo group/repo --pr $MR_IID
 done
 ```
 

@@ -221,11 +221,16 @@ jobs:
 | `github_token` | GitHub-Token | `${{ github.token }}` |
 | `language` | Antwortsprache | `en` |
 | `language_mode` | Sprachmodus | `adaptive` |
-| `gemini_model` | Gemini-Modell | `gemini-3-flash-preview` |
+| `gemini_model` | Gemini-Modell | `gemini-2.5-flash` |
 | `log_level` | Log-Level | `INFO` |
 | `review_max_comment_chars` | Max. MR-Kommentarzeichen im Prompt | `3000` |
 | `review_include_bot_comments` | Bot-Kommentare in Prompt einbeziehen | `true` |
 | `review_post_inline_comments` | Inline-Kommentare an Codezeilen posten | `true` |
+| `gemini_model_fallback` | Fallback-Modell bei Kontingenterschöpfung | `gemini-3-flash-preview` |
+| `review_enable_dialogue` | Kommentare in Dialoge gruppieren | `true` |
+| `discovery_enabled` | Project Discovery aktivieren | `true` |
+| `discovery_verbose` | Discovery-Kommentar immer posten | `false` |
+| `discovery_timeout` | Discovery-Timeout in Sekunden | `30` |
 
 !!! tip "Umgebungsvariablen"
     Die Action ordnet Inputs intern `AI_REVIEWER_*`-Umgebungsvariablen zu. Beim Ausführen außerhalb der Action verwenden Sie `AI_REVIEWER_*`-Variablen direkt (alte Namen wie `GOOGLE_API_KEY` funktionieren weiterhin als Fallback).

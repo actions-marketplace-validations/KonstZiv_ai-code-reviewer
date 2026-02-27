@@ -221,11 +221,16 @@ jobs:
 | `github_token` | Token GitHub | `${{ github.token }}` |
 | `language` | Lingua risposte | `en` |
 | `language_mode` | Modalità lingua | `adaptive` |
-| `gemini_model` | Modello Gemini | `gemini-3-flash-preview` |
+| `gemini_model` | Modello Gemini | `gemini-2.5-flash` |
 | `log_level` | Livello log | `INFO` |
 | `review_max_comment_chars` | Max caratteri commento MR nel prompt | `3000` |
 | `review_include_bot_comments` | Includi commenti bot nel prompt | `true` |
 | `review_post_inline_comments` | Pubblica commenti inline sulle righe | `true` |
+| `gemini_model_fallback` | Modello di riserva per esaurimento quota | `gemini-3-flash-preview` |
+| `review_enable_dialogue` | Raggruppare i commenti in dialoghi | `true` |
+| `discovery_enabled` | Attivare project discovery | `true` |
+| `discovery_verbose` | Pubblicare sempre il commento discovery | `false` |
+| `discovery_timeout` | Timeout discovery in secondi | `30` |
 
 !!! tip "Variabili d'ambiente"
     La Action mappa gli input alle variabili d'ambiente `AI_REVIEWER_*` internamente. Quando si esegue al di fuori della Action, usa direttamente le variabili `AI_REVIEWER_*` (i vecchi nomi come `GOOGLE_API_KEY` funzionano ancora come fallback).

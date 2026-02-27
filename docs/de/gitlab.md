@@ -245,7 +245,7 @@ AI Code Reviewer verwendet automatisch:
 | `CI_SERVER_URL` | GitLab-URL |
 | `CI_JOB_TOKEN` | Automatischer Token |
 
-Sie müssen `--project` und `--mr-iid` nicht übergeben — sie werden automatisch aus CI übernommen.
+Sie müssen `--repo` und `--pr` nicht übergeben — sie werden automatisch aus CI übernommen.
 
 ---
 

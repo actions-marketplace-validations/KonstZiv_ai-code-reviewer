@@ -221,11 +221,16 @@ jobs:
 | `github_token` | GitHub токен | `${{ github.token }}` |
 | `language` | Мова відповідей | `en` |
 | `language_mode` | Режим мови | `adaptive` |
-| `gemini_model` | Модель Gemini | `gemini-3-flash-preview` |
+| `gemini_model` | Модель Gemini | `gemini-2.5-flash` |
 | `log_level` | Рівень логування | `INFO` |
 | `review_max_comment_chars` | Макс. символів коментаря MR у промпті | `3000` |
 | `review_include_bot_comments` | Включати коментарі ботів у промпт | `true` |
 | `review_post_inline_comments` | Публікувати inline коментарі до рядків | `true` |
+| `gemini_model_fallback` | Fallback модель при вичерпанні квоти | `gemini-3-flash-preview` |
+| `review_enable_dialogue` | Групувати коментарі в діалоги | `true` |
+| `discovery_enabled` | Увімкнути project discovery | `true` |
+| `discovery_verbose` | Завжди публікувати discovery коментар | `false` |
+| `discovery_timeout` | Таймаут discovery в секундах | `30` |
 
 !!! tip "Змінні оточення"
     Action передає inputs у змінні оточення `AI_REVIEWER_*` внутрішньо. При запуску поза Action використовуйте змінні `AI_REVIEWER_*` напряму (старі назви, наприклад `GOOGLE_API_KEY`, все ще працюють як fallback).

@@ -245,7 +245,7 @@ AI Code Reviewer automatski koristi:
 | `CI_SERVER_URL` | GitLab URL |
 | `CI_JOB_TOKEN` | Automatski token |
 
-Ne morate proslijeđivati `--project` i `--mr-iid` — uzimaju se iz CI-ja automatski.
+Ne morate proslijeđivati `--repo` i `--pr` — uzimaju se iz CI-ja automatski.
 
 ---
 

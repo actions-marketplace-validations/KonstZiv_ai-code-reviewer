@@ -221,11 +221,16 @@ jobs:
 | `github_token` | GitHub token | `${{ github.token }}` |
 | `language` | Response language | `en` |
 | `language_mode` | Language mode | `adaptive` |
-| `gemini_model` | Gemini model | `gemini-3-flash-preview` |
+| `gemini_model` | Gemini model | `gemini-2.5-flash` |
+| `gemini_model_fallback` | Fallback model on quota exhaustion | `gemini-3-flash-preview` |
 | `log_level` | Log level | `INFO` |
 | `review_max_comment_chars` | Max MR comment chars in prompt | `3000` |
 | `review_include_bot_comments` | Include bot comments in prompt | `true` |
 | `review_post_inline_comments` | Post inline comments on lines | `true` |
+| `review_enable_dialogue` | Group comments into dialogues | `true` |
+| `discovery_enabled` | Enable project discovery | `true` |
+| `discovery_verbose` | Always post discovery comment | `false` |
+| `discovery_timeout` | Discovery timeout in seconds | `30` |
 
 !!! tip "Environment variables"
     The Action maps inputs to `AI_REVIEWER_*` environment variables internally. When running outside the Action, use `AI_REVIEWER_*` env vars directly (old names like `GOOGLE_API_KEY` still work as fallback).
