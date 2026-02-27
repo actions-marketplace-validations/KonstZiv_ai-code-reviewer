@@ -24,7 +24,7 @@ inputs:
   gemini_model:
     description: 'Gemini model to use'
     required: false
-    default: 'gemini-3-flash-preview'
+    default: 'gemini-2.5-flash'
   log_level:
     description: 'Log level (DEBUG, INFO, WARNING, ERROR)'
     required: false

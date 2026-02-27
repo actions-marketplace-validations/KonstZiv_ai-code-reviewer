@@ -15,6 +15,9 @@ ai-review [OPTIONS]
 - U CI (GitHub Actions / GitLab CI) — automatski prepoznaje kontekst
 - Ručno — potrebno je navesti `--provider`, `--repo`, `--pr`
 
+!!! info "Subkomande"
+    `ai-review` (bez subkomande) pokreće pregled — kompatibilno unazad. Koristite `ai-review discover` za samostalni discovery.
+
 ---
 
 ## Opcije
@@ -111,7 +114,7 @@ CLI čita konfiguraciju iz varijabli okruženja:
 |----------|-------------|---------|
 | `AI_REVIEWER_LANGUAGE` | Jezik odgovora | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | Jezički režim | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Nivo logova | `INFO` |
 | `AI_REVIEWER_GITLAB_URL` | GitLab URL | `https://gitlab.com` |
 
@@ -219,6 +222,61 @@ Please specify --provider, --repo, and --pr manually.
 **Uzrok:** Pokretanje izvan CI-ja.
 
 **Rješenje:** Navedite sve parametre ručno.
+
+---
+
+## Discover komanda
+
+Pokretanje analize projekta samostalno (bez kreiranja pregleda):
+
+```bash
+ai-review discover <REPO> [OPTIONS]
+```
+
+### Argumenti
+
+| Argument | Opis |
+|----------|------|
+| `REPO` | Repozitorijum (owner/repo) |
+
+### Opcije
+
+| Opcija | Kratko | Opis | Podrazumijevano |
+|--------|--------|------|-----------------|
+| `--provider` | `-p` | Git provajder | `github` |
+| `--json` | | Izlaz u JSON formatu | `false` |
+| `--verbose` | `-v` | Prikaži sve detalje (konvencije, CI alati, watch-files) | `false` |
+
+### Primjeri
+
+```bash
+# GitHub repozitorijum
+ai-review discover owner/repo
+
+# JSON izlaz
+ai-review discover owner/repo --json
+
+# Verbose režim
+ai-review discover owner/repo -v
+
+# GitLab projekat
+ai-review discover group/project -p gitlab
+```
+
+### Primjer izlaza
+
+```
+🔍 Discovering project context...
+
+Stack: Python (FastAPI) 3.13, uv
+CI: ✅ .github/workflows/tests.yml — ruff, mypy, pytest
+
+Attention Zones:
+  ✅ Formatting — ruff format in CI
+  ✅ Type checking — mypy --strict in CI
+  ❌ Security scanning — No security scanner detected
+  ⚠️ Test coverage — no coverage threshold
+```
 
 ---
 

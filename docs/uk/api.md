@@ -15,6 +15,9 @@ ai-review [OPTIONS]
 - В CI (GitHub Actions / GitLab CI) — автоматично визначає контекст
 - Вручну — потрібно вказати `--provider`, `--repo`, `--pr`
 
+!!! info "Subcommands"
+    `ai-review` (без subcommand) запускає ревʼю — зворотно сумісно. `ai-review discover` — standalone discovery.
+
 ---
 
 ## Опції
@@ -111,7 +114,7 @@ CLI читає конфігурацію з environment variables:
 |--------|------|---------|
 | `AI_REVIEWER_LANGUAGE` | Мова відповідей | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | Режим мови | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Модель Gemini | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Модель Gemini | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Рівень логування | `INFO` |
 | `AI_REVIEWER_GITLAB_URL` | URL GitLab | `https://gitlab.com` |
 
@@ -219,6 +222,61 @@ Please specify --provider, --repo, and --pr manually.
 **Причина:** Запуск поза CI.
 
 **Рішення:** Вкажіть всі параметри вручну.
+
+---
+
+## Команда Discover
+
+Запуск project discovery окремо (без створення ревʼю):
+
+```bash
+ai-review discover <REPO> [OPTIONS]
+```
+
+### Аргументи
+
+| Аргумент | Опис |
+|----------|------|
+| `REPO` | Репозиторій (owner/repo) |
+
+### Опції
+
+| Опція | Скорочено | Опис | Default |
+|-------|-----------|------|---------|
+| `--provider` | `-p` | Git провайдер | `github` |
+| `--json` | | Вивід у JSON | `false` |
+| `--verbose` | `-v` | Показати всі деталі (conventions, CI інструменти, watch-files) | `false` |
+
+### Приклади
+
+```bash
+# GitHub репозиторій
+ai-review discover owner/repo
+
+# JSON вивід
+ai-review discover owner/repo --json
+
+# Verbose режим
+ai-review discover owner/repo -v
+
+# GitLab проєкт
+ai-review discover group/project -p gitlab
+```
+
+### Приклад виводу
+
+```
+🔍 Discovering project context...
+
+Stack: Python (FastAPI) 3.13, uv
+CI: ✅ .github/workflows/tests.yml — ruff, mypy, pytest
+
+Attention Zones:
+  ✅ Formatting — ruff format in CI
+  ✅ Type checking — mypy --strict in CI
+  ❌ Security scanning — No security scanner detected
+  ⚠️ Test coverage — no coverage threshold
+```
 
 ---
 
