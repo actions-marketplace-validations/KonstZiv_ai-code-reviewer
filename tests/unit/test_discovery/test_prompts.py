@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from ai_reviewer.discovery.models import (
     AttentionZone,
     Gap,
@@ -59,9 +62,7 @@ class TestAttentionZone:
 
     def test_frozen(self) -> None:
         zone = AttentionZone(area="linting", status="well_covered")
-        import pytest
-
-        with pytest.raises(Exception):  # noqa: B017, PT011
+        with pytest.raises(ValidationError):
             zone.area = "other"  # type: ignore[misc]
 
 
@@ -125,11 +126,9 @@ class TestLLMDiscoveryResult:
         assert parsed == result
 
     def test_framework_confidence_bounds(self) -> None:
-        import pytest
-
-        with pytest.raises(Exception):  # noqa: B017, PT011
+        with pytest.raises(ValidationError):
             LLMDiscoveryResult(framework_confidence=1.5)
-        with pytest.raises(Exception):  # noqa: B017, PT011
+        with pytest.raises(ValidationError):
             LLMDiscoveryResult(framework_confidence=-0.1)
 
 

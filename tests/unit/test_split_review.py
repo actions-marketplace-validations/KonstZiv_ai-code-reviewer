@@ -19,6 +19,7 @@ from ai_reviewer.core.models import (
     ReviewContext,
     ReviewMetrics,
     ReviewResult,
+    TaskAlignmentStatus,
 )
 from ai_reviewer.integrations.gemini import (
     _merge_review_results,
@@ -246,11 +247,45 @@ class TestMergeReviewResults:
         merged = _merge_review_results(code, test)
         assert len(merged.good_practices) == 2
 
-    def test_task_alignment_from_code(self) -> None:
-        code = _make_result(summary="aligned")
-        test = _make_result(summary="")
+    def test_task_alignment_both_aligned(self) -> None:
+        code = ReviewResult(
+            task_alignment=TaskAlignmentStatus.ALIGNED,
+            metrics=ReviewMetrics(model_name="m", prompt_tokens=0, completion_tokens=0),
+        )
+        test = ReviewResult(
+            task_alignment=TaskAlignmentStatus.ALIGNED,
+            metrics=ReviewMetrics(model_name="m", prompt_tokens=0, completion_tokens=0),
+        )
         merged = _merge_review_results(code, test)
-        assert merged.task_alignment == code.task_alignment
+        assert merged.task_alignment == TaskAlignmentStatus.ALIGNED
+
+    def test_task_alignment_worst_case_wins(self) -> None:
+        code = ReviewResult(
+            task_alignment=TaskAlignmentStatus.ALIGNED,
+            task_alignment_reasoning="Code looks good",
+            metrics=ReviewMetrics(model_name="m", prompt_tokens=0, completion_tokens=0),
+        )
+        test = ReviewResult(
+            task_alignment=TaskAlignmentStatus.MISALIGNED,
+            task_alignment_reasoning="Tests don't cover requirement X",
+            metrics=ReviewMetrics(model_name="m", prompt_tokens=0, completion_tokens=0),
+        )
+        merged = _merge_review_results(code, test)
+        assert merged.task_alignment == TaskAlignmentStatus.MISALIGNED
+        assert "Code looks good" in merged.task_alignment_reasoning
+        assert "Tests don't cover requirement X" in merged.task_alignment_reasoning
+
+    def test_task_alignment_insufficient_vs_aligned(self) -> None:
+        code = ReviewResult(
+            task_alignment=TaskAlignmentStatus.INSUFFICIENT_DATA,
+            metrics=ReviewMetrics(model_name="m", prompt_tokens=0, completion_tokens=0),
+        )
+        test = ReviewResult(
+            task_alignment=TaskAlignmentStatus.ALIGNED,
+            metrics=ReviewMetrics(model_name="m", prompt_tokens=0, completion_tokens=0),
+        )
+        merged = _merge_review_results(code, test)
+        assert merged.task_alignment == TaskAlignmentStatus.INSUFFICIENT_DATA
 
 
 # ── TestBuildSplitReviewPrompt ───────────────────────────────────────

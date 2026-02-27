@@ -15,7 +15,7 @@ import logging
 import warnings
 from typing import TYPE_CHECKING
 
-from ai_reviewer.core.models import ReviewMetrics, ReviewResult
+from ai_reviewer.core.models import ReviewMetrics, ReviewResult, TaskAlignmentStatus
 from ai_reviewer.integrations.prompts import (
     CODE_SUMMARY_INSTRUCTION,
     SYSTEM_PROMPT,
@@ -294,17 +294,40 @@ def _merge_review_results(
     if test_result.summary:
         combined_summary = f"{code_result.summary}\n\n**Test review:** {test_result.summary}"
 
+    merged_alignment = _merge_task_alignment(code_result.task_alignment, test_result.task_alignment)
+    merged_reasoning = "\n".join(
+        r for r in (code_result.task_alignment_reasoning, test_result.task_alignment_reasoning) if r
+    )
+
     return ReviewResult(
         issues=code_result.issues + test_result.issues,
         good_practices=code_result.good_practices + test_result.good_practices,
-        task_alignment=code_result.task_alignment,
-        task_alignment_reasoning=code_result.task_alignment_reasoning,
+        task_alignment=merged_alignment,
+        task_alignment_reasoning=merged_reasoning,
         summary=combined_summary,
         code_summary=code_result.code_summary,
         detected_language=code_result.detected_language,
         reviewed_at=code_result.reviewed_at,
         metrics=merged_metrics,
     )
+
+
+# Worst-case wins: MISALIGNED < INSUFFICIENT_DATA < ALIGNED
+_ALIGNMENT_PRIORITY: dict[TaskAlignmentStatus, int] = {
+    TaskAlignmentStatus.MISALIGNED: 0,
+    TaskAlignmentStatus.INSUFFICIENT_DATA: 1,
+    TaskAlignmentStatus.ALIGNED: 2,
+}
+
+
+def _merge_task_alignment(
+    code_alignment: TaskAlignmentStatus,
+    test_alignment: TaskAlignmentStatus,
+) -> TaskAlignmentStatus:
+    """Pick the worst-case task alignment from two review passes."""
+    code_prio = _ALIGNMENT_PRIORITY.get(code_alignment, 1)
+    test_prio = _ALIGNMENT_PRIORITY.get(test_alignment, 1)
+    return code_alignment if code_prio <= test_prio else test_alignment
 
 
 def _merge_metrics(

@@ -588,12 +588,18 @@ def _build_automated_checks_from_llm(
 
     area_to_bucket = {
         "linting": linting,
+        "lint": linting,
+        "static analysis": linting,
         "formatting": formatting,
+        "format": formatting,
         "type checking": type_checking,
         "type_checking": type_checking,
+        "typing": type_checking,
         "testing": testing,
+        "tests": testing,
         "security": security,
         "security scanning": security,
+        "sast": security,
     }
 
     for zone in llm_result.attention_zones:
