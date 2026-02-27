@@ -393,6 +393,7 @@ class TestGeminiProviderErrors:
         with patch("ai_reviewer.llm.gemini.genai.Client"):
             return GeminiProvider(api_key="test-key")
 
+    @pytest.mark.slow
     def test_google_api_error_converted(self, provider: GeminiProvider) -> None:
         """Test that GoogleAPIError is converted via _convert_google_exception."""
         provider._client.models.generate_content.side_effect = google_exceptions.ResourceExhausted(
@@ -409,6 +410,7 @@ class TestGeminiProviderErrors:
         with pytest.raises(AuthenticationError):
             provider.generate("test", response_schema=_TestSchema)
 
+    @pytest.mark.slow
     def test_generic_exception_with_retryable_message(self, provider: GeminiProvider) -> None:
         """Test that generic exception with rate limit message is converted."""
         provider._client.models.generate_content.side_effect = Exception(
@@ -417,6 +419,7 @@ class TestGeminiProviderErrors:
         with pytest.raises(RateLimitError):
             provider.generate("test", response_schema=_TestSchema)
 
+    @pytest.mark.slow
     def test_genai_server_error_becomes_retryable(self, provider: GeminiProvider) -> None:
         """Test that google.genai.errors.ServerError → our ServerError (retryable).
 
@@ -432,6 +435,7 @@ class TestGeminiProviderErrors:
         with pytest.raises(ServerError, match="Gemini"):
             provider.generate("test", response_schema=_TestSchema)
 
+    @pytest.mark.slow
     def test_genai_client_error_converted(self, provider: GeminiProvider) -> None:
         """Test that google.genai.errors.ClientError is converted via _convert_google_exception."""
         from google.genai.errors import ClientError as GenaiClientError
@@ -459,6 +463,7 @@ class TestGeminiProviderErrors:
         # QuotaExhaustedError is not RetryableError → only 1 attempt
         assert provider._client.models.generate_content.call_count == 1
 
+    @pytest.mark.slow
     def test_httpx_timeout_becomes_server_error(self, provider: GeminiProvider) -> None:
         """Test that httpx.ReadTimeout → ServerError (retryable)."""
         provider._client.models.generate_content.side_effect = httpx.ReadTimeout(
