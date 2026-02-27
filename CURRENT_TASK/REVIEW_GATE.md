@@ -38,41 +38,44 @@
 
 ## Порядок review gates
 
-### Після Phase 1 (Discovery Quality) → Перед Phase 2
+### Після Phase 1 (Discovery Engine) → Перед Phase 2
 
-**Фокус**: чи config enrichment змінив моделі?
+**Фокус**: чи LLM analysis видає корисні три зони?
 
-- Якщо `ProjectProfile` отримав нові поля → оновити `to_prompt_context()`
-- Якщо `CIInsights` змінився (Go modules) → оновити fixture expected_profile.json
-- Перевірити: чи `_build_profile_deterministic()` тепер заповнює framework/layout/conventions?
-- **Рішення для Phase 2:** чи потрібно оновити `.reviewbot.md` generator щоб включити нові дані?
+- Тестовий запуск на fixture repo → перевірити якість зон
+- Чи `DiscoveryResult` містить `attention_zones`, `watch_files`, `framework`?
+- Чи Pydantic response schema парситься без помилок?
+- Чи watch-files mechanism зберігає/читає кеш?
+- Чи MR-aware detection правильно визначає мову diff?
+- **Рішення для Phase 2:** чи формат зон зручний для побудови system prompt?
 
-### Після Phase 2 (Housekeeping) → Перед Phase 3
+### Після Phase 2 (Review Integration) → Перед Phase 3
+
+**Фокус**: чи review prompt реально покращився?
+
+- Порівняти review prompt ДО і ПІСЛЯ для test repo
+- "SKIP formatting" — чи LLM дійсно менше коментує style?
+- "FOCUS security" — чи є security-related коментарі?
+- Discovery comment — чи зрозумілий для користувача?
+- **Рішення для Phase 3:** чи housekeeping не зламає нові інтеграції?
+
+### Після Phase 3 (Housekeeping) → Перед Phase 4
 
 **Фокус**: чи видалення deps зламало щось?
 
 - `make check` MUST pass після видалення `all-providers`
 - Перевірити Docker build: `docker build -t test .`
-- Якщо `raw_yaml` видалено з `CIInsights` → оновити тести що його використовували
-- **Рішення для Phase 3:** чи з'явились нові edge cases після cleanup?
+- Якщо `raw_yaml` видалено з `CIInsights` → оновити тести
+- **Рішення для Phase 4:** чи cleanup вплинув на CLI/verbose features?
 
-### Після Phase 3 (Reliability) → Перед Phase 4
-
-**Фокус**: чи conftest.py покриває потреби Phase 4?
-
-- Перевірити: чи shared fixtures достатні для тестування CLI command?
-- Чи timeout працює коректно з mock providers?
-- Чи `_first_non_none` type fixes не зламали caller sites?
-- **Рішення для Phase 4:** чи mock fixtures з conftest.py підходять для `ai-review discover` тестів?
-
-### Після Phase 4 (User Experience) → Sprint Done
+### Після Phase 4 (Polish) → Sprint Done
 
 **Фокус**: фінальна верифікація всього спринту.
 
 - [ ] Повний `make check`
 - [ ] Manual test: Discovery на реальному repo (GitHub)
 - [ ] `ai-review discover` працює (mock або real)
+- [ ] Three zones видимі у discovery comment
 - [ ] Docs відповідають коду
 - [ ] README links не broken
 - [ ] SPRINT.md оновлений з фінальними результатами
-- [ ] `sprint-beta-0-after-review.md` оновлений (закриті пункти, нові пункти)

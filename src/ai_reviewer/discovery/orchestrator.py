@@ -27,8 +27,16 @@ from ai_reviewer.discovery.models import (
     Gap,
     PlatformData,
     ProjectProfile,
+    RawProjectData,
     ReviewGuidance,
     ToolCategory,
+)
+from ai_reviewer.discovery.parsers import (
+    check_file_tree_truncation,
+    classify_collected_files,
+    detect_layout,
+    detect_package_managers,
+    sanitize_secrets,
 )
 from ai_reviewer.discovery.prompts import (
     DISCOVERY_SYSTEM_PROMPT,
@@ -125,10 +133,13 @@ class DiscoveryOrchestrator:
         # Layer 2: Config files
         configs = self._collect_configs(platform_data, ci_insights, repo_name)
 
+        # Collect raw data (deterministic, 0 LLM tokens)
+        raw_data = _collect_raw_data(platform_data, ci_insights, configs)
+
         # Layer 3: Build profile
         if _has_enough_data(ci_insights):
             assert ci_insights is not None  # narrowed by _has_enough_data
-            profile = _build_profile_deterministic(platform_data, ci_insights, configs)
+            profile = _build_profile_deterministic(platform_data, ci_insights, raw_data)
         else:
             profile = self._build_profile_with_llm(platform_data, ci_insights, configs)
 
@@ -356,10 +367,46 @@ def _has_enough_data(ci_insights: CIInsights | None) -> bool:
     )
 
 
+def _collect_raw_data(
+    platform_data: PlatformData,
+    ci_insights: CIInsights | None,
+    configs: tuple[ConfigContent, ...],
+) -> RawProjectData:
+    """Collect all deterministic data (0 LLM tokens).
+
+    Classifies collected configs into dependency, config, and CI files.
+    CI file contents come from collected configs (variant b — no
+    ``CIInsights.raw_files`` needed).
+    """
+    config_dict = {cfg.path: cfg.content for cfg in configs}
+    dep_files, cfg_files, ci_files = classify_collected_files(config_dict)
+
+    # Also include raw_yaml from CI insights if available and not already present
+    if ci_insights and ci_insights.raw_yaml and ci_insights.ci_file_path:
+        ci_files.setdefault(ci_insights.ci_file_path, ci_insights.raw_yaml)
+
+    # Sanitize all file contents to prevent secret leakage to LLM / logs
+    ci_files = {p: sanitize_secrets(c) for p, c in ci_files.items()}
+    dep_files = {p: sanitize_secrets(c) for p, c in dep_files.items()}
+    cfg_files = {p: sanitize_secrets(c) for p, c in cfg_files.items()}
+
+    return RawProjectData(
+        languages=dict(platform_data.languages),
+        file_tree=platform_data.file_tree,
+        file_tree_truncated=check_file_tree_truncation(platform_data.file_tree),
+        ci_files=ci_files,
+        dependency_files=dep_files,
+        config_files=cfg_files,
+        detected_package_managers=detect_package_managers(platform_data.file_tree),
+        layout=detect_layout(platform_data.file_tree),
+        reviewbot_config=config_dict.get(".reviewbot.md"),
+    )
+
+
 def _build_profile_deterministic(
     platform_data: PlatformData,
     ci_insights: CIInsights,
-    _configs: tuple[ConfigContent, ...],
+    raw_data: RawProjectData,
 ) -> ProjectProfile:
     """Build a ProjectProfile from deterministic data only."""
     ac = _build_automated_checks(ci_insights)
@@ -373,6 +420,7 @@ def _build_profile_deterministic(
         or ci_insights.node_version
         or ci_insights.go_version,
         package_manager=ci_insights.package_manager,
+        layout=raw_data.layout,
         automated_checks=ac,
         guidance=guidance,
         gaps=gaps,
@@ -477,9 +525,12 @@ def _build_fallback_profile(
 ) -> ProjectProfile:
     """Build a minimal profile when LLM interpretation fails."""
     ac = _build_automated_checks(ci_insights) if ci_insights else AutomatedChecks()
+    layout = detect_layout(platform_data.file_tree)
+
     return ProjectProfile(
         platform_data=platform_data,
         ci_insights=ci_insights,
+        layout=layout,
         automated_checks=ac,
     )
 

@@ -19,6 +19,7 @@ from ai_reviewer.discovery.models import (
     Gap,
     PlatformData,
     ProjectProfile,
+    RawProjectData,
     ReviewGuidance,
     ToolCategory,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "LLMDiscoveryResponse",
     "PlatformData",
     "ProjectProfile",
+    "RawProjectData",
     "ReviewGuidance",
     "ToolCategory",
     "build_interpretation_prompt",
