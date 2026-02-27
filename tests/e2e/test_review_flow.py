@@ -283,6 +283,8 @@ class TestDiscoveryIntegration:
         settings.review_split_threshold = 30_000
         settings.review_post_inline_comments = True
         settings.discovery_enabled = True
+        settings.discovery_verbose = False
+        settings.discovery_timeout = 30
         settings.language_mode = LanguageMode.FIXED
         settings.language = "en"
         return settings
