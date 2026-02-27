@@ -54,7 +54,7 @@ class TestGeminiProviderInit:
         assert provider.model_name == DEFAULT_MODEL
         mock_client_cls.assert_called_once_with(
             api_key="key",
-            http_options=types.HttpOptions(timeout=600_000),
+            http_options=types.HttpOptions(timeout=300_000),
         )
 
     @patch("ai_reviewer.llm.gemini.genai.Client")

@@ -275,7 +275,7 @@ class TestWithRetryDecorator:
                 decorated()
 
         # Should have tried MAX_ATTEMPTS times
-        assert mock_func.call_count == 5  # MAX_ATTEMPTS = 5
+        assert mock_func.call_count == 3  # MAX_ATTEMPTS = 3
 
     def test_quota_exhausted_not_retried(self) -> None:
         """Test that QuotaExhaustedError fails immediately without retry."""

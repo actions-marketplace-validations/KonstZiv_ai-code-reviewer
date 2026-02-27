@@ -34,9 +34,8 @@ from ai_reviewer.utils.retry import (
 )
 
 # Timeout for Gemini API requests (milliseconds).
-# Large prompts (many files) may need significant server processing time.
 # google-genai HttpOptions.timeout is in milliseconds.
-_API_TIMEOUT_MS = 600_000  # 10 minutes
+_API_TIMEOUT_MS = 300_000  # 5 minutes
 
 logger = logging.getLogger(__name__)
 
