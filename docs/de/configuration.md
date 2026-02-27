@@ -53,7 +53,9 @@ Alle Einstellungen werden über Umgebungsvariablen konfiguriert.
 
 | Variable | Beschreibung | Standard |
 |----------|--------------|----------|
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini-Modell | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini-Modell | `gemini-2.5-flash` |
+| `AI_REVIEWER_GEMINI_MODEL_FALLBACK` | Fallback-Modell bei Nichtverfügbarkeit des primären | `gemini-3-flash-preview` |
+| `AI_REVIEWER_REVIEW_SPLIT_THRESHOLD` | Zeichenlimit für Code+Test-Split-Review | `30000` |
 
 **Verfügbare Modelle:**
 
@@ -98,12 +100,17 @@ Alle Einstellungen werden über Umgebungsvariablen konfiguriert.
 
 ### Discovery
 
-| Variable | Beschreibung | Standard |
-|----------|--------------|----------|
-| `AI_REVIEWER_DISCOVERY_ENABLED` | Projektanalyse vor dem Review aktivieren | `true` |
+| Variable | Beschreibung | Standard | Bereich |
+|----------|--------------|----------|---------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Projektanalyse vor dem Review aktivieren | `true` | true/false |
+| `AI_REVIEWER_DISCOVERY_VERBOSE` | Discovery-Kommentar immer posten (Standard: nur bei Lücken) | `false` | true/false |
+| `AI_REVIEWER_DISCOVERY_TIMEOUT` | Discovery-Pipeline-Timeout in Sekunden | `30` | 1-300 |
 
 !!! info "Projektanalyse"
     Wenn aktiviert, analysiert AI ReviewBot automatisch Ihr Repository (Sprachen, CI-Pipeline, Config-Dateien) vor jedem Review für intelligenteres Feedback. Setzen Sie auf `false` zum Deaktivieren. Details: [Discovery →](discovery.md).
+
+!!! info "Verbose-Modus"
+    Wenn `AI_REVIEWER_DISCOVERY_VERBOSE=true`, wird der Discovery-Kommentar immer gepostet und enthält alle Attention Zones (Well Covered, Weakly Covered, Not Covered). Im Standardmodus wird nur bei Lücken oder nicht abgedeckten Zones gepostet.
 
 ### GitLab
 
@@ -131,7 +138,7 @@ AI_REVIEWER_GITHUB_TOKEN=ghp_...
 # Optional
 AI_REVIEWER_LANGUAGE=uk
 AI_REVIEWER_LANGUAGE_MODE=adaptive
-AI_REVIEWER_GEMINI_MODEL=gemini-3-flash-preview
+AI_REVIEWER_GEMINI_MODEL=gemini-2.5-flash
 AI_REVIEWER_LOG_LEVEL=INFO
 ```
 

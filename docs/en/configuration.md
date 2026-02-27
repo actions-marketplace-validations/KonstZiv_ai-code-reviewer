@@ -57,7 +57,9 @@ All settings are configured via environment variables.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
+| `AI_REVIEWER_GEMINI_MODEL_FALLBACK` | Fallback model when primary is unavailable | `gemini-3-flash-preview` |
+| `AI_REVIEWER_REVIEW_SPLIT_THRESHOLD` | Char threshold for code+test split review | `30000` |
 
 **Available models:**
 
@@ -102,12 +104,17 @@ All settings are configured via environment variables.
 
 ### Discovery
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AI_REVIEWER_DISCOVERY_ENABLED` | Enable project discovery before review | `true` |
+| Variable | Description | Default | Range |
+|----------|-------------|---------|-------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Enable project discovery before review | `true` | true/false |
+| `AI_REVIEWER_DISCOVERY_VERBOSE` | Always post discovery comment (default: only on gaps) | `false` | true/false |
+| `AI_REVIEWER_DISCOVERY_TIMEOUT` | Discovery pipeline timeout in seconds | `30` | 1-300 |
 
 !!! info "Project Discovery"
     When enabled, AI ReviewBot automatically analyzes your repository (languages, CI pipeline, config files) before each review to provide smarter feedback. Set to `false` to disable. See [Discovery →](discovery.md) for details.
+
+!!! info "Verbose mode"
+    When `AI_REVIEWER_DISCOVERY_VERBOSE=true`, the discovery comment is always posted and includes all Attention Zones (well-covered, weakly-covered, not-covered). Default mode only posts when there are gaps or uncovered zones.
 
 ### GitLab
 
@@ -135,7 +142,7 @@ AI_REVIEWER_GITHUB_TOKEN=ghp_...
 # Optional
 AI_REVIEWER_LANGUAGE=uk
 AI_REVIEWER_LANGUAGE_MODE=adaptive
-AI_REVIEWER_GEMINI_MODEL=gemini-3-flash-preview
+AI_REVIEWER_GEMINI_MODEL=gemini-2.5-flash
 AI_REVIEWER_LOG_LEVEL=INFO
 ```
 

@@ -15,6 +15,9 @@ ai-review [OPTIONS]
 - In CI (GitHub Actions / GitLab CI) — erkennt automatisch den Kontext
 - Manuell — müssen `--provider`, `--repo`, `--pr` angeben
 
+!!! info "Subcommands"
+    `ai-review` (ohne Subcommand) führt ein Review durch — abwärtskompatibel. Verwenden Sie `ai-review discover`, um Discovery eigenständig auszuführen.
+
 ---
 
 ## Optionen
@@ -111,7 +114,7 @@ CLI liest Konfiguration aus Umgebungsvariablen:
 |----------|--------------|----------|
 | `AI_REVIEWER_LANGUAGE` | Antwortsprache | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | Sprachmodus | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini-Modell | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini-Modell | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Log-Level | `INFO` |
 | `AI_REVIEWER_GITLAB_URL` | GitLab-URL | `https://gitlab.com` |
 
@@ -219,6 +222,61 @@ Please specify --provider, --repo, and --pr manually.
 **Ursache:** Ausführung außerhalb von CI.
 
 **Lösung:** Geben Sie alle Parameter manuell an.
+
+---
+
+## Discover-Befehl
+
+Projektanalyse eigenständig ausführen (ohne ein Review zu erstellen):
+
+```bash
+ai-review discover <REPO> [OPTIONS]
+```
+
+### Argumente
+
+| Argument | Beschreibung |
+|----------|--------------|
+| `REPO` | Repository (owner/repo) |
+
+### Optionen
+
+| Option | Kurz | Beschreibung | Standard |
+|--------|------|--------------|----------|
+| `--provider` | `-p` | Git-Provider | `github` |
+| `--json` | | Ausgabe als JSON | `false` |
+| `--verbose` | `-v` | Alle Details anzeigen (Conventions, CI-Tools, watch-files) | `false` |
+
+### Beispiele
+
+```bash
+# GitHub-Repository
+ai-review discover owner/repo
+
+# JSON-Ausgabe
+ai-review discover owner/repo --json
+
+# Verbose-Modus
+ai-review discover owner/repo -v
+
+# GitLab-Projekt
+ai-review discover group/project -p gitlab
+```
+
+### Beispielausgabe
+
+```
+🔍 Discovering project context...
+
+Stack: Python (FastAPI) 3.13, uv
+CI: ✅ .github/workflows/tests.yml — ruff, mypy, pytest
+
+Attention Zones:
+  ✅ Formatting — ruff format in CI
+  ✅ Type checking — mypy --strict in CI
+  ❌ Security scanning — No security scanner detected
+  ⚠️ Test coverage — no coverage threshold
+```
 
 ---
 

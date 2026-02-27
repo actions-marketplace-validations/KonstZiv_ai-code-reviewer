@@ -53,7 +53,9 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 
 | Varijabla | Opis | Podrazumijevano |
 |----------|-------------|---------|
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
+| `AI_REVIEWER_GEMINI_MODEL_FALLBACK` | Fallback model kada primarni nije dostupan | `gemini-3-flash-preview` |
+| `AI_REVIEWER_REVIEW_SPLIT_THRESHOLD` | Prag karaktera za podijeljen pregled kod+testovi | `30000` |
 
 **Dostupni modeli:**
 
@@ -98,12 +100,17 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 
 ### Discovery
 
-| Varijabla | Opis | Podrazumijevano |
-|----------|-------------|---------|
-| `AI_REVIEWER_DISCOVERY_ENABLED` | Aktiviranje analize projekta prije pregleda | `true` |
+| Varijabla | Opis | Podrazumijevano | Opseg |
+|----------|-------------|---------|-------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Aktiviranje analize projekta prije pregleda | `true` | true/false |
+| `AI_REVIEWER_DISCOVERY_VERBOSE` | Uvijek objaviti discovery komentar (podrazumijevano: samo pri prazninama) | `false` | true/false |
+| `AI_REVIEWER_DISCOVERY_TIMEOUT` | Timeout discovery pipeline-a u sekundama | `30` | 1-300 |
 
 !!! info "Analiza projekta"
     Kada je aktivirano, AI ReviewBot automatski analizira vaš repozitorijum (jezici, CI pipeline, config fajlovi) prije svakog pregleda za pametniji feedback. Postavite na `false` za deaktivaciju. Detalji: [Discovery →](discovery.md).
+
+!!! info "Verbose režim"
+    Kada je `AI_REVIEWER_DISCOVERY_VERBOSE=true`, discovery komentar se uvijek objavljuje i uključuje sve Attention Zones (Well Covered, Weakly Covered, Not Covered). Podrazumijevani režim objavljuje samo kada postoje praznine ili nepokrivene zone.
 
 ### GitLab
 
@@ -131,7 +138,7 @@ AI_REVIEWER_GITHUB_TOKEN=ghp_...
 # Opciono
 AI_REVIEWER_LANGUAGE=uk
 AI_REVIEWER_LANGUAGE_MODE=adaptive
-AI_REVIEWER_GEMINI_MODEL=gemini-3-flash-preview
+AI_REVIEWER_GEMINI_MODEL=gemini-2.5-flash
 AI_REVIEWER_LOG_LEVEL=INFO
 ```
 
