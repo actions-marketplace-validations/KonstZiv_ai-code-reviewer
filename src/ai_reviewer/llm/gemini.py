@@ -5,7 +5,7 @@ It supports both structured (Pydantic schema) and raw-text responses,
 token tracking, cost estimation, and automatic retry on transient errors.
 
 Typical usage:
-    provider = GeminiProvider(api_key="...", model_name="gemini-3-flash-preview")
+    provider = GeminiProvider(api_key="...", model_name="gemini-2.5-flash")
     response = provider.generate(prompt, response_schema=ReviewResult)
 """
 
@@ -64,7 +64,7 @@ GEMINI_PRICING: dict[str, dict[str, float]] = {
 DEFAULT_PRICING: dict[str, float] = {"input": 1.00, "output": 3.00}
 
 # Default model to use when not specified
-DEFAULT_MODEL = "gemini-3-flash-preview"
+DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 def calculate_cost(

@@ -5,7 +5,7 @@ The abstraction enables pluggable LLM backends (Gemini, Claude, OpenAI, etc.)
 while maintaining a consistent API for the reviewer and discovery engine.
 
 Typical usage:
-    provider = GeminiProvider(api_key="...", model_name="gemini-3-flash-preview")
+    provider = GeminiProvider(api_key="...", model_name="gemini-2.5-flash")
     response = provider.generate(prompt, response_schema=ReviewResult)
     result: ReviewResult = response.content
 """

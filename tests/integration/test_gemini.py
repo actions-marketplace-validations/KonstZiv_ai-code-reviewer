@@ -323,7 +323,7 @@ class TestReExports:
 
     def test_default_model_reexported(self) -> None:
         """Test that DEFAULT_MODEL is re-exported."""
-        assert DEFAULT_MODEL == "gemini-3-flash-preview"
+        assert DEFAULT_MODEL == "gemini-2.5-flash"
 
     def test_default_pricing_reexported(self) -> None:
         """Test that DEFAULT_PRICING is re-exported."""
