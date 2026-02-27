@@ -14,8 +14,15 @@ from __future__ import annotations
 
 import fnmatch
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from ai_reviewer.discovery.cache import (
+    DiscoveryCache,
+    DiscoveryCacheStorage,  # noqa: TC001
+    create_watch_files_snapshot,
+    should_rerun_discovery,
+)
 from ai_reviewer.discovery.ci_analyzer import CIPipelineAnalyzer
 from ai_reviewer.discovery.config_collector import (
     ConfigCollector,
@@ -84,6 +91,7 @@ class DiscoveryOrchestrator:
         repo_provider: Access to repository files and metadata.
         conversation: Bot conversation capabilities.
         llm: LLM provider for interpretation when needed.
+        cache_storage: Optional cache backend for watch-files caching.
     """
 
     def __init__(
@@ -91,10 +99,13 @@ class DiscoveryOrchestrator:
         repo_provider: RepositoryProvider,
         conversation: ConversationProvider,
         llm: LLMProvider,
+        *,
+        cache_storage: DiscoveryCacheStorage | None = None,
     ) -> None:
         self._repo = repo_provider
         self._conversation = conversation
         self._llm = llm
+        self._cache_storage = cache_storage
         self._ci_analyzer = CIPipelineAnalyzer()
         self._config_selector = SmartConfigSelector()
 
@@ -142,7 +153,7 @@ class DiscoveryOrchestrator:
             assert ci_insights is not None  # narrowed by _has_enough_data
             profile = _build_profile_deterministic(platform_data, ci_insights, raw_data)
         else:
-            profile = self._build_profile_with_llm(platform_data, ci_insights, raw_data)
+            profile = self._build_profile_with_llm(platform_data, ci_insights, raw_data, repo_name)
 
         # Enrich from answered threads
         profile = _enrich_from_threads(profile, threads)
@@ -233,8 +244,19 @@ class DiscoveryOrchestrator:
         platform_data: PlatformData,
         ci_insights: CIInsights | None,
         raw_data: RawProjectData,
+        repo_name: str,
     ) -> ProjectProfile:
-        """Build profile using LLM when deterministic data is insufficient."""
+        """Build profile using LLM when deterministic data is insufficient.
+
+        Uses watch-files caching when ``cache_storage`` is configured:
+        if cached result exists and watch-files haven't changed, skips LLM.
+        """
+        # Try cache first
+        cached_result = self._try_cached_llm_result(repo_name)
+        if cached_result is not None:
+            return _merge_llm_result(platform_data, ci_insights, cached_result)
+
+        # Cache miss or stale — call LLM
         prompt = format_discovery_prompt(raw_data)
         try:
             response = self._llm.generate(
@@ -242,17 +264,53 @@ class DiscoveryOrchestrator:
                 system_prompt=DISCOVERY_SYSTEM_PROMPT,
                 response_schema=LLMDiscoveryResult,
             )
-            llm_result = response.content
-            if not isinstance(llm_result, LLMDiscoveryResult):
-                logger.warning("LLM returned unexpected type: %s", type(llm_result))
+            content = response.content
+            if not isinstance(content, LLMDiscoveryResult):
+                logger.warning("LLM returned unexpected type: %s", type(content))
                 return _build_fallback_profile(platform_data, ci_insights)
-            if llm_result.gaps:
-                for gap in llm_result.gaps:
+            if content.gaps:
+                for gap in content.gaps:
                     logger.info("LLM discovery gap: %s", gap.observation)
-            return _merge_llm_result(platform_data, ci_insights, llm_result)
+            # Store in cache
+            self._store_llm_cache(repo_name, content)
+            return _merge_llm_result(platform_data, ci_insights, content)
         except Exception:
             logger.warning("LLM interpretation failed, using fallback", exc_info=True)
             return _build_fallback_profile(platform_data, ci_insights)
+
+    def _try_cached_llm_result(self, repo_name: str) -> LLMDiscoveryResult | None:
+        """Return cached LLM result if cache is valid, else None."""
+        if self._cache_storage is None:
+            return None
+
+        llm_model = getattr(self._llm, "model_name", "")
+        rerun, cached = should_rerun_discovery(
+            self._repo, repo_name, self._cache_storage, llm_model=llm_model
+        )
+        if not rerun and cached is not None:
+            return cached.result
+        return None
+
+    def _store_llm_cache(self, repo_name: str, llm_result: LLMDiscoveryResult) -> None:
+        """Store LLM result in cache with watch-files snapshot."""
+        if self._cache_storage is None or not llm_result.watch_files:
+            return
+
+        snapshot = create_watch_files_snapshot(self._repo, repo_name, llm_result.watch_files)
+        llm_model = getattr(self._llm, "model_name", "")
+        cache_entry = DiscoveryCache(
+            repo_key=repo_name,
+            result=llm_result,
+            watch_files_snapshot=snapshot,
+            created_at=datetime.now(tz=UTC),
+            llm_model=llm_model,
+        )
+        self._cache_storage.put(cache_entry)
+        logger.info(
+            "Cached discovery result for %s (%d watch-files)",
+            repo_name,
+            len(snapshot),
+        )
 
     # ── Conversation ─────────────────────────────────────────────
 

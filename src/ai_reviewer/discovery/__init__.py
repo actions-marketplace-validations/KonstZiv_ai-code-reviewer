@@ -11,6 +11,11 @@ Layers:
     3. LLM interpretation — only when deterministic layers are insufficient.
 """
 
+from ai_reviewer.discovery.cache import (
+    DiscoveryCache,
+    DiscoveryCacheStorage,
+    InMemoryDiscoveryCache,
+)
 from ai_reviewer.discovery.config_collector import ConfigContent
 from ai_reviewer.discovery.models import (
     AttentionZone,
@@ -42,8 +47,11 @@ __all__ = [
     "CIInsights",
     "ConfigContent",
     "DetectedTool",
+    "DiscoveryCache",
+    "DiscoveryCacheStorage",
     "DiscoveryOrchestrator",
     "Gap",
+    "InMemoryDiscoveryCache",
     "LLMDiscoveryResult",
     "PlatformData",
     "ProjectProfile",

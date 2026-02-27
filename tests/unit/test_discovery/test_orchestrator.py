@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from ai_reviewer.discovery.cache import InMemoryDiscoveryCache
 from ai_reviewer.discovery.models import (
     AttentionZone,
     CIInsights,
@@ -614,3 +615,87 @@ class TestMergeCiInsights:
         merged = _merge_ci_insights([ci1, ci2])
         assert set(merged.services) == {"postgres", "redis"}
         assert set(merged.deployment_targets) == {"pypi", "ghcr.io"}
+
+
+# ── Cache integration in orchestrator ────────────────────────────────
+
+
+class TestOrchestratorCacheIntegration:
+    """Tests for watch-files caching in the orchestrator."""
+
+    def test_llm_result_is_cached(
+        self,
+        mock_repo: MagicMock,
+        mock_conversation: MagicMock,
+        mock_llm: MagicMock,
+    ) -> None:
+        """LLM result stored in cache after first call."""
+        mock_repo.get_file_tree.return_value = ("src/main.py", "pyproject.toml")
+        mock_repo.get_file_content.return_value = None
+
+        llm_result = LLMDiscoveryResult(
+            framework="FastAPI",
+            watch_files=("pyproject.toml",),
+            watch_files_reason="dependency config",
+        )
+        mock_llm.generate.return_value = LLMResponse(content=llm_result)
+        mock_llm.model_name = "gemini-3-flash-preview"
+
+        cache_storage = InMemoryDiscoveryCache()
+        orch = DiscoveryOrchestrator(
+            mock_repo, mock_conversation, mock_llm, cache_storage=cache_storage
+        )
+        profile = orch.discover("owner/repo")
+
+        assert profile.framework == "FastAPI"
+        assert cache_storage.get("owner/repo") is not None
+        assert cache_storage.get("owner/repo").result == llm_result  # type: ignore[union-attr]
+
+    def test_cached_result_skips_llm(
+        self,
+        mock_repo: MagicMock,
+        mock_conversation: MagicMock,
+        mock_llm: MagicMock,
+    ) -> None:
+        """Second call uses cache, LLM not called."""
+        mock_repo.get_file_tree.return_value = ("src/main.py", "pyproject.toml")
+        # get_file_content returns None for .reviewbot.md check,
+        # then "content" for watch-file checks
+        mock_repo.get_file_content.return_value = None
+
+        llm_result = LLMDiscoveryResult(
+            framework="FastAPI",
+            watch_files=("pyproject.toml",),
+        )
+        mock_llm.generate.return_value = LLMResponse(content=llm_result)
+        mock_llm.model_name = "gemini-3-flash-preview"
+
+        cache_storage = InMemoryDiscoveryCache()
+        orch = DiscoveryOrchestrator(
+            mock_repo, mock_conversation, mock_llm, cache_storage=cache_storage
+        )
+
+        # First call — LLM invoked
+        orch.discover("owner/repo")
+        assert mock_llm.generate.call_count == 1
+
+        # Second call — should use cache (watch-file returns None = same as snapshot)
+        orch.discover("owner/repo")
+        assert mock_llm.generate.call_count == 1  # Still 1 — no second LLM call
+
+    def test_no_cache_storage_skips_caching(
+        self,
+        mock_repo: MagicMock,
+        mock_conversation: MagicMock,
+        mock_llm: MagicMock,
+    ) -> None:
+        """Without cache_storage, LLM is called every time."""
+        mock_repo.get_file_tree.return_value = ("src/main.py",)
+        mock_repo.get_file_content.return_value = None
+
+        mock_llm.generate.return_value = LLMResponse(content=LLMDiscoveryResult())
+
+        orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
+        orch.discover("owner/repo")
+        orch.discover("owner/repo")
+        assert mock_llm.generate.call_count == 2
