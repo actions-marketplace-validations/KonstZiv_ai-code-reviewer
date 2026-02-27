@@ -1,8 +1,12 @@
 """Discovery comment formatter for MR/PR posts.
 
 Produces a human-readable Markdown summary of what the bot discovered
-about the project, including stack, CI tools, skip/focus guidance,
-and any open questions (gaps).
+about the project, including stack, CI tools, attention zones (well-covered,
+not-covered, weakly-covered), and any open questions (gaps).
+
+Two modes:
+- **Default:** comment only when gaps or not_covered/weakly_covered zones exist.
+- **Verbose:** comment always (``discovery_verbose=True``).
 """
 
 from __future__ import annotations
@@ -13,7 +17,7 @@ from ai_reviewer.core.config import BOT_NAME
 from ai_reviewer.core.formatter import RUSSIAN_DISCLAIMER, is_russian_language
 
 if TYPE_CHECKING:
-    from ai_reviewer.discovery.models import ProjectProfile
+    from ai_reviewer.discovery.models import AttentionZone, ProjectProfile
 
 # ── Constants ────────────────────────────────────────────────────────
 
@@ -39,26 +43,20 @@ def _format_gaps_section(profile: ProjectProfile) -> list[str]:
     return lines
 
 
-# ── Public API ───────────────────────────────────────────────────────
+def _format_zone_item(zone: AttentionZone) -> str:
+    """Format a single attention zone as a bullet line."""
+    line = f"- **{zone.area}**"
+    if zone.reason:
+        line += f" \u2014 {zone.reason}"
+    if zone.recommendation:
+        line += f"\n  \U0001f4a1 {zone.recommendation}"
+    return line
 
 
-def format_discovery_comment(
-    profile: ProjectProfile,
-    *,
-    language: str | None = None,
-) -> str:
-    """Format a discovery summary comment for posting to MR.
+def _format_stack_and_ci(profile: ProjectProfile) -> list[str]:
+    """Render the Stack and CI status lines."""
+    parts: list[str] = []
 
-    Args:
-        profile: Populated project profile from the Discovery pipeline.
-        language: ISO 639 language code. If Russian, adds disclaimer.
-
-    Returns:
-        Markdown-formatted comment string.
-    """
-    parts: list[str] = [f"{DISCOVERY_COMMENT_HEADING}\n"]
-
-    # Stack line
     pd = profile.platform_data
     stack = f"**Stack:** {pd.primary_language}"
     if profile.framework:
@@ -69,7 +67,6 @@ def format_discovery_comment(
         stack += f", {profile.package_manager}"
     parts.append(stack)
 
-    # CI status
     ci = profile.ci_insights
     if ci and ci.detected_tools:
         tool_names = ", ".join(t.name for t in ci.detected_tools)
@@ -78,16 +75,85 @@ def format_discovery_comment(
     else:
         parts.append("**CI:** \u274c No CI pipeline detected")
 
-    # Skip / Focus from guidance
-    g = profile.guidance
-    if g.skip_in_review:
-        parts.append("\n**What I'll skip** (CI handles these):")
-        for item in g.skip_in_review:
-            parts.append(f"- {item}")
-    if g.focus_in_review:
-        parts.append("\n**What I'll focus on:**")
-        for item in g.focus_in_review:
-            parts.append(f"- {item}")
+    return parts
+
+
+def _format_zones_sections(
+    zones: tuple[AttentionZone, ...],
+    *,
+    verbose: bool,
+) -> list[str]:
+    """Build attention zone sections for the comment.
+
+    In verbose mode all zones are shown. In default mode only
+    not_covered and weakly_covered zones are rendered.
+    """
+    well = [z for z in zones if z.status == "well_covered"]
+    not_covered = [z for z in zones if z.status == "not_covered"]
+    weak = [z for z in zones if z.status == "weakly_covered"]
+
+    parts: list[str] = []
+
+    if verbose and well:
+        items = "\n".join(f"- \u2705 **{z.area}** \u2014 {z.reason}" for z in well)
+        parts.append(f"\n### Well Covered (skipping in review)\n{items}")
+
+    if not_covered:
+        items = "\n".join(f"- \u274c {_format_zone_item(z)[2:]}" for z in not_covered)
+        parts.append(f"\n### Not Covered (focusing in review)\n{items}")
+
+    if weak:
+        items = "\n".join(f"- \u26a0\ufe0f {_format_zone_item(z)[2:]}" for z in weak)
+        parts.append(f"\n### Could Be Improved\n{items}")
+
+    return parts
+
+
+# ── Public API ───────────────────────────────────────────────────────
+
+
+def format_discovery_comment(
+    profile: ProjectProfile,
+    *,
+    verbose: bool = False,
+    language: str | None = None,
+) -> str | None:
+    """Format a discovery summary comment for posting to MR.
+
+    Args:
+        profile: Populated project profile from the Discovery pipeline.
+        verbose: When True, always produce a comment with all zones.
+        language: ISO 639 language code. If Russian, adds disclaimer.
+
+    Returns:
+        Markdown-formatted comment string, or ``None`` if nothing to report
+        (default mode with no gaps/not_covered/weakly_covered).
+    """
+    zones = profile.attention_zones
+    not_covered = [z for z in zones if z.status == "not_covered"]
+    weak = [z for z in zones if z.status == "weakly_covered"]
+
+    # Default mode: only post when there are gaps or uncovered zones
+    if not verbose and not not_covered and not weak and not profile.gaps:
+        return None
+
+    parts: list[str] = [f"{DISCOVERY_COMMENT_HEADING}\n"]
+    parts.extend(_format_stack_and_ci(profile))
+
+    # Attention zones (zone-driven sections replace old Skip/Focus)
+    if zones:
+        parts.extend(_format_zones_sections(zones, verbose=verbose))
+    else:
+        # Fallback to legacy guidance when no zones available
+        g = profile.guidance
+        if g.skip_in_review:
+            parts.append("\n**What I'll skip** (CI handles these):")
+            for item in g.skip_in_review:
+                parts.append(f"- {item}")
+        if g.focus_in_review:
+            parts.append("\n**What I'll focus on:**")
+            for item in g.focus_in_review:
+                parts.append(f"- {item}")
 
     # Gaps / Questions
     parts.extend(_format_gaps_section(profile))
@@ -106,18 +172,22 @@ def format_discovery_comment(
 def should_post_discovery_comment(
     profile: ProjectProfile,
     existing_comments: tuple[str, ...] = (),
+    *,
+    verbose: bool = False,
 ) -> bool:
     """Decide whether to post the discovery comment.
 
     Rules:
         - ``.reviewbot.md`` present in file tree -> silent (skip).
-        - No gaps -> silent (avoid noise).
+        - Verbose mode -> always post (unless duplicate or .reviewbot.md).
+        - No gaps and no uncovered zones -> silent (avoid noise).
         - A previous discovery comment already exists -> skip (duplicate).
-        - Gaps present and no duplicate -> post.
 
     Args:
         profile: Populated project profile.
         existing_comments: Bodies of existing bot comments on the MR.
+        verbose: When True, always post (unless suppressed by .reviewbot.md
+            or duplicate).
 
     Returns:
         True if the comment should be posted.
@@ -126,12 +196,21 @@ def should_post_discovery_comment(
     if _REVIEWBOT_MD_PATH in profile.platform_data.file_tree:
         return False
 
-    # No gaps -> silent mode (avoid noise in MR)
-    if not profile.gaps:
+    # Duplicate detection: check if heading already posted
+    if any(DISCOVERY_COMMENT_HEADING in body for body in existing_comments):
         return False
 
-    # Duplicate detection: check if heading already posted
-    return all(DISCOVERY_COMMENT_HEADING not in body for body in existing_comments)
+    # Verbose → always post
+    if verbose:
+        return True
+
+    # Default: post only when there are gaps or uncovered/weak zones
+    zones = profile.attention_zones
+    return (
+        bool(profile.gaps)
+        or any(z.status == "not_covered" for z in zones)
+        or any(z.status == "weakly_covered" for z in zones)
+    )
 
 
 __all__ = [

@@ -47,9 +47,6 @@ class TestGitHubActionsPythonModern:
     def test_ci_file_path(self) -> None:
         assert self.insights.ci_file_path == ".github/workflows/ci.yml"
 
-    def test_raw_yaml_preserved(self) -> None:
-        assert "ruff check" in self.insights.raw_yaml
-
     def test_detects_ruff(self) -> None:
         assert "ruff" in _tool_names(self.insights)
 

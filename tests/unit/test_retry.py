@@ -243,6 +243,7 @@ class TestWithRetryDecorator:
 
         assert mock_func.call_count == 1
 
+    @pytest.mark.slow
     def test_retryable_error_eventually_succeeds(self) -> None:
         """Test that retryable errors are retried until success."""
         # First two calls fail, third succeeds
@@ -263,6 +264,7 @@ class TestWithRetryDecorator:
         assert result == "success"
         assert mock_func.call_count == 3
 
+    @pytest.mark.slow
     def test_retryable_error_exhausts_retries(self) -> None:
         """Test that retryable errors eventually exhaust retries."""
         mock_func = MagicMock(side_effect=ServerError("Server error"))
@@ -275,7 +277,7 @@ class TestWithRetryDecorator:
                 decorated()
 
         # Should have tried MAX_ATTEMPTS times
-        assert mock_func.call_count == 5  # MAX_ATTEMPTS = 5
+        assert mock_func.call_count == 3  # MAX_ATTEMPTS = 3
 
     def test_quota_exhausted_not_retried(self) -> None:
         """Test that QuotaExhaustedError fails immediately without retry."""

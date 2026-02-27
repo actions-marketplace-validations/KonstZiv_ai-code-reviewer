@@ -11,6 +11,7 @@ to maintain consistency with ``core.models``.
 from __future__ import annotations
 
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -63,7 +64,6 @@ class CIInsights(BaseModel):
 
     Attributes:
         ci_file_path: Path to the CI config file (e.g. ``.github/workflows/ci.yml``).
-        raw_yaml: Raw content of the CI file for LLM interpretation.
         detected_tools: Tools found in CI commands.
         python_version: Python version specified in CI.
         node_version: Node.js version specified in CI.
@@ -77,7 +77,6 @@ class CIInsights(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     ci_file_path: str = Field(..., min_length=1, description="CI config file path")
-    raw_yaml: str = Field(default="", description="Raw CI file content")
     detected_tools: tuple[DetectedTool, ...] = Field(default=(), description="Tools detected in CI")
     python_version: str | None = Field(default=None, description="Python version from CI")
     node_version: str | None = Field(default=None, description="Node.js version from CI")
@@ -185,6 +184,66 @@ class ReviewGuidance(BaseModel):
     conventions: tuple[str, ...] = Field(default=(), description="Project-specific conventions")
 
 
+class AttentionZone(BaseModel):
+    """One area of code quality with its automation coverage status.
+
+    Attributes:
+        area: Quality area name (e.g. ``formatting``, ``type checking``).
+        status: Coverage status from CI/tooling analysis.
+        tools: CI tools handling this area.
+        reason: Why this status was assigned.
+        recommendation: Suggested improvement, if any.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    area: str = Field(..., min_length=1, description="Quality area name")
+    status: Literal["well_covered", "not_covered", "weakly_covered"] = Field(
+        ..., description="Coverage status"
+    )
+    tools: tuple[str, ...] = Field(default=(), description="CI tools handling this area")
+    reason: str = Field(default="", description="Why this status was assigned")
+    recommendation: str = Field(default="", description="Suggested improvement")
+
+
+class LLMDiscoveryResult(BaseModel):
+    """Structured LLM response for project analysis.
+
+    Replaces the simpler ``LLMDiscoveryResponse`` with richer output:
+    three attention zones, framework detection with confidence, watch-files
+    for caching, and security concerns.
+
+    Attributes:
+        attention_zones: Code quality areas classified by coverage status.
+        framework: Detected framework (e.g. ``Django 5.1``, ``Next.js 14``).
+        framework_confidence: Confidence score 0.0-1.0 for framework detection.
+        stack_summary: One-line stack description.
+        watch_files: Files to monitor for re-analysis triggers.
+        watch_files_reason: Why these files matter.
+        conventions_detected: Specific rules from config files.
+        security_concerns: Missing security practices.
+        gaps: Unresolved questions the LLM could not answer.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    attention_zones: tuple[AttentionZone, ...] = Field(
+        default=(), description="Code quality areas by coverage status"
+    )
+    framework: str | None = Field(default=None, description="Detected framework")
+    framework_confidence: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Framework detection confidence"
+    )
+    stack_summary: str = Field(default="", description="One-line stack description")
+    watch_files: tuple[str, ...] = Field(default=(), description="Files to monitor for re-analysis")
+    watch_files_reason: str = Field(default="", description="Why watch-files matter")
+    conventions_detected: tuple[str, ...] = Field(
+        default=(), description="Specific rules from config files"
+    )
+    security_concerns: tuple[str, ...] = Field(default=(), description="Missing security practices")
+    gaps: tuple[Gap, ...] = Field(default_factory=tuple, description="Unresolved questions")
+
+
 class RawProjectData(BaseModel):
     """All data collected deterministically (0 LLM tokens).
 
@@ -270,13 +329,16 @@ class ProjectProfile(BaseModel):
     )
     guidance: ReviewGuidance = Field(default_factory=ReviewGuidance, description="Review guidance")
     gaps: tuple[Gap, ...] = Field(default=(), description="Unresolved knowledge gaps")
+    attention_zones: tuple[AttentionZone, ...] = Field(
+        default=(), description="LLM-detected attention zones with reasons"
+    )
 
     def to_prompt_context(self) -> str:
-        """Produce a compact text summary for the review prompt.
+        """Produce a structured text summary for the review prompt.
 
-        Generates ~200-400 tokens of structured context describing the
-        project's language, framework, automated checks, and review
-        guidance. Designed to be injected into the LLM system prompt.
+        When ``attention_zones`` are present, generates directive
+        SKIP/FOCUS/CHECK sections with reasons and recommendations.
+        Falls back to the compact format when no zones are available.
 
         Returns:
             Multi-line text summary of the project profile.
@@ -308,21 +370,63 @@ class ProjectProfile(BaseModel):
             parts.append(f"Automated: {'; '.join(auto_parts)}")
 
         g = self.guidance
-        if g.skip_in_review:
-            parts.append(f"Skip: {'; '.join(g.skip_in_review)}")
-        if g.focus_in_review:
-            parts.append(f"Focus: {'; '.join(g.focus_in_review)}")
+        if self.attention_zones:
+            parts.extend(self._render_zone_sections())
+        else:
+            if g.skip_in_review:
+                parts.append(f"Skip: {'; '.join(g.skip_in_review)}")
+            if g.focus_in_review:
+                parts.append(f"Focus: {'; '.join(g.focus_in_review)}")
+
         if g.conventions:
             parts.append(f"Conventions: {'; '.join(g.conventions)}")
 
         return "\n".join(parts)
 
+    def _render_zone_sections(self) -> list[str]:
+        """Render SKIP / FOCUS / CHECK sections from attention zones."""
+        skip_lines: list[str] = []
+        focus_lines: list[str] = []
+        check_lines: list[str] = []
+
+        def _format_entry(zone: AttentionZone) -> str:
+            tools_str = f" ({', '.join(zone.tools)})" if zone.tools else ""
+            entry = f"- {zone.area}{tools_str}"
+            if zone.reason:
+                entry += f": {zone.reason}"
+            return entry
+
+        for zone in self.attention_zones:
+            if zone.status == "well_covered":
+                skip_lines.append(_format_entry(zone))
+            elif zone.status == "not_covered":
+                focus_lines.append(_format_entry(zone))
+            elif zone.status == "weakly_covered":
+                entry = _format_entry(zone)
+                if zone.recommendation:
+                    entry += f"\n  → Recommendation: {zone.recommendation}"
+                check_lines.append(entry)
+
+        parts: list[str] = []
+        if skip_lines:
+            parts.append("\n## SKIP in review (covered by CI):")
+            parts.extend(skip_lines)
+        if focus_lines:
+            parts.append("\n## FOCUS in review (not covered):")
+            parts.extend(focus_lines)
+        if check_lines:
+            parts.append("\n## CHECK and improve:")
+            parts.extend(check_lines)
+        return parts
+
 
 __all__ = [
+    "AttentionZone",
     "AutomatedChecks",
     "CIInsights",
     "DetectedTool",
     "Gap",
+    "LLMDiscoveryResult",
     "PlatformData",
     "ProjectProfile",
     "RawProjectData",

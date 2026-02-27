@@ -5,7 +5,7 @@ It supports both structured (Pydantic schema) and raw-text responses,
 token tracking, cost estimation, and automatic retry on transient errors.
 
 Typical usage:
-    provider = GeminiProvider(api_key="...", model_name="gemini-3-flash-preview")
+    provider = GeminiProvider(api_key="...", model_name="gemini-2.5-flash")
     response = provider.generate(prompt, response_schema=ReviewResult)
 """
 
@@ -34,9 +34,8 @@ from ai_reviewer.utils.retry import (
 )
 
 # Timeout for Gemini API requests (milliseconds).
-# Large prompts (many files) may need significant server processing time.
 # google-genai HttpOptions.timeout is in milliseconds.
-_API_TIMEOUT_MS = 600_000  # 10 minutes
+_API_TIMEOUT_MS = 300_000  # 5 minutes
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +64,7 @@ GEMINI_PRICING: dict[str, dict[str, float]] = {
 DEFAULT_PRICING: dict[str, float] = {"input": 1.00, "output": 3.00}
 
 # Default model to use when not specified
-DEFAULT_MODEL = "gemini-3-flash-preview"
+DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 def calculate_cost(
@@ -222,8 +221,13 @@ class GeminiProvider(LLMProvider):
             api_key=api_key,
             http_options=types.HttpOptions(timeout=_API_TIMEOUT_MS),
         )
-        self.model_name = model_name
+        self._model_name = model_name
         logger.debug("GeminiProvider initialized with model %s", model_name)
+
+    @property
+    def model_name(self) -> str:
+        """Return the Gemini model identifier."""
+        return self._model_name
 
     @overload
     def generate[T: BaseModel](

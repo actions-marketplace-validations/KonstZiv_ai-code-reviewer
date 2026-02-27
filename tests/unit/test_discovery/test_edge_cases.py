@@ -12,8 +12,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from ai_reviewer.discovery.models import LLMDiscoveryResult
 from ai_reviewer.discovery.orchestrator import DiscoveryOrchestrator
-from ai_reviewer.discovery.prompts import LLMDiscoveryResponse
 from ai_reviewer.integrations.repository import RepositoryMetadata
 from ai_reviewer.llm.base import LLMResponse
 
@@ -205,7 +205,7 @@ class TestDiscoveryLogging:
         """Orchestrator logs how many files are in the tree."""
         mock_llm = MagicMock()
         mock_llm.generate.return_value = LLMResponse(
-            content=LLMDiscoveryResponse(),
+            content=LLMDiscoveryResult(),
         )
         orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
 
@@ -223,7 +223,7 @@ class TestDiscoveryLogging:
         """Orchestrator logs which CI files were detected."""
         mock_llm = MagicMock()
         mock_llm.generate.return_value = LLMResponse(
-            content=LLMDiscoveryResponse(),
+            content=LLMDiscoveryResult(),
         )
         orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
 
@@ -242,7 +242,7 @@ class TestDiscoveryLogging:
         mock_repo.get_file_tree.return_value = ("src/main.py", "README.md")
         mock_llm = MagicMock()
         mock_llm.generate.return_value = LLMResponse(
-            content=LLMDiscoveryResponse(),
+            content=LLMDiscoveryResult(),
         )
         orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
 
@@ -279,7 +279,7 @@ class TestDiscoveryLogging:
         """Logs 'no content returned' when CI file is missing."""
         mock_llm = MagicMock()
         mock_llm.generate.return_value = LLMResponse(
-            content=LLMDiscoveryResponse(),
+            content=LLMDiscoveryResult(),
         )
         orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
 
@@ -337,7 +337,7 @@ class TestDiscoveryLogging:
         )
         mock_llm = MagicMock()
         mock_llm.generate.return_value = LLMResponse(
-            content=LLMDiscoveryResponse(),
+            content=LLMDiscoveryResult(),
         )
         orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)
         # Force the CI analyzer to raise using patch.object

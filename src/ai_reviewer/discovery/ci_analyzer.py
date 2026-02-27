@@ -176,16 +176,15 @@ class CIPipelineAnalyzer:
         try:
             data = yaml.safe_load(yaml_content)
         except yaml.YAMLError:
-            return CIInsights(ci_file_path=ci_file_path, raw_yaml=yaml_content)
+            return CIInsights(ci_file_path=ci_file_path)
         if not isinstance(data, dict):
-            return CIInsights(ci_file_path=ci_file_path, raw_yaml=yaml_content)
+            return CIInsights(ci_file_path=ci_file_path)
 
         commands = _extract_commands(data)
         full_text = yaml_content + "\n" + "\n".join(commands)
 
         return CIInsights(
             ci_file_path=ci_file_path,
-            raw_yaml=yaml_content,
             detected_tools=_detect_tools(commands),
             python_version=_detect_version(full_text, "python"),
             node_version=_detect_version(full_text, "node"),
@@ -217,7 +216,6 @@ class CIPipelineAnalyzer:
 
         return CIInsights(
             ci_file_path=ci_file_path,
-            raw_yaml=content,
             detected_tools=_detect_tools(commands),
             python_version=_detect_version("\n".join(commands), "python"),
             node_version=_detect_version("\n".join(commands), "node"),

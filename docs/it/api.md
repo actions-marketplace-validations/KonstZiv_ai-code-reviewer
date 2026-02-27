@@ -15,6 +15,9 @@ ai-review [OPTIONS]
 - In CI (GitHub Actions / GitLab CI) — rileva automaticamente il contesto
 - Manualmente — bisogna specificare `--provider`, `--repo`, `--pr`
 
+!!! info "Subcommand"
+    `ai-review` (senza subcommand) esegue una review — retrocompatibile. Usa `ai-review discover` per eseguire il discovery standalone.
+
 ---
 
 ## Opzioni
@@ -111,7 +114,7 @@ CLI legge la configurazione dalle variabili d'ambiente:
 |-----------|-------------|---------|
 | `AI_REVIEWER_LANGUAGE` | Lingua risposte | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | Modalità lingua | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Modello Gemini | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Modello Gemini | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Livello log | `INFO` |
 | `AI_REVIEWER_GITLAB_URL` | URL GitLab | `https://gitlab.com` |
 
@@ -219,6 +222,61 @@ Please specify --provider, --repo, and --pr manually.
 **Causa:** Esecuzione fuori dalla CI.
 
 **Soluzione:** Specifica tutti i parametri manualmente.
+
+---
+
+## Comando Discover
+
+Esegui il discovery del progetto standalone (senza creare una review):
+
+```bash
+ai-review discover <REPO> [OPTIONS]
+```
+
+### Argomenti
+
+| Argomento | Descrizione |
+|-----------|-------------|
+| `REPO` | Repository (owner/repo) |
+
+### Opzioni
+
+| Opzione | Abbreviazione | Descrizione | Default |
+|---------|---------------|-------------|---------|
+| `--provider` | `-p` | Provider Git | `github` |
+| `--json` | | Output in formato JSON | `false` |
+| `--verbose` | `-v` | Mostra tutti i dettagli (convenzioni, strumenti CI, watch-files) | `false` |
+
+### Esempi
+
+```bash
+# Repository GitHub
+ai-review discover owner/repo
+
+# Output JSON
+ai-review discover owner/repo --json
+
+# Modalità verbose
+ai-review discover owner/repo -v
+
+# Progetto GitLab
+ai-review discover group/project -p gitlab
+```
+
+### Esempio di Output
+
+```
+🔍 Discovering project context...
+
+Stack: Python (FastAPI) 3.13, uv
+CI: ✅ .github/workflows/tests.yml — ruff, mypy, pytest
+
+Attention Zones:
+  ✅ Formatting — ruff format in CI
+  ✅ Type checking — mypy --strict in CI
+  ❌ Security scanning — No security scanner detected
+  ⚠️ Test coverage — no coverage threshold
+```
 
 ---
 

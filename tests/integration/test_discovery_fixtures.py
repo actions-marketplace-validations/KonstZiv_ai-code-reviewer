@@ -17,8 +17,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from ai_reviewer.discovery.models import LLMDiscoveryResult
 from ai_reviewer.discovery.orchestrator import DiscoveryOrchestrator
-from ai_reviewer.discovery.prompts import LLMDiscoveryResponse
 from ai_reviewer.integrations.repository import RepositoryMetadata
 from ai_reviewer.llm.base import LLMResponse
 
@@ -87,13 +87,7 @@ def _build_mock_llm(fixture_name: str) -> MagicMock:
     llm = MagicMock()
     if fixture_name == "empty":
         llm.generate.return_value = LLMResponse(
-            content=LLMDiscoveryResponse(
-                framework=None,
-                skip_in_review=[],
-                focus_in_review=[],
-                conventions=[],
-                gaps=[],
-            ),
+            content=LLMDiscoveryResult(),
         )
     else:
         # LLM should NOT be called for fixtures with sufficient CI data

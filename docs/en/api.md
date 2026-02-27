@@ -15,6 +15,9 @@ ai-review [OPTIONS]
 - In CI (GitHub Actions / GitLab CI) — automatically detects context
 - Manually — need to specify `--provider`, `--repo`, `--pr`
 
+!!! info "Subcommands"
+    `ai-review` (without subcommand) runs a review — backward-compatible. Use `ai-review discover` to run discovery standalone.
+
 ---
 
 ## Options
@@ -111,7 +114,7 @@ CLI reads configuration from environment variables:
 |----------|-------------|---------|
 | `AI_REVIEWER_LANGUAGE` | Response language | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | Language mode | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Log level | `INFO` |
 | `AI_REVIEWER_GITLAB_URL` | GitLab URL | `https://gitlab.com` |
 
@@ -219,6 +222,61 @@ Please specify --provider, --repo, and --pr manually.
 **Cause:** Running outside CI.
 
 **Solution:** Specify all parameters manually.
+
+---
+
+## Discover Command
+
+Run project discovery standalone (without creating a review):
+
+```bash
+ai-review discover <REPO> [OPTIONS]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `REPO` | Repository (owner/repo) |
+
+### Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--provider` | `-p` | Git provider | `github` |
+| `--json` | | Output as JSON | `false` |
+| `--verbose` | `-v` | Show all details (conventions, CI tools, watch-files) | `false` |
+
+### Examples
+
+```bash
+# GitHub repository
+ai-review discover owner/repo
+
+# JSON output
+ai-review discover owner/repo --json
+
+# Verbose mode
+ai-review discover owner/repo -v
+
+# GitLab project
+ai-review discover group/project -p gitlab
+```
+
+### Example Output
+
+```
+🔍 Discovering project context...
+
+Stack: Python (FastAPI) 3.13, uv
+CI: ✅ .github/workflows/tests.yml — ruff, mypy, pytest
+
+Attention Zones:
+  ✅ Formatting — ruff format in CI
+  ✅ Type checking — mypy --strict in CI
+  ❌ Security scanning — No security scanner detected
+  ⚠️ Test coverage — no coverage threshold
+```
 
 ---
 

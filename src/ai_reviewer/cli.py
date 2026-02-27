@@ -3,6 +3,10 @@
 This module provides the entry point for the application.
 It handles automatic detection of CI environments (GitHub Actions, GitLab CI)
 and execution of the review process.
+
+Commands:
+    ai-review              Run a review (default, backward-compatible).
+    ai-review discover     Discover project context without creating an MR.
 """
 
 from __future__ import annotations
@@ -12,7 +16,7 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, NoReturn
+from typing import TYPE_CHECKING, Annotated, NoReturn
 
 import typer
 from rich.console import Console
@@ -22,6 +26,10 @@ from ai_reviewer.core.config import MIN_SECRET_LENGTH, get_settings
 from ai_reviewer.integrations.github import GitHubClient
 from ai_reviewer.integrations.gitlab import GitLabClient
 from ai_reviewer.reviewer import review_pull_request
+
+if TYPE_CHECKING:
+    from ai_reviewer.core.config import Settings
+    from ai_reviewer.discovery.models import AttentionZone, ProjectProfile
 
 # Configure rich logging
 logging.basicConfig(
@@ -63,6 +71,13 @@ _ERR_GITLAB_TOKEN_SHORT = (
     f"(minimum {MIN_SECRET_LENGTH} characters)."
 )
 _MIN_REF_PARTS = 3
+
+# Status emoji for attention zones
+_STATUS_EMOJI = {
+    "well_covered": "\u2705",
+    "weakly_covered": "\u26a0\ufe0f",
+    "not_covered": "\u274c",
+}
 
 
 class Provider(str, Enum):
@@ -164,8 +179,50 @@ def _exit_app(code: int = 0) -> NoReturn:
     raise typer.Exit(code=code)
 
 
-@app.command()
+def _create_provider_client(
+    provider: Provider,
+    settings: Settings,
+) -> GitHubClient | GitLabClient:
+    """Create provider client, validating token presence and length.
+
+    Args:
+        provider: Target provider.
+        settings: Application settings.
+
+    Returns:
+        Configured provider client.
+
+    Raises:
+        typer.Exit: If token is missing or too short.
+    """
+    if provider == Provider.GITHUB:
+        if not settings.github_token:
+            console.print(f"[bold red]Configuration Error:[/bold red] {_ERR_GITHUB_TOKEN_MISSING}")
+            _exit_app(code=1)
+        if len(settings.github_token.get_secret_value()) < MIN_SECRET_LENGTH:
+            console.print(f"[bold red]Configuration Error:[/bold red] {_ERR_GITHUB_TOKEN_SHORT}")
+            _exit_app(code=1)
+        return GitHubClient(token=settings.github_token.get_secret_value())
+
+    # GitLab
+    if not settings.gitlab_token:
+        console.print(f"[bold red]Configuration Error:[/bold red] {_ERR_GITLAB_TOKEN_MISSING}")
+        _exit_app(code=1)
+    if len(settings.gitlab_token.get_secret_value()) < MIN_SECRET_LENGTH:
+        console.print(f"[bold red]Configuration Error:[/bold red] {_ERR_GITLAB_TOKEN_SHORT}")
+        _exit_app(code=1)
+    return GitLabClient(
+        token=settings.gitlab_token.get_secret_value(),
+        url=settings.gitlab_url,
+    )
+
+
+# ── Review command (default / backward-compatible) ──────────────────
+
+
+@app.callback(invoke_without_command=True)
 def main(  # noqa: PLR0912, PLR0915
+    ctx: typer.Context,
     provider: Annotated[
         Provider | None,
         typer.Option(
@@ -190,11 +247,15 @@ def main(  # noqa: PLR0912, PLR0915
         ),
     ] = None,
 ) -> None:
-    """Run AI Code Reviewer.
+    """AI Code Reviewer — automated code review for pull requests.
 
-    Automatically detects CI environment and reviews the current Pull Request.
-    Can also be run manually by providing arguments.
+    When invoked without a subcommand, runs a review (backward-compatible).
+    Use 'ai-review discover' for standalone project discovery.
     """
+    # If a subcommand was invoked, skip the default review logic
+    if ctx.invoked_subcommand is not None:
+        return
+
     try:
         # 1. Detect Provider
         if not provider:
@@ -202,8 +263,6 @@ def main(  # noqa: PLR0912, PLR0915
             if provider:
                 logger.info("Detected CI Provider: %s", provider.value)
             else:
-                # If not detected and not provided, we can't proceed unless
-                # arguments are explicitly provided (manual run mode)
                 if not (repo and pr):
                     console.print(
                         "[bold red]Error:[/bold red] Could not detect CI environment.\n"
@@ -211,8 +270,6 @@ def main(  # noqa: PLR0912, PLR0915
                         "and [bold]--pr[/bold] manually."
                     )
                     _exit_app(code=1)
-                # Default to GitHub if manual args provided but no provider?
-                # Or force user to specify provider. Let's force provider for clarity.
                 console.print(
                     "[bold red]Error:[/bold red] Provider not specified and not detected. "
                     "Please use [bold]--provider github[/bold]."
@@ -224,16 +281,10 @@ def main(  # noqa: PLR0912, PLR0915
             settings = get_settings()
         except Exception as e:
             console.print(f"[bold red]Configuration Error:[/bold red] {e}")
-            # We can't use _exit_app here easily because we need to chain the exception
-            # or just log and exit.
-            # To satisfy TRY301, we could wrap this too, but let's see.
-            # Actually, raising from e is good practice.
-            # Let's just call _exit_app and log the error before.
             _exit_app(code=1)
 
         # 3. Execute based on provider
         if provider == Provider.GITHUB:
-            # Check for GitHub token
             if not settings.github_token:
                 console.print(
                     f"[bold red]Configuration Error:[/bold red] {_ERR_GITHUB_TOKEN_MISSING}"
@@ -245,7 +296,6 @@ def main(  # noqa: PLR0912, PLR0915
                 )
                 _exit_app(code=1)
 
-            # Auto-detect context if missing
             if not repo or not pr:
                 try:
                     detected_repo, detected_pr = extract_github_context()
@@ -256,17 +306,13 @@ def main(  # noqa: PLR0912, PLR0915
                     console.print(f"[bold red]Context Error:[/bold red] {e}")
                     _exit_app(code=1)
 
-            # Run Review
             if repo and pr:
-                # Create provider instance and run review
                 github_provider = GitHubClient(token=settings.github_token.get_secret_value())
                 review_pull_request(github_provider, repo, pr, settings)
             else:
-                # Should be unreachable due to checks above
                 _exit_app(code=1)
 
         elif provider == Provider.GITLAB:
-            # Check for GitLab token
             if not settings.gitlab_token:
                 console.print(
                     f"[bold red]Configuration Error:[/bold red] {_ERR_GITLAB_TOKEN_MISSING}"
@@ -278,7 +324,6 @@ def main(  # noqa: PLR0912, PLR0915
                 )
                 _exit_app(code=1)
 
-            # Auto-detect context if missing
             if not repo or not pr:
                 try:
                     detected_repo, detected_mr = extract_gitlab_context()
@@ -289,24 +334,186 @@ def main(  # noqa: PLR0912, PLR0915
                     console.print(f"[bold red]Context Error:[/bold red] {e}")
                     _exit_app(code=1)
 
-            # Run Review
             if repo and pr:
-                # Create provider instance and run review
                 gitlab_provider = GitLabClient(
                     token=settings.gitlab_token.get_secret_value(),
                     url=settings.gitlab_url,
                 )
                 review_pull_request(gitlab_provider, repo, pr, settings)
             else:
-                # Should be unreachable due to checks above
                 _exit_app(code=1)
 
     except typer.Exit:
-        # Re-raise typer.Exit to not catch it in the general exception handler
         raise
     except Exception:
         logger.exception("Unexpected error")
         _exit_app(code=1)
+
+
+# ── Discover command ────────────────────────────────────────────────
+
+
+@app.command()
+def discover(
+    repo: Annotated[
+        str,
+        typer.Argument(help="Repository (owner/repo)"),
+    ],
+    provider: Annotated[
+        Provider,
+        typer.Option(
+            "--provider",
+            "-p",
+            help="Git provider",
+        ),
+    ] = Provider.GITHUB,
+    output_json: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help="Output as JSON",
+        ),
+    ] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Show all details (conventions, CI tools, watch-files)",
+        ),
+    ] = False,
+) -> None:
+    """Discover project context without creating a review."""
+    from ai_reviewer.discovery import DiscoveryOrchestrator  # noqa: PLC0415
+    from ai_reviewer.llm.gemini import GeminiProvider  # noqa: PLC0415
+
+    try:
+        settings = get_settings()
+    except Exception as e:
+        console.print(f"[bold red]Configuration Error:[/bold red] {e}")
+        _exit_app(code=1)
+
+    try:
+        client = _create_provider_client(provider, settings)
+    except typer.Exit:
+        raise
+    except Exception as e:
+        console.print(f"[bold red]Provider Error:[/bold red] {e}")
+        _exit_app(code=1)
+
+    console.print("[bold]\U0001f50d Discovering project context...[/bold]\n")
+
+    try:
+        llm = GeminiProvider(
+            api_key=settings.google_api_key.get_secret_value(),
+            model_name=settings.gemini_model,
+        )
+        orchestrator = DiscoveryOrchestrator(
+            repo_provider=client,
+            conversation=client,
+            llm=llm,
+        )
+        profile = orchestrator.discover(repo)
+    except Exception as e:
+        console.print(f"[bold red]Discovery Error:[/bold red] {e}")
+        _exit_app(code=1)
+
+    if output_json:
+        console.print(profile.model_dump_json(indent=2))
+    else:
+        console.print(_format_discovery_output(profile, verbose=verbose))
+
+
+# ── CLI output formatter ────────────────────────────────────────────
+
+
+def _format_zone_line(zone: AttentionZone) -> str:
+    """Format a single attention zone as a CLI line."""
+    emoji = _STATUS_EMOJI.get(zone.status, "\u2022")
+    tools_str = f" ({', '.join(zone.tools)})" if zone.tools else ""
+    line = f"  {emoji} {zone.area}{tools_str}"
+    if zone.reason:
+        line += f" \u2014 {zone.reason}"
+    return line
+
+
+def _format_stack_section(profile: ProjectProfile) -> list[str]:
+    """Format the stack/profile header section."""
+    lines: list[str] = ["\U0001f4cb Project Profile:"]
+    pd = profile.platform_data
+    stack = f"  Stack: {pd.primary_language}"
+    if profile.framework:
+        stack += f" ({profile.framework})"
+    if profile.language_version:
+        stack += f" {profile.language_version}"
+    lines.append(stack)
+    if profile.package_manager:
+        lines.append(f"  Package manager: {profile.package_manager}")
+    if profile.layout:
+        lines.append(f"  Layout: {profile.layout}")
+    return lines
+
+
+def _format_zones_section(profile: ProjectProfile) -> list[str]:
+    """Format attention zones or fallback guidance."""
+    lines: list[str] = []
+    if profile.attention_zones:
+        lines.append("")
+        lines.append("\U0001f527 Attention Zones:")
+        for zone in profile.attention_zones:
+            lines.append(_format_zone_line(zone))
+            if zone.recommendation:
+                lines.append(f"     \U0001f4a1 {zone.recommendation}")
+    else:
+        g = profile.guidance
+        if g.skip_in_review:
+            lines.append(f"\n  Skip: {'; '.join(g.skip_in_review)}")
+        if g.focus_in_review:
+            lines.append(f"\n  Focus: {'; '.join(g.focus_in_review)}")
+    return lines
+
+
+def _format_verbose_sections(profile: ProjectProfile) -> list[str]:
+    """Format verbose-only sections (CI tools, conventions)."""
+    lines: list[str] = []
+    if profile.ci_insights and profile.ci_insights.detected_tools:
+        lines.append("")
+        lines.append("\u2699\ufe0f  CI Tools:")
+        for tool in profile.ci_insights.detected_tools:
+            lines.append(f"  \u2022 {tool.name} [{tool.category}]")
+    if profile.guidance.conventions:
+        lines.append("")
+        lines.append("\U0001f4dd Conventions:")
+        for c in profile.guidance.conventions:
+            lines.append(f"  {c}")
+    return lines
+
+
+def _format_discovery_output(profile: ProjectProfile, *, verbose: bool = False) -> str:
+    """Format ProjectProfile as human-friendly CLI output.
+
+    Args:
+        profile: Discovery result.
+        verbose: Show additional details (conventions, CI tools, watch-files).
+
+    Returns:
+        Multi-line string with emoji-rich formatting.
+    """
+    lines = _format_stack_section(profile)
+    lines.extend(_format_zones_section(profile))
+
+    if verbose:
+        lines.extend(_format_verbose_sections(profile))
+
+    if profile.gaps:
+        lines.append("")
+        lines.append("\u2753 Knowledge Gaps:")
+        for gap in profile.gaps:
+            lines.append(f"  \u2022 {gap.observation}")
+
+    lines.append("")
+    lines.append("\U0001f4a1 Create .reviewbot.md to customize review behavior.")
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

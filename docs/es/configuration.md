@@ -53,7 +53,9 @@ Todas las configuraciones se hacen mediante variables de entorno.
 
 | Variable | Descripción | Por defecto |
 |----------|-------------|-------------|
-| `AI_REVIEWER_GEMINI_MODEL` | Modelo Gemini | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Modelo Gemini | `gemini-2.5-flash` |
+| `AI_REVIEWER_GEMINI_MODEL_FALLBACK` | Modelo fallback cuando el primario no está disponible | `gemini-3-flash-preview` |
+| `AI_REVIEWER_REVIEW_SPLIT_THRESHOLD` | Umbral de caracteres para revisión dividida código+tests | `30000` |
 
 **Modelos disponibles:**
 
@@ -98,12 +100,17 @@ Todas las configuraciones se hacen mediante variables de entorno.
 
 ### Discovery
 
-| Variable | Descripción | Por defecto |
-|----------|-------------|-------------|
-| `AI_REVIEWER_DISCOVERY_ENABLED` | Activar análisis de proyecto antes de la revisión | `true` |
+| Variable | Descripción | Por defecto | Rango |
+|----------|-------------|-------------|-------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Activar análisis de proyecto antes de la revisión | `true` | true/false |
+| `AI_REVIEWER_DISCOVERY_VERBOSE` | Siempre publicar comentario de discovery (por defecto: solo cuando hay brechas) | `false` | true/false |
+| `AI_REVIEWER_DISCOVERY_TIMEOUT` | Timeout del pipeline de discovery en segundos | `30` | 1-300 |
 
 !!! info "Análisis de proyecto"
     Cuando está activado, AI ReviewBot analiza automáticamente tu repositorio (lenguajes, pipeline CI, archivos de config) antes de cada revisión para proporcionar feedback más inteligente. Configura `false` para desactivar. Detalles: [Discovery →](discovery.md).
+
+!!! info "Modo verbose"
+    Cuando `AI_REVIEWER_DISCOVERY_VERBOSE=true`, el comentario de discovery siempre se publica e incluye todas las Attention Zones (Well Covered, Weakly Covered, Not Covered). El modo por defecto solo publica cuando hay brechas o zonas no cubiertas.
 
 ### GitLab
 
@@ -131,7 +138,7 @@ AI_REVIEWER_GITHUB_TOKEN=ghp_...
 # Opcional
 AI_REVIEWER_LANGUAGE=uk
 AI_REVIEWER_LANGUAGE_MODE=adaptive
-AI_REVIEWER_GEMINI_MODEL=gemini-3-flash-preview
+AI_REVIEWER_GEMINI_MODEL=gemini-2.5-flash
 AI_REVIEWER_LOG_LEVEL=INFO
 ```
 

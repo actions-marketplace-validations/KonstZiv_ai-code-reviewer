@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from ai_reviewer.discovery.models import (
+    AttentionZone,
     AutomatedChecks,
     CIInsights,
     DetectedTool,
@@ -56,7 +57,6 @@ def sample_ci_insights(sample_tool: DetectedTool) -> CIInsights:
     """CIInsights with representative data."""
     return CIInsights(
         ci_file_path=".github/workflows/ci.yml",
-        raw_yaml="name: CI\non: push",
         detected_tools=(
             sample_tool,
             DetectedTool(name="mypy", category=ToolCategory.TYPE_CHECKING, command="mypy src/"),
@@ -472,6 +472,165 @@ class TestToPromptContext:
         result = profile.to_prompt_context()
         assert "lint: ruff, pylint" in result
         assert "fmt: ruff format, isort" in result
+
+
+# ── to_prompt_context() with attention zones ─────────────────────────
+
+
+class TestToPromptContextWithZones:
+    """Tests for zone-driven SKIP/FOCUS/CHECK sections."""
+
+    @pytest.fixture
+    def platform(self) -> PlatformData:
+        return PlatformData(languages={"Python": 100.0}, primary_language="Python")
+
+    def test_skip_section(self, platform: PlatformData) -> None:
+        """Well-covered zones produce SKIP section."""
+        profile = ProjectProfile(
+            platform_data=platform,
+            attention_zones=(
+                AttentionZone(
+                    area="formatting",
+                    status="well_covered",
+                    tools=("ruff",),
+                    reason="enforced in CI pre-commit",
+                ),
+            ),
+        )
+        result = profile.to_prompt_context()
+        assert "## SKIP in review (covered by CI):" in result
+        assert "- formatting (ruff): enforced in CI pre-commit" in result
+        # No compact Skip: line when zones present
+        assert not any(line.startswith("Skip:") for line in result.splitlines())
+
+    def test_focus_section(self, platform: PlatformData) -> None:
+        """Not-covered zones produce FOCUS section."""
+        profile = ProjectProfile(
+            platform_data=platform,
+            attention_zones=(
+                AttentionZone(
+                    area="security",
+                    status="not_covered",
+                    reason="no SAST or dep scanning in CI",
+                ),
+            ),
+        )
+        result = profile.to_prompt_context()
+        assert "## FOCUS in review (not covered):" in result
+        assert "- security: no SAST or dep scanning in CI" in result
+
+    def test_check_section_with_recommendation(self, platform: PlatformData) -> None:
+        """Weakly-covered zones produce CHECK section with recommendation."""
+        profile = ProjectProfile(
+            platform_data=platform,
+            attention_zones=(
+                AttentionZone(
+                    area="testing",
+                    status="weakly_covered",
+                    tools=("pytest",),
+                    reason="exists but no coverage threshold",
+                    recommendation="add --cov-fail-under=80",
+                ),
+            ),
+        )
+        result = profile.to_prompt_context()
+        assert "## CHECK and improve:" in result
+        assert "- testing (pytest): exists but no coverage threshold" in result
+        assert "→ Recommendation: add --cov-fail-under=80" in result
+
+    def test_all_three_sections(self, platform: PlatformData) -> None:
+        """All three zone statuses produce corresponding sections."""
+        profile = ProjectProfile(
+            platform_data=platform,
+            automated_checks=AutomatedChecks(
+                linting=("ruff",),
+                type_checking=("mypy",),
+                testing=("pytest",),
+            ),
+            guidance=ReviewGuidance(conventions=("ruff line-length=120",)),
+            attention_zones=(
+                AttentionZone(
+                    area="formatting",
+                    status="well_covered",
+                    tools=("ruff",),
+                    reason="enforced in CI",
+                ),
+                AttentionZone(
+                    area="type checking",
+                    status="well_covered",
+                    tools=("mypy",),
+                    reason="--strict on every push",
+                ),
+                AttentionZone(
+                    area="security",
+                    status="not_covered",
+                    reason="no SAST in CI",
+                ),
+                AttentionZone(
+                    area="testing",
+                    status="weakly_covered",
+                    tools=("pytest",),
+                    reason="no coverage threshold",
+                    recommendation="add --cov-fail-under=80",
+                ),
+            ),
+        )
+        result = profile.to_prompt_context()
+        lines = result.splitlines()
+
+        # Header + Automated present
+        assert lines[0] == "Project: Python"
+        assert "Automated:" in result
+
+        # All sections present
+        assert "## SKIP in review (covered by CI):" in result
+        assert "## FOCUS in review (not covered):" in result
+        assert "## CHECK and improve:" in result
+
+        # Conventions still rendered
+        assert "Conventions: ruff line-length=120" in result
+
+    def test_zones_suppress_compact_skip_focus(self, platform: PlatformData) -> None:
+        """When zones are present, compact Skip:/Focus: lines are not rendered."""
+        profile = ProjectProfile(
+            platform_data=platform,
+            guidance=ReviewGuidance(
+                skip_in_review=("formatting",),
+                focus_in_review=("security",),
+            ),
+            attention_zones=(
+                AttentionZone(area="formatting", status="well_covered", tools=("ruff",)),
+            ),
+        )
+        result = profile.to_prompt_context()
+        assert "## SKIP in review" in result
+        assert not any(line.startswith("Skip:") for line in result.splitlines())
+        assert not any(line.startswith("Focus:") for line in result.splitlines())
+
+    def test_no_zones_uses_compact_format(self, platform: PlatformData) -> None:
+        """Without zones, compact Skip:/Focus: format is used."""
+        profile = ProjectProfile(
+            platform_data=platform,
+            guidance=ReviewGuidance(
+                skip_in_review=("formatting",),
+                focus_in_review=("security",),
+            ),
+        )
+        result = profile.to_prompt_context()
+        assert "Skip: formatting" in result
+        assert "Focus: security" in result
+        assert "## SKIP" not in result
+
+    def test_zone_without_reason(self, platform: PlatformData) -> None:
+        """Zone with empty reason produces label only."""
+        profile = ProjectProfile(
+            platform_data=platform,
+            attention_zones=(AttentionZone(area="security", status="not_covered"),),
+        )
+        result = profile.to_prompt_context()
+        assert "- security" in result
+        # No trailing colon when reason is empty
+        assert "- security:" not in result
 
 
 # ── __init__.py re-exports ───────────────────────────────────────────

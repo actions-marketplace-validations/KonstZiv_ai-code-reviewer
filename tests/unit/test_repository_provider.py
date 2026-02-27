@@ -177,6 +177,7 @@ class TestGitHubRepositoryProvider:
 
         assert result == {"Python": 100.0}
 
+    @pytest.mark.slow
     def test_get_languages_rate_limit(self, client: GitHubClient) -> None:
         """Test rate limit raises RateLimitError."""
         client.github.get_repo.side_effect = RateLimitExceededException(
@@ -237,6 +238,7 @@ class TestGitHubRepositoryProvider:
         assert result.visibility == "private"
         assert result.description is None
 
+    @pytest.mark.slow
     def test_get_metadata_rate_limit(self, client: GitHubClient) -> None:
         """Test rate limit raises RateLimitError."""
         client.github.get_repo.side_effect = RateLimitExceededException(
@@ -415,6 +417,7 @@ class TestGitHubRepositoryProvider:
 
         assert result is None
 
+    @pytest.mark.slow
     def test_get_file_content_server_error(self, client: GitHubClient) -> None:
         """Test that 500 raises ServerError."""
         mock_repo = Mock()
@@ -515,6 +518,7 @@ class TestGitLabRepositoryProvider:
         assert result.topics == ()
         assert result.description is None
 
+    @pytest.mark.slow
     def test_get_metadata_gitlab_error(self, client: GitLabClient) -> None:
         """Test GitlabError is converted."""
         error = GitlabError("Server error")
@@ -644,6 +648,7 @@ class TestGitLabRepositoryProvider:
 
         assert result is None
 
+    @pytest.mark.slow
     def test_get_file_content_server_error(self, client: GitLabClient) -> None:
         """Test that 500 raises ServerError."""
         mock_project = Mock()

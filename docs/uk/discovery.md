@@ -19,33 +19,120 @@ Discovery запускає **4-рівневий pipeline** при першому
 
 ---
 
+## Attention Zones
+
+Discovery класифікує кожну область якості в одну з трьох **Attention Zones** на основі покриття вашим CI/інструментами:
+
+| Зона | Емодзі | Значення | Поведінка рецензента |
+|------|--------|----------|----------------------|
+| **Well Covered** | ✅ | CI інструменти покривають цю область | Рецензент **пропускає** її |
+| **Weakly Covered** | ⚠️ | Часткове покриття, є що покращити | Рецензент **звертає увагу** + пропонує покращення |
+| **Not Covered** | ❌ | Автоматизацію не виявлено | Рецензент **фокусується** на цій області |
+
+### Приклади зон
+
+| Область | Статус | Причина |
+|---------|--------|---------|
+| Formatting | ✅ Well Covered | ruff format in CI |
+| Type checking | ✅ Well Covered | mypy --strict in CI |
+| Security scanning | ❌ Not Covered | No security scanner in CI |
+| Test coverage | ⚠️ Weakly Covered | pytest runs but no coverage threshold |
+
+---
+
 ## Що відбувається автоматично
 
-1. **Discovery аналізує** ваш репозиторій (мови, CI інструменти, конфіги).
-2. **Промпт рецензії збагачується** контекстом проєкту (~200-400 токенів).
-3. **Рецензент пропускає** області, вже покриті вашим CI (форматування, лінтинг, перевірка типів).
-4. **Рецензент фокусується** на областях, які CI не покриває (безпека, логіка, дизайн).
+1. **Discovery аналізує** ваш репозиторій (мови, CI інструменти, конфіг-файли).
+2. **Attention Zones обчислюються** — кожна область якості класифікується як Well Covered, Weakly Covered або Not Covered.
+3. **Промпт рецензії збагачується** зонно-орієнтованими інструкціями (~200-400 токенів).
+4. **Рецензент пропускає** Well Covered області та **фокусується** на Not Covered.
 
 ### Коментар Discovery
 
-Якщо Discovery знаходить **прогалини** (речі, які не вдалося визначити), він постить одноразовий підсумковий коментар у PR/MR:
+Якщо Discovery знаходить **прогалини** або непокриті зони, він постить одноразовий підсумковий коментар у PR/MR:
 
-> ## :mag: AI ReviewBot: Project Analysis
+> ## 🔍 AI ReviewBot: Project Analysis
 >
 > **Stack:** Python (FastAPI) 3.13, uv
 >
-> **CI:** :white_check_mark: .github/workflows/tests.yml — ruff, mypy, pytest
+> **CI:** ✅ .github/workflows/tests.yml — ruff, mypy, pytest
 >
-> **What I'll skip** (CI handles these):
-> - Formatting issues (ruff format in CI)
-> - Type errors (mypy --strict in CI)
+> ### Not Covered (focusing in review)
+> - ❌ **Security scanning** — No security scanner detected in CI
+>   💡 Consider adding bandit or safety to your pipeline
 >
-> **What I'll focus on:**
-> - Security vulnerabilities
-> - Business logic correctness
+> ### Could Be Improved
+> - ⚠️ **Test coverage** — pytest runs but no coverage threshold enforced
+>   💡 Add `--cov-fail-under=80` to enforce minimum coverage
+>
+> **Questions / Gaps:**
+> - No security scanner detected in CI
+>   *Question:* Do you use any security scanning tools?
+>   *Assumption:* Will check for common vulnerabilities manually
 >
 > ---
-> :bulb: *Create `.reviewbot.md` in your repo root to customize.*
+> 💡 *Create `.reviewbot.md` in your repo root to customize.*
+
+У **verbose mode** (`discovery_verbose=true`) коментар також включає Well Covered зони:
+
+> ### Well Covered (skipping in review)
+> - ✅ **Formatting** — ruff format in CI
+> - ✅ **Type checking** — mypy --strict in CI
+
+---
+
+## Watch-Files та кешування (Caching)
+
+Discovery використовує **watch-files** щоб уникнути повторного запуску LLM аналізу, коли конфігурація проєкту не змінилась.
+
+### Як це працює
+
+1. **Перший запуск:** Discovery виконує повний pipeline, LLM повертає список `watch_files` (наприклад, `pyproject.toml`, `.github/workflows/tests.yml`).
+2. **Наступні запуски:** Discovery хешує кожен watch-file і порівнює з кешованим snapshot.
+3. **Якщо не змінилось:** використовується кешований результат — **0 LLM токенів**.
+4. **Якщо змінилось:** LLM повторно аналізує проєкт.
+
+Це означає, що повторні PR в одній гілці коштують **нуль додаткових токенів** для discovery, доки спостережувані конфігураційні файли не змінились.
+
+!!! tip "Економія токенів"
+    На типовому проєкті другий і наступні PR використовують 0 токенів для discovery. Лише зміни в CI конфігурації, `pyproject.toml`, `package.json` або подібних файлах тригерять новий LLM виклик.
+
+---
+
+## CLI команда `discover`
+
+Ви можете запустити discovery окремо (без створення ревʼю) за допомогою команди `discover`:
+
+```bash
+ai-review discover owner/repo
+```
+
+### Опції
+
+| Опція | Скорочено | Опис | Default |
+|-------|-----------|------|---------|
+| `--provider` | `-p` | Git провайдер | `github` |
+| `--json` | | Вивід у JSON | `false` |
+| `--verbose` | `-v` | Показати всі деталі (conventions, CI інструменти, watch-files) | `false` |
+
+### Приклади
+
+```bash
+# Базовий discovery
+ai-review discover owner/repo
+
+# JSON вивід для скриптів
+ai-review discover owner/repo --json
+
+# Verbose з усіма деталями
+ai-review discover owner/repo --verbose
+
+# GitLab проєкт
+ai-review discover group/project -p gitlab
+```
+
+!!! info "Зворотна сумісність"
+    `ai-review` (без subcommand) все ще запускає ревʼю як раніше. Subcommand `discover` є новим.
 
 ---
 
@@ -78,10 +165,12 @@ Discovery запускає **4-рівневий pipeline** при першому
 ### Skip (CI handles these)
 - Import ordering (ruff handles isort rules)
 - Code formatting and style (ruff format in CI)
+- Type annotation completeness (mypy --strict in CI)
 
 ### Focus
 - SQL injection and other OWASP Top 10 vulnerabilities
 - API backward compatibility
+- Business logic correctness
 
 ### Conventions
 - All endpoints must return Pydantic response models
@@ -99,7 +188,7 @@ Discovery запускає **4-рівневий pipeline** при першому
 | **Review Guidance → Conventions** | Специфічні правила проєкту, які рецензент має дотримувати |
 
 !!! tip "Автогенерація"
-    Ви можете дозволити Discovery запуститися один раз, потім скопіювати його результати у `.reviewbot.md` та скоригувати за потреби.
+    Ви можете дозволити Discovery запуститися один раз, потім скопіювати його результати у `.reviewbot.md` та скоригувати за потреби. Бот додає у footer посилання, що пропонує цей workflow.
 
 ---
 
@@ -108,8 +197,19 @@ Discovery запускає **4-рівневий pipeline** при першому
 | Змінна | За замовчуванням | Опис |
 |--------|------------------|------|
 | `AI_REVIEWER_DISCOVERY_ENABLED` | `true` | Увімкнути або вимкнути аналіз проєкту |
+| `AI_REVIEWER_DISCOVERY_VERBOSE` | `false` | Завжди постити коментар discovery (default: тільки при прогалинах/непокритих зонах) |
+| `AI_REVIEWER_DISCOVERY_TIMEOUT` | `30` | Таймаут discovery pipeline у секундах (1-300) |
 
-Встановіть `false`, щоб повністю пропустити discovery. Рецензент все одно працюватиме, але без контексту проєкту.
+Встановіть `AI_REVIEWER_DISCOVERY_ENABLED` у `false`, щоб повністю пропустити discovery. Рецензент все одно працюватиме, але без контексту проєкту.
+
+```yaml
+# GitHub Actions — вимкнути discovery
+- uses: KonstZiv/ai-code-reviewer@v1
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+    discovery_enabled: 'false'
+```
 
 ---
 
@@ -118,7 +218,7 @@ Discovery запускає **4-рівневий pipeline** при першому
 Коментар discovery **не поститься** коли:
 
 1. **`.reviewbot.md` існує** у репозиторії — бот вважає, що ви вже налаштували його.
-2. **Прогалин не знайдено** — все було визначено успішно, немає питань.
+2. **Прогалин та непокритих зон не знайдено** — все Well Covered, немає питань.
 3. **Виявлення дублікатів** — коментар discovery вже був запостений у цьому PR/MR.
 
 У всіх трьох випадках discovery все одно працює і збагачує промпт рецензії — просто не постить видимий коментар.
@@ -129,19 +229,29 @@ Discovery запускає **4-рівневий pipeline** при першому
 
 ### Чи можу я вимкнути discovery?
 
-Так. Встановіть `AI_REVIEWER_DISCOVERY_ENABLED=false`. Рецензент працюватиме без контексту проєкту.
+Так. Встановіть `AI_REVIEWER_DISCOVERY_ENABLED=false`. Рецензент працюватиме без контексту проєкту — так само, як до появи функції Discovery.
 
 ### Чи коштує discovery додаткові LLM токени?
 
-Зазвичай **ні**. Рівні 0-2 безкоштовні (API виклики та локальний парсинг). Рівень 3 (LLM інтерпретація) викликається лише коли перших трьох рівнів недостатньо — зазвичай 50-200 токенів.
+При **першому запуску**: рівні 0-2 безкоштовні (API виклики та локальний парсинг). Рівень 3 (LLM інтерпретація) викликається лише коли перших трьох рівнів недостатньо — зазвичай 50-200 токенів, що мізерно порівняно із самим ревʼю (~1 500 токенів).
+
+При **наступних запусках**: якщо ваші watch-files не змінились, discovery використовує **кешований результат** і коштує **0 токенів**.
 
 ### Чи можу я редагувати автоматично згенерований `.reviewbot.md`?
 
-Так. Файл розроблений для ручного редагування. Парсер толерантний до додаткового контенту та відсутніх секцій.
+Так, безумовно. Файл розроблений для ручного редагування. Змінюйте що завгодно — парсер толерантний до додаткового контенту та відсутніх секцій.
 
 ### Чи запускається discovery на кожному PR?
 
-Discovery збагачує промпт рецензії на кожному PR, але **коментар discovery** поститься лише один раз (виявлення дублікатів запобігає повторним постам).
+Discovery збагачує промпт рецензії на кожному PR. **LLM виклик** кешується через watch-files (0 токенів, коли файли не змінились). **Коментар discovery** поститься лише один раз (виявлення дублікатів запобігає повторним постам).
+
+### Як побачити всі зони, включаючи Well Covered?
+
+Встановіть `AI_REVIEWER_DISCOVERY_VERBOSE=true`. Це змушує коментар discovery завжди поститися і включає всі зони (Well Covered, Weakly Covered, Not Covered).
+
+### Що робити, якщо discovery працює надто довго?
+
+Встановіть `AI_REVIEWER_DISCOVERY_TIMEOUT` на більше значення (default: 30 секунд, max: 300). Якщо discovery перевищує таймаут, ревʼю продовжується без контексту discovery.
 
 ---
 

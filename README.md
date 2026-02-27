@@ -33,14 +33,17 @@ AI ReviewBot automatically analyzes your repository before each review:
 - **Languages & frameworks** detected from GitHub/GitLab API
 - **CI pipeline** parsed to understand what's already automated (linters, formatters, type checkers)
 - **Config files** read to understand project conventions
+- **Attention Zones** classify each quality area as ✅ Well Covered, ⚠️ Weakly Covered, or ❌ Not Covered
 
-This means the bot **won't duplicate** feedback that your CI already catches — no formatting nits when you run Prettier, no type errors when you run mypy.
+This means the bot **won't duplicate** feedback that your CI already catches — no formatting nits when you run Prettier, no type errors when you run mypy. Discovery results are **cached** via watch-files, so repeated PRs cost **0 extra tokens**.
 
-Discovery runs on the first PR/MR and posts a one-time summary comment with what it found. Create [`.reviewbot.md`](./examples/.reviewbot.md) in your repo root to customize skip/focus areas.
+Create [`.reviewbot.md`](./examples/.reviewbot.md) in your repo root to customize. You can also run `ai-review discover owner/repo` to preview what the bot sees.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `AI_REVIEWER_DISCOVERY_ENABLED` | `true` | Enable/disable project discovery |
+| `AI_REVIEWER_DISCOVERY_VERBOSE` | `false` | Always post discovery comment |
+| `AI_REVIEWER_DISCOVERY_TIMEOUT` | `30` | Discovery timeout in seconds |
 
 > See [Discovery documentation](https://konstziv.github.io/ai-code-reviewer/discovery/) for details.
 
@@ -130,7 +133,8 @@ Full documentation available in **6 languages**:
 | `AI_REVIEWER_GITLAB_TOKEN` | — | GitLab token (for GitLab) |
 | `AI_REVIEWER_LANGUAGE` | `en` | Response language (ISO 639 code) |
 | `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` | `adaptive` (detect from PR) or `fixed` |
-| `AI_REVIEWER_GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model to use |
+| `AI_REVIEWER_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model to use |
+| `AI_REVIEWER_GEMINI_MODEL_FALLBACK` | `gemini-3-flash-preview` | Fallback model when primary is unavailable |
 | `AI_REVIEWER_LOG_LEVEL` | `INFO` | Logging level |
 | `AI_REVIEWER_REVIEW_MAX_COMMENT_CHARS` | `3000` | Max characters per comment |
 | `AI_REVIEWER_REVIEW_INCLUDE_BOT_COMMENTS` | `true` | Include bot comments in context |

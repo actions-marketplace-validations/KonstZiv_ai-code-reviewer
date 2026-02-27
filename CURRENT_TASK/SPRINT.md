@@ -147,13 +147,51 @@ sprint-beta-0.5/
 
 ## Загальний обсяг
 
-| Фаза | Estimate | Tasks |
-|-------|----------|-------|
-| Phase 1: Discovery Engine | 6-8h | 4 |
-| Phase 2: Review Integration | 2-3h | 2 |
-| Phase 3: Housekeeping | 1.5h | 1 |
-| Phase 4: Polish & UX | 2-3h | 3 |
-| **Total** | **11.5-15.5h** | **10** |
+| Фаза | Estimate | Tasks | Статус |
+|-------|----------|-------|--------|
+| Phase 1: Discovery Engine | 6-8h | 4 | ✅ Done |
+| Phase 2: Review Integration | 2-3h | 2 | ✅ Done |
+| Phase 3: Housekeeping | 1.5h | 1 | ✅ Done |
+| Phase 4: Polish & UX | 2-3h | 3 | ✅ Done |
+| **Total** | **11.5-15.5h** | **10** | **✅ Complete** |
+
+---
+
+## ✅ Фінальні результати Sprint Beta-0.5
+
+### Що реалізовано (10/10 tasks)
+
+**Phase 1 — Discovery Engine Redesign:**
+- `RawProjectData` збагачена: Go modules, file tree truncation, config parsing
+- LLM analysis prompt → `AttentionZone` (well_covered / not_covered / weakly_covered)
+- Watch-files caching: SHA-256 snapshots, `InMemoryDiscoveryCache`, 0 tokens on cache hit
+- MR-aware: diff language detection, dependency change parsing, watch-files overlap
+
+**Phase 2 — Review Integration:**
+- Dynamic system prompt: SKIP/FOCUS/CHECK sections based on zones
+- Zone-driven discovery comment with verbose mode (`discovery_verbose`)
+
+**Phase 3 — Housekeeping:**
+- Removed dead deps (langchain, anthropic, openai), cleaned `.env.example`, removed `ROADMAP.md`, removed `raw_yaml` from `CIInsights`
+
+**Phase 4 — Polish & UX:**
+- Reliability: `discovery_timeout`, fallback model (`gemini_model_fallback`), `review_split_threshold`
+- `ai-review discover` CLI command (standalone discovery)
+- Documentation sync: 20 files updated across 6 languages, Attention Zones documented
+
+### Що з'явилось додатково (не в початковому плані)
+
+- **Fallback model mechanism** — автоматичне переключення на `gemini-3-flash-preview` при quota exhaustion
+- **Split review** — великі diff (>30K chars) автоматично розбиваються на code + tests
+- **Discovery timeout** — захист від зависання pipeline (default: 30s)
+- **22 doc-code розбіжності** виявлено та виправлено в Task 4.3
+
+### Метрики
+
+- **Тести:** 938+ passed, ruff ✅, mypy ✅
+- **Версія:** `1.0.0a8`
+- **Нових файлів:** ~15 (models, cache, diff_analysis, comment rewrite)
+- **Docs:** 6 мов × 3 файли оновлено + README + action.yml
 
 ---
 
@@ -166,17 +204,20 @@ Sprint Beta-0.5 закладає foundation для Beta-1:
 - **MR-aware** → Beta-1: test coverage gap detection (source changed, no test in diff)
 - **Discover CLI** → Beta-1: `ai-review discover --generate-config` для bootstrap `.reviewbot.md`
 - **ConversationProvider** → Beta-1: deep linked task search, follow-up dialogue
+- **Split review** → Beta-2: foundation для scout → deep review (вже є примітивний split)
+- **Fallback model** → Beta-1 stability може бути коротшою (reliability вже частково зроблено)
 
 ---
 
 ## Definition of Done
 
-- [ ] `make check` passes (lint + test) — zero warnings
-- [ ] LLM Discovery prompt → три зони для Python проєкту з CI
-- [ ] Watch-files mechanism → повторний запуск = 0 LLM tokens
-- [ ] MR з іншою мовою ніж repo → промпт адаптується
-- [ ] Dynamic system prompt містить "SKIP/FOCUS/CHECK" інструкції
-- [ ] `ai-review discover owner/repo` → виводить три зони
-- [ ] Немає langchain/anthropic/openai в dependencies
-- [ ] `.env.example` тільки робочі settings
-- [ ] Coverage ≥ 80% для нового коду
+- [x] `make check` passes (lint + test) — zero warnings
+- [x] LLM Discovery prompt → три зони для Python проєкту з CI
+- [x] Watch-files mechanism → повторний запуск = 0 LLM tokens
+- [x] MR з іншою мовою ніж repo → промпт адаптується
+- [x] Dynamic system prompt містить "SKIP/FOCUS/CHECK" інструкції
+- [x] `ai-review discover owner/repo` → виводить три зони
+- [x] Немає langchain/anthropic/openai в dependencies
+- [x] `.env.example` тільки робочі settings
+- [x] Coverage ≥ 80% для нового коду
+- [x] Docs відповідають коду (6 мов × 3 файли synced)

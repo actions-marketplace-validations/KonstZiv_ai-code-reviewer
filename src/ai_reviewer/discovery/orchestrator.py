@@ -14,17 +14,26 @@ from __future__ import annotations
 
 import fnmatch
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from ai_reviewer.discovery.cache import (
+    DiscoveryCache,
+    DiscoveryCacheStorage,  # noqa: TC001
+    create_watch_files_snapshot,
+    should_rerun_discovery,
+)
 from ai_reviewer.discovery.ci_analyzer import CIPipelineAnalyzer
 from ai_reviewer.discovery.config_collector import (
     ConfigCollector,
     SmartConfigSelector,
 )
 from ai_reviewer.discovery.models import (
+    AttentionZone,  # noqa: TC001
     AutomatedChecks,
     CIInsights,
     Gap,
+    LLMDiscoveryResult,
     PlatformData,
     ProjectProfile,
     RawProjectData,
@@ -40,8 +49,7 @@ from ai_reviewer.discovery.parsers import (
 )
 from ai_reviewer.discovery.prompts import (
     DISCOVERY_SYSTEM_PROMPT,
-    LLMDiscoveryResponse,
-    build_interpretation_prompt,
+    format_discovery_prompt,
 )
 from ai_reviewer.discovery.reviewbot_config import parse_reviewbot_md
 from ai_reviewer.integrations.conversation import (  # noqa: TC001
@@ -83,6 +91,7 @@ class DiscoveryOrchestrator:
         repo_provider: Access to repository files and metadata.
         conversation: Bot conversation capabilities.
         llm: LLM provider for interpretation when needed.
+        cache_storage: Optional cache backend for watch-files caching.
     """
 
     def __init__(
@@ -90,10 +99,13 @@ class DiscoveryOrchestrator:
         repo_provider: RepositoryProvider,
         conversation: ConversationProvider,
         llm: LLMProvider,
+        *,
+        cache_storage: DiscoveryCacheStorage | None = None,
     ) -> None:
         self._repo = repo_provider
         self._conversation = conversation
         self._llm = llm
+        self._cache_storage = cache_storage
         self._ci_analyzer = CIPipelineAnalyzer()
         self._config_selector = SmartConfigSelector()
 
@@ -134,14 +146,14 @@ class DiscoveryOrchestrator:
         configs = self._collect_configs(platform_data, ci_insights, repo_name)
 
         # Collect raw data (deterministic, 0 LLM tokens)
-        raw_data = _collect_raw_data(platform_data, ci_insights, configs)
+        raw_data = _collect_raw_data(platform_data, configs)
 
         # Layer 3: Build profile
         if _has_enough_data(ci_insights):
             assert ci_insights is not None  # narrowed by _has_enough_data
             profile = _build_profile_deterministic(platform_data, ci_insights, raw_data)
         else:
-            profile = self._build_profile_with_llm(platform_data, ci_insights, configs)
+            profile = self._build_profile_with_llm(platform_data, ci_insights, raw_data, repo_name)
 
         # Enrich from answered threads
         profile = _enrich_from_threads(profile, threads)
@@ -231,24 +243,74 @@ class DiscoveryOrchestrator:
         self,
         platform_data: PlatformData,
         ci_insights: CIInsights | None,
-        configs: tuple[ConfigContent, ...],
+        raw_data: RawProjectData,
+        repo_name: str,
     ) -> ProjectProfile:
-        """Build profile using LLM when deterministic data is insufficient."""
-        prompt = build_interpretation_prompt(platform_data, ci_insights, configs)
+        """Build profile using LLM when deterministic data is insufficient.
+
+        Uses watch-files caching when ``cache_storage`` is configured:
+        if cached result exists and watch-files haven't changed, skips LLM.
+        """
+        # Try cache first
+        cached_result = self._try_cached_llm_result(repo_name)
+        if cached_result is not None:
+            return _merge_llm_result(platform_data, ci_insights, cached_result)
+
+        # Cache miss or stale — call LLM
+        prompt = format_discovery_prompt(raw_data)
         try:
             response = self._llm.generate(
                 prompt,
                 system_prompt=DISCOVERY_SYSTEM_PROMPT,
-                response_schema=LLMDiscoveryResponse,
+                response_schema=LLMDiscoveryResult,
             )
-            llm_result = response.content
-            if not isinstance(llm_result, LLMDiscoveryResponse):
-                logger.warning("LLM returned unexpected type: %s", type(llm_result))
+            content = response.content
+            if not isinstance(content, LLMDiscoveryResult):
+                logger.warning("LLM returned unexpected type: %s", type(content))
                 return _build_fallback_profile(platform_data, ci_insights)
-            return _merge_llm_result(platform_data, ci_insights, llm_result)
+            if content.gaps:
+                for gap in content.gaps:
+                    logger.info("LLM discovery gap: %s", gap.observation)
+            # Store in cache
+            self._store_llm_cache(repo_name, content)
+            return _merge_llm_result(platform_data, ci_insights, content)
         except Exception:
             logger.warning("LLM interpretation failed, using fallback", exc_info=True)
             return _build_fallback_profile(platform_data, ci_insights)
+
+    def _try_cached_llm_result(self, repo_name: str) -> LLMDiscoveryResult | None:
+        """Return cached LLM result if cache is valid, else None."""
+        if self._cache_storage is None:
+            return None
+
+        llm_model = self._llm.model_name
+        rerun, cached = should_rerun_discovery(
+            self._repo, repo_name, self._cache_storage, llm_model=llm_model
+        )
+        if not rerun and cached is not None:
+            return cached.result
+        return None
+
+    def _store_llm_cache(self, repo_name: str, llm_result: LLMDiscoveryResult) -> None:
+        """Store LLM result in cache with watch-files snapshot."""
+        if self._cache_storage is None or not llm_result.watch_files:
+            return
+
+        snapshot = create_watch_files_snapshot(self._repo, repo_name, llm_result.watch_files)
+        llm_model = self._llm.model_name
+        cache_entry = DiscoveryCache(
+            repo_key=repo_name,
+            result=llm_result,
+            watch_files_snapshot=snapshot,
+            created_at=datetime.now(tz=UTC),
+            llm_model=llm_model,
+        )
+        self._cache_storage.put(cache_entry)
+        logger.info(
+            "Cached discovery result for %s (%d watch-files)",
+            repo_name,
+            len(snapshot),
+        )
 
     # ── Conversation ─────────────────────────────────────────────
 
@@ -310,7 +372,7 @@ def _find_ci_files(file_tree: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(matched)
 
 
-def _first_non_none(*values: str | int | None) -> str | int | None:
+def _first_non_none[T](*values: T | None) -> T | None:
     """Return the first non-None value, or None."""
     for v in values:
         if v is not None:
@@ -352,11 +414,11 @@ def _merge_ci_insights(results: list[CIInsights]) -> CIInsights:
         detected_tools=tuple(merged_tools),
         services=tuple(merged_services),
         deployment_targets=tuple(merged_targets),
-        python_version=_first_non_none(*(r.python_version for r in results)),  # type: ignore[arg-type]
-        node_version=_first_non_none(*(r.node_version for r in results)),  # type: ignore[arg-type]
-        go_version=_first_non_none(*(r.go_version for r in results)),  # type: ignore[arg-type]
-        package_manager=_first_non_none(*(r.package_manager for r in results)),  # type: ignore[arg-type]
-        min_coverage=_first_non_none(*(r.min_coverage for r in results)),  # type: ignore[arg-type]
+        python_version=_first_non_none(*(r.python_version for r in results)),
+        node_version=_first_non_none(*(r.node_version for r in results)),
+        go_version=_first_non_none(*(r.go_version for r in results)),
+        package_manager=_first_non_none(*(r.package_manager for r in results)),
+        min_coverage=_first_non_none(*(r.min_coverage for r in results)),
     )
 
 
@@ -369,21 +431,14 @@ def _has_enough_data(ci_insights: CIInsights | None) -> bool:
 
 def _collect_raw_data(
     platform_data: PlatformData,
-    ci_insights: CIInsights | None,
     configs: tuple[ConfigContent, ...],
 ) -> RawProjectData:
     """Collect all deterministic data (0 LLM tokens).
 
     Classifies collected configs into dependency, config, and CI files.
-    CI file contents come from collected configs (variant b — no
-    ``CIInsights.raw_files`` needed).
     """
     config_dict = {cfg.path: cfg.content for cfg in configs}
     dep_files, cfg_files, ci_files = classify_collected_files(config_dict)
-
-    # Also include raw_yaml from CI insights if available and not already present
-    if ci_insights and ci_insights.raw_yaml and ci_insights.ci_file_path:
-        ci_files.setdefault(ci_insights.ci_file_path, ci_insights.raw_yaml)
 
     # Sanitize all file contents to prevent secret leakage to LLM / logs
     ci_files = {p: sanitize_secrets(c) for p, c in ci_files.items()}
@@ -538,22 +593,104 @@ def _build_fallback_profile(
 def _merge_llm_result(
     platform_data: PlatformData,
     ci_insights: CIInsights | None,
-    llm_result: LLMDiscoveryResponse,
+    llm_result: LLMDiscoveryResult,
 ) -> ProjectProfile:
-    """Merge LLM interpretation with deterministic data."""
-    ac = _build_automated_checks(ci_insights) if ci_insights else AutomatedChecks()
+    """Merge LLM interpretation with deterministic data.
+
+    Builds ``AutomatedChecks`` from both CI analysis (if available) and
+    LLM attention zones.  Review guidance is derived from attention zones:
+    well-covered areas go to ``skip``, not/weakly covered go to ``focus``.
+    """
+    ac = _build_automated_checks_from_llm(ci_insights, llm_result)
+    guidance = _build_guidance_from_zones(llm_result.attention_zones)
+
+    # Merge LLM conventions into guidance
+    if llm_result.conventions_detected:
+        guidance = ReviewGuidance(
+            skip_in_review=guidance.skip_in_review,
+            focus_in_review=guidance.focus_in_review,
+            conventions=llm_result.conventions_detected,
+        )
 
     return ProjectProfile(
         platform_data=platform_data,
         ci_insights=ci_insights,
         framework=llm_result.framework,
         automated_checks=ac,
-        guidance=ReviewGuidance(
-            skip_in_review=tuple(llm_result.skip_in_review),
-            focus_in_review=tuple(llm_result.focus_in_review),
-            conventions=tuple(llm_result.conventions),
-        ),
+        guidance=guidance,
         gaps=tuple(llm_result.gaps),
+        attention_zones=llm_result.attention_zones,
+    )
+
+
+def _build_automated_checks_from_llm(
+    ci_insights: CIInsights | None,
+    llm_result: LLMDiscoveryResult,
+) -> AutomatedChecks:
+    """Build AutomatedChecks by combining CI analysis with LLM zones.
+
+    CI-detected tools form the base; LLM zones fill in any gaps
+    (categories that CI analysis missed).
+    """
+    base = _build_automated_checks(ci_insights) if ci_insights else AutomatedChecks()
+
+    # Collect LLM-detected tools by category
+    linting: list[str] = []
+    formatting: list[str] = []
+    type_checking: list[str] = []
+    testing: list[str] = []
+    security: list[str] = []
+
+    area_to_bucket = {
+        "linting": linting,
+        "lint": linting,
+        "static analysis": linting,
+        "formatting": formatting,
+        "format": formatting,
+        "type checking": type_checking,
+        "type_checking": type_checking,
+        "typing": type_checking,
+        "testing": testing,
+        "tests": testing,
+        "security": security,
+        "security scanning": security,
+        "sast": security,
+    }
+
+    for zone in llm_result.attention_zones:
+        bucket = area_to_bucket.get(zone.area.lower())
+        if bucket is not None and zone.status == "well_covered":
+            bucket.extend(zone.tools)
+
+    # Merge: CI base + LLM fills gaps (dedup via set)
+    return AutomatedChecks(
+        linting=tuple(dict.fromkeys(base.linting + tuple(linting))),
+        formatting=tuple(dict.fromkeys(base.formatting + tuple(formatting))),
+        type_checking=tuple(dict.fromkeys(base.type_checking + tuple(type_checking))),
+        testing=tuple(dict.fromkeys(base.testing + tuple(testing))),
+        security=tuple(dict.fromkeys(base.security + tuple(security))),
+    )
+
+
+def _build_guidance_from_zones(
+    zones: tuple[AttentionZone, ...],
+) -> ReviewGuidance:
+    """Derive review guidance from LLM attention zones."""
+    skip: list[str] = []
+    focus: list[str] = []
+
+    for zone in zones:
+        tools_str = f" ({', '.join(zone.tools)})" if zone.tools else ""
+        if zone.status == "well_covered":
+            skip.append(f"{zone.area}{tools_str}")
+        elif zone.status == "not_covered":
+            focus.append(f"{zone.area}{tools_str} — not automated")
+        elif zone.status == "weakly_covered":
+            focus.append(f"{zone.area}{tools_str} — weak coverage")
+
+    return ReviewGuidance(
+        skip_in_review=tuple(skip),
+        focus_in_review=tuple(focus),
     )
 
 

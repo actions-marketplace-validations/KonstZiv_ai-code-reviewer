@@ -57,7 +57,9 @@
 
 | Змінна | Опис | Default |
 |--------|------|---------|
-| `AI_REVIEWER_GEMINI_MODEL` | Модель Gemini | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Модель Gemini | `gemini-2.5-flash` |
+| `AI_REVIEWER_GEMINI_MODEL_FALLBACK` | Fallback модель, коли основна недоступна | `gemini-3-flash-preview` |
+| `AI_REVIEWER_REVIEW_SPLIT_THRESHOLD` | Поріг символів для split review (код+тести окремо) | `30000` |
 
 **Доступні моделі:**
 
@@ -102,12 +104,17 @@
 
 ### Discovery
 
-| Змінна | Опис | Default |
-|--------|------|---------|
-| `AI_REVIEWER_DISCOVERY_ENABLED` | Увімкнути аналіз проєкту перед ревʼю | `true` |
+| Змінна | Опис | Default | Діапазон |
+|--------|------|---------|----------|
+| `AI_REVIEWER_DISCOVERY_ENABLED` | Увімкнути аналіз проєкту перед ревʼю | `true` | true/false |
+| `AI_REVIEWER_DISCOVERY_VERBOSE` | Завжди постити коментар discovery (default: тільки при прогалинах) | `false` | true/false |
+| `AI_REVIEWER_DISCOVERY_TIMEOUT` | Таймаут discovery pipeline у секундах | `30` | 1-300 |
 
 !!! info "Аналіз проєкту"
     Коли увімкнено, AI ReviewBot автоматично аналізує ваш репозиторій (мови, CI pipeline, конфіг-файли) перед кожним ревʼю для розумнішого зворотного звʼязку. Встановіть `false` для вимкнення. Деталі: [Discovery →](discovery.md).
+
+!!! info "Verbose mode"
+    Коли `AI_REVIEWER_DISCOVERY_VERBOSE=true`, коментар discovery завжди поститься і включає всі Attention Zones (Well Covered, Weakly Covered, Not Covered). Default режим постить тільки коли є прогалини або непокриті зони.
 
 ### GitLab
 
@@ -135,7 +142,7 @@ AI_REVIEWER_GITHUB_TOKEN=ghp_...
 # Optional
 AI_REVIEWER_LANGUAGE=uk
 AI_REVIEWER_LANGUAGE_MODE=adaptive
-AI_REVIEWER_GEMINI_MODEL=gemini-3-flash-preview
+AI_REVIEWER_GEMINI_MODEL=gemini-2.5-flash
 AI_REVIEWER_LOG_LEVEL=INFO
 ```
 

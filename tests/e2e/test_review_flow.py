@@ -40,6 +40,7 @@ class TestReviewFlow:
         settings.review_max_files = 5
         settings.review_max_diff_lines = 10
         settings.review_max_comment_chars = 3000
+        settings.review_split_threshold = 30_000
         settings.review_include_bot_comments = True
         settings.review_enable_dialogue = True
         settings.review_post_inline_comments = True
@@ -279,8 +280,11 @@ class TestDiscoveryIntegration:
         settings.review_max_comment_chars = 3000
         settings.review_include_bot_comments = True
         settings.review_enable_dialogue = True
+        settings.review_split_threshold = 30_000
         settings.review_post_inline_comments = True
         settings.discovery_enabled = True
+        settings.discovery_verbose = False
+        settings.discovery_timeout = 30
         settings.language_mode = LanguageMode.FIXED
         settings.language = "en"
         return settings

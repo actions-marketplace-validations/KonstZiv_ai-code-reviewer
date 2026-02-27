@@ -261,6 +261,7 @@ class TestGitHubConversationProvider:
         call_body = mock_pr.create_issue_comment.call_args[0][0]
         assert "Hello!" in call_body
 
+    @pytest.mark.slow
     def test_post_question_comment_rate_limit(self, client: GitHubClient) -> None:
         """Test rate limit raises RateLimitError."""
         client.github.get_repo.side_effect = RateLimitExceededException(
