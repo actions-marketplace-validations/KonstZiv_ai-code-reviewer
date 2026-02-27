@@ -4,20 +4,24 @@
 > Beta-2 середній рівень, Beta-3 — загальна візія.
 >
 > Цей документ оновлюється після кожного спринту.
-> Останнє оновлення: після планування Beta-0.5.
+> Останнє оновлення: після завершення Beta-0.5 (2026-02-27).
 
 ---
 
 ## Sprint Beta-1: Deep Context + Framework Intelligence (20-28h)
 
-### 🔙 Що матимемо після Beta-0.5
+### 🔙 Що матимемо після Beta-0.5 (фактичне)
 
 - Three attention zones (well / not / weakly covered)
-- LLM-driven discovery з watch-files caching
+- LLM-driven discovery з watch-files caching (SHA-256 snapshots)
 - MR-aware: diff languages, new deps detection
 - Dynamic review prompt з SKIP/FOCUS/CHECK інструкціями
-- `ai-review discover` CLI
-- ConversationProvider ABC (foundation — post questions, read threads)
+- `ai-review discover` CLI (standalone discovery)
+- **Fallback model** — автоматичне переключення при quota exhaustion
+- **Split review** — великі diff (>30K chars) розбиваються на code + tests
+- **Discovery timeout** (30s default) + **verbose mode**
+- ConversationProvider ABC (foundation — post questions, read threads; без розширення в Beta-0.5)
+- Docs synced across 6 languages
 - Clean codebase ready for v1.0.0b1
 
 ### 🎯 Мета Beta-1
@@ -69,11 +73,11 @@ DJANGO_HINTS = [
 - Discovery metrics: tokens used, cache hit rate, zones distribution
 - Usage footer в review comment (opt-in)
 
-**Phase 5: Stability (3-4h)**
+**Phase 5: Stability & DX (2-3h)** _(скорочено: fallback model + timeout вже зроблено в Beta-0.5)_
 - Edge cases від реального використання
-- Error handling hardening
-- Performance profiling
-- Documentation для contributors
+- Error handling hardening (partially done: fallback model, discovery timeout)
+- Doc-code sync CI check (Beta-0.5 lesson: 22 розбіжності за один спринт)
+- `ai-review discover --generate-config` — bootstrap `.reviewbot.md` з результатів discovery
 
 ### Definition of Done (Beta-1)
 
@@ -95,6 +99,7 @@ DJANGO_HINTS = [
 - Deep linked tasks
 - Persistent cache
 - Mature ConversationProvider
+- Split review primitive (від Beta-0.5 — foundation для scout)
 
 ### 🎯 Мета Beta-2
 
@@ -106,6 +111,8 @@ DJANGO_HINTS = [
 3. **Deep review** — детальний аналіз priority файлів з context
 
 ### Ключові ідеї
+
+**Foundation від Beta-0.5:** `review_split_threshold` вже розбиває великі diff на code + tests. Beta-2 може розширити цю логіку до повноцінного scout → prioritize → deep review замість будувати з нуля.
 
 **File Prioritization (edge case 5 з Beta-0.5):**
 ```
@@ -217,12 +224,14 @@ Bot: "✅ SQL тепер параметризований. Виглядає до
 ## Загальна карта
 
 ```
-                Beta-0 (done, 85%)          Beta-0.5 (current)
+                Beta-0 (done)               Beta-0.5 (done ✅)
                 ─────────────────           ──────────────────
                 3 ABCs                      LLM Discovery
                 Discovery pipeline          Three attention zones
                 ConversationProvider        Watch-files caching
                 12K tests                   MR-aware, dynamic prompt
+                                            Fallback model, split review
+                                            discover CLI, 6-lang docs
 
                 Beta-1                      Beta-2
                 ──────                      ──────
@@ -244,7 +253,8 @@ Bot: "✅ SQL тепер параметризований. Виглядає до
 | Sprint | Tokens per MR (typical) | Кешовано |
 |--------|------------------------|---------|
 | Beta-0 | 0 (no LLM in discovery) | — |
-| Beta-0.5 | ~500 (discovery) + ~1000 (review) | Watch-files: 0 after first |
-| Beta-1 | ~800 + ~1000 | Same + persistent |
+| Beta-0.5 | ~200 (discovery) + ~1500 (review) | Watch-files: 0 after first run |
+| Beta-0.5 split | ~200 + ~2×800 (code+tests) | Same, for large diffs >30K chars |
+| Beta-1 | ~400 (with framework hints) + ~1500 | Same + persistent file cache |
 | Beta-2 | ~1200-1500 (scout+deep) | Priority = less waste |
 | Beta-3 | +~200 per dialogue turn | Incremental |
