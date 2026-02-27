@@ -156,6 +156,8 @@ class Settings(BaseSettings):
             Limits context size to avoid token limits.
         review_max_diff_lines: Maximum diff lines per file to include.
             Limits context size for large changes.
+        review_split_threshold: Prompt char count above which the review is
+            split into separate code and test passes.
         api_timeout: API request timeout in seconds.
             Limits how long to wait for API responses.
         language: Default language for review responses.
@@ -247,6 +249,15 @@ class Settings(BaseSettings):
         le=5000,
         validation_alias=AliasChoices("AI_REVIEWER_REVIEW_MAX_DIFF_LINES", "REVIEW_MAX_DIFF_LINES"),
         description="Maximum diff lines per file to include",
+    )
+    review_split_threshold: int = Field(
+        default=30_000,
+        gt=0,
+        le=200_000,
+        validation_alias=AliasChoices(
+            "AI_REVIEWER_REVIEW_SPLIT_THRESHOLD", "REVIEW_SPLIT_THRESHOLD"
+        ),
+        description="Prompt char count above which review is split into code + tests",
     )
 
     # API timeout configuration

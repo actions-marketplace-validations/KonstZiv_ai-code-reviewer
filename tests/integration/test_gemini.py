@@ -118,6 +118,7 @@ class TestAnalyzeCodeChanges:
         settings.gemini_model_fallback = "gemini-2.5-flash"
         settings.review_max_files = 5
         settings.review_max_diff_lines = 10
+        settings.review_split_threshold = 30_000
         return settings
 
     @pytest.fixture

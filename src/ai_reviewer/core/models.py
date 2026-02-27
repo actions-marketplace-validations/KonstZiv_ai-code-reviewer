@@ -420,6 +420,10 @@ class ReviewResult(BaseModel):
         default="", description="Explanation of task alignment assessment"
     )
     summary: str = Field(default="", description="Brief summary of the review")
+    code_summary: str = Field(
+        default="",
+        description="Compressed summary of code changes for cross-referencing test review",
+    )
     detected_language: str = Field(
         default="en", description="ISO 639 language code used for the review"
     )
