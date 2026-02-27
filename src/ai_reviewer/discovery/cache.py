@@ -54,7 +54,7 @@ class DiscoveryCache(BaseModel):
         ..., description="Watched file path to SHA-256 hash"
     )
     created_at: datetime = Field(..., description="Cache creation timestamp")
-    llm_model: str = Field(default="", description="LLM model used for cached result")
+    llm_model: str | None = Field(default=None, description="LLM model used for cached result")
 
 
 # ── Storage interface ────────────────────────────────────────────────
@@ -144,7 +144,7 @@ def should_rerun_discovery(
     repo_key: str,
     cache_storage: DiscoveryCacheStorage,
     *,
-    llm_model: str = "",
+    llm_model: str | None = None,
 ) -> tuple[bool, DiscoveryCache | None]:
     """Check if cached discovery result is still valid.
 
@@ -152,8 +152,8 @@ def should_rerun_discovery(
         repo: Repository provider for fetching file content.
         repo_key: Repository identifier.
         cache_storage: Cache storage backend.
-        llm_model: Current LLM model name. If different from cached,
-            forces re-run.
+        llm_model: Current LLM model name. If ``None``, model comparison
+            is skipped. If different from cached, forces re-run.
 
     Returns:
         Tuple of (should_rerun, cached_entry).

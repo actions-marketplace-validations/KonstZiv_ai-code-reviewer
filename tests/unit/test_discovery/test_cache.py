@@ -226,13 +226,13 @@ class TestShouldRerunDiscovery:
     def test_no_model_specified_skips_model_check(
         self, mock_repo: MagicMock, sample_cache: DiscoveryCache
     ) -> None:
-        """Empty llm_model → skip model comparison, check files."""
+        """None llm_model → skip model comparison, check files."""
         storage = InMemoryDiscoveryCache()
         storage.put(sample_cache)
 
         mock_repo.get_file_content.side_effect = ["old-content", "ci-content"]
 
-        rerun, cached = should_rerun_discovery(mock_repo, "owner/repo", storage, llm_model="")
+        rerun, cached = should_rerun_discovery(mock_repo, "owner/repo", storage)
 
         assert rerun is False
         assert cached == sample_cache
