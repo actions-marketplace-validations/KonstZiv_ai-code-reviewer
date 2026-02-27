@@ -7,9 +7,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from ai_reviewer.discovery.models import (
+    AttentionZone,
     CIInsights,
     DetectedTool,
     Gap,
+    LLMDiscoveryResult,
     ToolCategory,
 )
 from ai_reviewer.discovery.orchestrator import (
@@ -23,7 +25,6 @@ from ai_reviewer.discovery.orchestrator import (
     _infer_ci_provider,
     _merge_ci_insights,
 )
-from ai_reviewer.discovery.prompts import LLMDiscoveryResponse
 from ai_reviewer.integrations.conversation import (
     BotQuestion,
     BotThread,
@@ -351,11 +352,22 @@ class TestScenarioNoCI:
         mock_repo.get_file_content.return_value = None
 
         llm_response = LLMResponse(
-            content=LLMDiscoveryResponse(
+            content=LLMDiscoveryResult(
+                attention_zones=(
+                    AttentionZone(
+                        area="formatting",
+                        status="well_covered",
+                        tools=("ruff",),
+                        reason="ruff format in CI",
+                    ),
+                    AttentionZone(
+                        area="security",
+                        status="not_covered",
+                        reason="No SAST tool",
+                    ),
+                ),
                 framework="FastAPI",
-                skip_in_review=["formatting"],
-                focus_in_review=["security"],
-                conventions=["Google docstrings"],
+                conventions_detected=("Google docstrings",),
             ),
         )
         mock_llm.generate.return_value = llm_response
@@ -365,7 +377,9 @@ class TestScenarioNoCI:
 
         mock_llm.generate.assert_called_once()
         assert profile.framework == "FastAPI"
-        assert "formatting" in profile.guidance.skip_in_review
+        assert any("formatting" in s for s in profile.guidance.skip_in_review)
+        assert any("security" in f for f in profile.guidance.focus_in_review)
+        assert "Google docstrings" in profile.guidance.conventions
 
 
 class TestScenarioReviewbotMd:
@@ -402,14 +416,14 @@ class TestScenarioWithAnswers:
         mock_repo.get_file_content.return_value = None
 
         llm_response = LLMResponse(
-            content=LLMDiscoveryResponse(
-                gaps=[
+            content=LLMDiscoveryResult(
+                gaps=(
                     Gap(
                         observation="No test framework",
                         question="What test framework?",
                         default_assumption="No tests",
                     ),
-                ],
+                ),
             ),
         )
         mock_llm.generate.return_value = llm_response
@@ -469,7 +483,7 @@ class TestScenarioGracefulDegradation:
         mock_repo.get_file_content.return_value = None
         mock_conversation.get_bot_threads.side_effect = RuntimeError("API down")
 
-        llm_response = LLMResponse(content=LLMDiscoveryResponse())
+        llm_response = LLMResponse(content=LLMDiscoveryResult())
         mock_llm.generate.return_value = llm_response
 
         orch = DiscoveryOrchestrator(mock_repo, mock_conversation, mock_llm)

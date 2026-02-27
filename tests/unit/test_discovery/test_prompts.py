@@ -2,107 +2,134 @@
 
 from __future__ import annotations
 
-from ai_reviewer.discovery.config_collector import ConfigContent
+import pytest
+from pydantic import ValidationError
+
 from ai_reviewer.discovery.models import (
-    CIInsights,
-    DetectedTool,
+    AttentionZone,
     Gap,
-    PlatformData,
-    ToolCategory,
+    LLMDiscoveryResult,
+    RawProjectData,
 )
 from ai_reviewer.discovery.prompts import (
     DISCOVERY_SYSTEM_PROMPT,
-    LLMDiscoveryResponse,
-    build_interpretation_prompt,
+    format_discovery_prompt,
 )
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
-def _make_platform_data(
-    *,
-    languages: dict[str, float] | None = None,
-    topics: tuple[str, ...] = (),
-    description: str | None = None,
-) -> PlatformData:
-    return PlatformData(
-        languages=languages or {"Python": 85.0, "Shell": 15.0},
-        primary_language="Python",
-        topics=topics,
-        description=description,
-    )
+def _make_raw_data(**overrides: object) -> RawProjectData:
+    """Build RawProjectData with sensible defaults."""
+    defaults: dict[str, object] = {
+        "languages": {"Python": 85.0, "Shell": 15.0},
+        "file_tree": ("src/main.py", "pyproject.toml"),
+        "file_tree_truncated": False,
+        "ci_files": {},
+        "dependency_files": {},
+        "config_files": {},
+        "detected_package_managers": (),
+        "layout": None,
+    }
+    defaults.update(overrides)
+    return RawProjectData(**defaults)  # type: ignore[arg-type]
 
 
-def _make_ci_insights(
-    *,
-    tools: tuple[DetectedTool, ...] = (),
-    python_version: str | None = "3.13",
-    package_manager: str | None = "uv",
-    services: tuple[str, ...] = (),
-    min_coverage: int | None = None,
-) -> CIInsights:
-    return CIInsights(
-        ci_file_path=".github/workflows/ci.yml",
-        detected_tools=tools,
-        python_version=python_version,
-        package_manager=package_manager,
-        services=services,
-        min_coverage=min_coverage,
-    )
+# ── TestAttentionZone ────────────────────────────────────────────────
 
 
-def _make_config(
-    path: str = "pyproject.toml",
-    content: str = "[tool.ruff]\nline-length = 88\n",
-    *,
-    truncated: bool = False,
-) -> ConfigContent:
-    return ConfigContent(
-        path=path,
-        content=content,
-        size_chars=len(content),
-        truncated=truncated,
-    )
+class TestAttentionZone:
+    """Tests for the AttentionZone model."""
+
+    def test_minimal(self) -> None:
+        zone = AttentionZone(area="formatting", status="well_covered")
+        assert zone.area == "formatting"
+        assert zone.status == "well_covered"
+        assert zone.tools == ()
+        assert zone.reason == ""
+        assert zone.recommendation == ""
+
+    def test_full(self) -> None:
+        zone = AttentionZone(
+            area="testing",
+            status="weakly_covered",
+            tools=("pytest",),
+            reason="pytest runs but no coverage threshold",
+            recommendation="Add --cov-fail-under=80",
+        )
+        assert zone.tools == ("pytest",)
+        assert "coverage" in zone.reason
+
+    def test_frozen(self) -> None:
+        zone = AttentionZone(area="linting", status="well_covered")
+        with pytest.raises(ValidationError):
+            zone.area = "other"  # type: ignore[misc]
 
 
-# ── TestLLMDiscoveryResponse ─────────────────────────────────────────
+# ── TestLLMDiscoveryResult ───────────────────────────────────────────
 
 
-class TestLLMDiscoveryResponse:
-    """Tests for the LLM response model."""
+class TestLLMDiscoveryResult:
+    """Tests for the LLM result model."""
 
     def test_defaults(self) -> None:
-        resp = LLMDiscoveryResponse()
-        assert resp.framework is None
-        assert resp.architecture_notes is None
-        assert resp.skip_in_review == []
-        assert resp.focus_in_review == []
-        assert resp.conventions == []
-        assert resp.gaps == []
+        result = LLMDiscoveryResult()
+        assert result.attention_zones == ()
+        assert result.framework is None
+        assert result.framework_confidence == 0.0
+        assert result.stack_summary == ""
+        assert result.watch_files == ()
+        assert result.conventions_detected == ()
+        assert result.security_concerns == ()
+        assert result.gaps == ()
 
     def test_full_response(self) -> None:
-        resp = LLMDiscoveryResponse(
+        result = LLMDiscoveryResult(
+            attention_zones=(
+                AttentionZone(
+                    area="formatting",
+                    status="well_covered",
+                    tools=("ruff",),
+                    reason="ruff format enforced in CI",
+                ),
+                AttentionZone(
+                    area="security",
+                    status="not_covered",
+                    reason="No SAST tool found",
+                    recommendation="Add bandit or semgrep",
+                ),
+            ),
             framework="Django 5.1",
-            architecture_notes="Monolith with REST API",
-            skip_in_review=["formatting", "type errors"],
-            focus_in_review=["security", "SQL queries"],
-            conventions=["Google docstrings"],
-            gaps=[Gap(observation="No SAST", default_assumption="No security scanning")],
+            framework_confidence=0.95,
+            stack_summary="Python 3.13 + Django 5.1 + PostgreSQL",
+            watch_files=(".github/workflows/ci.yml", "pyproject.toml"),
+            conventions_detected=("ruff: line-length=120", "mypy: strict=true"),
+            security_concerns=("No dependency scanning",),
+            gaps=(Gap(observation="No SAST", default_assumption="No security scanning"),),
         )
-        assert resp.framework == "Django 5.1"
-        assert len(resp.skip_in_review) == 2
-        assert len(resp.gaps) == 1
-        assert resp.gaps[0].observation == "No SAST"
+        assert result.framework == "Django 5.1"
+        assert len(result.attention_zones) == 2
+        assert result.attention_zones[0].status == "well_covered"
+        assert result.attention_zones[1].status == "not_covered"
+        assert len(result.gaps) == 1
 
     def test_json_roundtrip(self) -> None:
-        resp = LLMDiscoveryResponse(
+        result = LLMDiscoveryResult(
+            attention_zones=(
+                AttentionZone(area="linting", status="well_covered", tools=("ruff",)),
+            ),
             framework="FastAPI",
-            skip_in_review=["formatting"],
-            conventions=["Conventional commits"],
+            conventions_detected=("Conventional commits",),
         )
-        data = resp.model_dump_json()
-        parsed = LLMDiscoveryResponse.model_validate_json(data)
-        assert parsed == resp
+        data = result.model_dump_json()
+        parsed = LLMDiscoveryResult.model_validate_json(data)
+        assert parsed == result
+
+    def test_framework_confidence_bounds(self) -> None:
+        with pytest.raises(ValidationError):
+            LLMDiscoveryResult(framework_confidence=1.5)
+        with pytest.raises(ValidationError):
+            LLMDiscoveryResult(framework_confidence=-0.1)
 
 
 # ── TestDiscoverySystemPrompt ────────────────────────────────────────
@@ -121,115 +148,101 @@ class TestDiscoverySystemPrompt:
         assert "json" in DISCOVERY_SYSTEM_PROMPT.lower()
 
 
-# ── TestBuildInterpretationPrompt ────────────────────────────────────
+# ── TestFormatDiscoveryPrompt ────────────────────────────────────────
 
 
-class TestBuildInterpretationPrompt:
-    """Tests for build_interpretation_prompt."""
+class TestFormatDiscoveryPrompt:
+    """Tests for format_discovery_prompt."""
 
     def test_minimal_prompt(self) -> None:
-        pd = _make_platform_data()
-        result = build_interpretation_prompt(pd, None, ())
-        assert "# Project Setup Analysis" in result
-        assert "Python" in result
-        assert "## CI Tools" not in result
-        assert "## Config Files" not in result
+        raw = _make_raw_data()
+        result = format_discovery_prompt(raw)
+        assert "Languages:" in result
+        assert "Python (85%)" in result
+        assert "(none found)" in result
 
-    def test_includes_language_distribution(self) -> None:
-        pd = _make_platform_data(languages={"Python": 85.0, "Shell": 15.0})
-        result = build_interpretation_prompt(pd, None, ())
+    def test_includes_languages(self) -> None:
+        raw = _make_raw_data(languages={"Python": 85.0, "Shell": 15.0})
+        result = format_discovery_prompt(raw)
         assert "Python (85%)" in result
         assert "Shell (15%)" in result
 
-    def test_includes_topics(self) -> None:
-        pd = _make_platform_data(topics=("code-review", "ai", "python"))
-        result = build_interpretation_prompt(pd, None, ())
-        assert "code-review" in result
-        assert "ai" in result
-
-    def test_includes_description(self) -> None:
-        pd = _make_platform_data(description="AI code review bot")
-        result = build_interpretation_prompt(pd, None, ())
-        assert "AI code review bot" in result
-
-    def test_includes_ci_insights(self) -> None:
-        pd = _make_platform_data()
-        ci = _make_ci_insights(
-            tools=(
-                DetectedTool(name="ruff", category=ToolCategory.LINTING),
-                DetectedTool(name="mypy", category=ToolCategory.TYPE_CHECKING),
-            ),
-            services=("postgres", "redis"),
-            min_coverage=80,
-        )
-        result = build_interpretation_prompt(pd, ci, ())
-        assert "ruff" in result
-        assert "mypy" in result
-        assert "Python: 3.13" in result
+    def test_includes_package_managers(self) -> None:
+        raw = _make_raw_data(detected_package_managers=("uv", "npm"))
+        result = format_discovery_prompt(raw)
         assert "uv" in result
-        assert "postgres" in result
-        assert "80%" in result
+        assert "npm" in result
 
-    def test_includes_node_and_go_versions(self) -> None:
-        pd = _make_platform_data()
-        ci = CIInsights(
-            ci_file_path=".github/workflows/ci.yml",
-            node_version="22.x",
-            go_version="1.22",
-            python_version=None,
-            package_manager=None,
-        )
-        result = build_interpretation_prompt(pd, ci, ())
-        assert "Node: 22.x" in result
-        assert "Go: 1.22" in result
+    def test_includes_layout(self) -> None:
+        raw = _make_raw_data(layout="monorepo")
+        result = format_discovery_prompt(raw)
+        assert "monorepo" in result
+
+    def test_includes_ci_files(self) -> None:
+        raw = _make_raw_data(ci_files={".github/workflows/ci.yml": "name: CI\non: [push]"})
+        result = format_discovery_prompt(raw)
+        assert "### .github/workflows/ci.yml" in result
+        assert "name: CI" in result
+
+    def test_includes_dependency_files(self) -> None:
+        raw = _make_raw_data(dependency_files={"pyproject.toml": "[project]\nname = 'test'"})
+        result = format_discovery_prompt(raw)
+        assert "### pyproject.toml" in result
 
     def test_includes_config_files(self) -> None:
-        pd = _make_platform_data()
-        configs = (
-            _make_config("pyproject.toml", "[tool.ruff]\nline-length = 88"),
-            _make_config("tsconfig.json", '{"strict": true}'),
+        raw = _make_raw_data(config_files={"ruff.toml": "line-length = 120"})
+        result = format_discovery_prompt(raw)
+        assert "### ruff.toml" in result
+        assert "line-length = 120" in result
+
+    def test_includes_file_tree(self) -> None:
+        raw = _make_raw_data(file_tree=("src/main.py", "tests/test_main.py"))
+        result = format_discovery_prompt(raw)
+        assert "src/main.py" in result
+        assert "tests/test_main.py" in result
+
+    def test_truncated_tree_noted(self) -> None:
+        raw = _make_raw_data(
+            file_tree=tuple(f"file_{i}.py" for i in range(200)),
+            file_tree_truncated=True,
         )
-        result = build_interpretation_prompt(pd, None, configs)
-        assert "### pyproject.toml" in result
-        assert "line-length = 88" in result
-        assert "### tsconfig.json" in result
+        result = format_discovery_prompt(raw)
+        assert "truncated" in result
+        assert "200 total files" in result
 
-    def test_truncated_config_noted(self) -> None:
-        pd = _make_platform_data()
-        configs = (_make_config("big.toml", "x" * 100, truncated=True),)
-        result = build_interpretation_prompt(pd, None, configs)
-        assert "(truncated)" in result
+    def test_includes_instructions(self) -> None:
+        raw = _make_raw_data()
+        result = format_discovery_prompt(raw)
+        assert "attention_zones" in result
+        assert "framework" in result
+        assert "watch_files" in result
+        assert "conventions_detected" in result
+        assert "security_concerns" in result
 
-    def test_includes_task_section(self) -> None:
-        pd = _make_platform_data()
-        result = build_interpretation_prompt(pd, None, ())
-        assert "## Task" in result
-        assert "Framework" in result
-        assert "SKIP" in result
-        assert "FOCUS" in result
-        assert "conventions" in result.lower()
+    def test_empty_raw_data(self) -> None:
+        raw = RawProjectData()
+        result = format_discovery_prompt(raw)
+        assert "unknown" in result  # languages unknown
+        assert "(empty)" in result  # file tree empty
+
+    def test_top_5_languages_only(self) -> None:
+        langs = {f"Lang{i}": float(20 - i) for i in range(8)}
+        raw = _make_raw_data(languages=langs)
+        result = format_discovery_prompt(raw)
+        # Only top 5 should appear
+        assert "Lang0" in result
+        assert "Lang4" in result
+        assert "Lang5" not in result
 
     def test_full_prompt_under_token_estimate(self) -> None:
         """Full prompt with typical data should stay compact."""
-        pd = _make_platform_data(
-            topics=("python", "code-review"),
-            description="AI reviewer",
+        raw = _make_raw_data(
+            ci_files={".github/workflows/ci.yml": "name: CI\nsteps:\n  - run: pytest"},
+            dependency_files={"pyproject.toml": "[tool.ruff]\nline-length = 88\n" * 5},
+            config_files={"ruff.toml": "line-length = 88"},
+            detected_package_managers=("uv",),
+            layout="src",
         )
-        ci = _make_ci_insights(
-            tools=(
-                DetectedTool(name="ruff", category=ToolCategory.LINTING),
-                DetectedTool(name="mypy", category=ToolCategory.TYPE_CHECKING),
-                DetectedTool(name="pytest", category=ToolCategory.TESTING),
-            ),
-            min_coverage=80,
-        )
-        configs = (_make_config("pyproject.toml", "[tool.ruff]\nline-length = 88\n" * 5),)
-        result = build_interpretation_prompt(pd, ci, configs)
-        # Rough estimate: 1 token ~ 4 chars; should be well under 2000 tokens
-        assert len(result) < 8000
-
-    def test_no_ci_tools_says_none(self) -> None:
-        pd = _make_platform_data()
-        ci = _make_ci_insights(tools=())
-        result = build_interpretation_prompt(pd, ci, ())
-        assert "none detected" in result
+        result = format_discovery_prompt(raw)
+        # Rough estimate: 1 token ~ 4 chars; should be well under 1000 tokens
+        assert len(result) < 4000

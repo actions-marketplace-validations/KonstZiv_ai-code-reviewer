@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Retry configuration
-MAX_ATTEMPTS = 5
+MAX_ATTEMPTS = 3
 MIN_WAIT_SECONDS = 4
 MAX_WAIT_SECONDS = 60
 
@@ -257,7 +257,7 @@ def with_retry[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     exponential backoff. Does NOT retry on client errors (4xx).
 
     Configuration:
-        - Max attempts: 5
+        - Max attempts: 3
         - Wait: exponential backoff (4s to 60s)
         - Retryable: RateLimitError, ServerError
 

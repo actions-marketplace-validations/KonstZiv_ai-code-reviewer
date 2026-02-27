@@ -10,6 +10,7 @@ This module handles the construction of prompts for the LLM, including:
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
@@ -544,3 +545,105 @@ def build_review_prompt(context: ReviewContext, settings: Settings) -> str:
         parts.append(f"\n... [Skipped {skipped_files_count} more files due to limit]")
 
     return "\n".join(parts)
+
+
+# ── Split review support ─────────────────────────────────────────────
+
+_TEST_FILE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"(^|/)tests?/"),
+    re.compile(r"(^|/)spec/"),
+    re.compile(r"(^|/)__tests__/"),
+    re.compile(r"/test_[^/]+$"),
+    re.compile(r"/[^/]+_test\.[^/]+$"),
+    re.compile(r"/[^/]+\.test\.[^/]+$"),
+    re.compile(r"/[^/]+\.spec\.[^/]+$"),
+    re.compile(r"(^|/)conftest\.py$"),
+)
+
+
+def is_test_file(filename: str) -> bool:
+    """Determine whether a file path is a test file.
+
+    Args:
+        filename: Relative file path from repository root.
+
+    Returns:
+        True if the file matches common test file patterns.
+    """
+    return any(p.search(filename) for p in _TEST_FILE_PATTERNS)
+
+
+def partition_changes(
+    changes: tuple[FileChange, ...],
+) -> tuple[tuple[FileChange, ...], tuple[FileChange, ...]]:
+    """Split file changes into production code and test files.
+
+    Args:
+        changes: All file changes from the MR.
+
+    Returns:
+        Tuple of (production_changes, test_changes).
+    """
+    prod: list[FileChange] = []
+    tests: list[FileChange] = []
+    for change in changes:
+        if is_test_file(change.filename):
+            tests.append(change)
+        else:
+            prod.append(change)
+    return tuple(prod), tuple(tests)
+
+
+CODE_SUMMARY_INSTRUCTION = """
+
+## Additional Instruction: Code Summary
+In your response, include a `code_summary` field: a compressed 200-500 character \
+description of the production code changes, key decisions, and patterns. \
+This will be provided to a second review pass that analyzes test files.\
+"""
+
+_CODE_SUMMARY_SECTION = """\
+
+## Previously Reviewed Production Code
+The following is a compressed summary of the production code changes \
+that were reviewed in a prior pass. Use this to understand the context \
+when reviewing tests.
+
+{code_summary}
+"""
+
+
+def build_split_review_prompt(
+    context: ReviewContext,
+    settings: Settings,
+    changes: tuple[FileChange, ...],
+    *,
+    code_summary: str = "",
+) -> str:
+    """Build a review prompt for a subset of file changes.
+
+    Same structure as ``build_review_prompt`` but operates on an explicit
+    set of changes and optionally prepends a code summary section.
+
+    Args:
+        context: The full review context.
+        settings: Application settings.
+        changes: Subset of file changes to include.
+        code_summary: Summary from prior code review pass (empty for first pass).
+
+    Returns:
+        The constructed prompt string.
+    """
+    mr_subset = context.mr.model_copy(update={"changes": changes})
+    ctx_subset = context.model_copy(update={"mr": mr_subset})
+
+    prompt = build_review_prompt(ctx_subset, settings)
+
+    if code_summary:
+        marker = "\n## Code Changes"
+        idx = prompt.find(marker)
+        if idx != -1:
+            section = _CODE_SUMMARY_SECTION.format(code_summary=code_summary)
+            prompt = prompt[:idx] + section + prompt[idx:]
+
+    return prompt

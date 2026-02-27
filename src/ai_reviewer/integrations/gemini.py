@@ -15,8 +15,14 @@ import logging
 import warnings
 from typing import TYPE_CHECKING
 
-from ai_reviewer.core.models import ReviewMetrics, ReviewResult
-from ai_reviewer.integrations.prompts import SYSTEM_PROMPT, build_review_prompt
+from ai_reviewer.core.models import ReviewMetrics, ReviewResult, TaskAlignmentStatus
+from ai_reviewer.integrations.prompts import (
+    CODE_SUMMARY_INSTRUCTION,
+    SYSTEM_PROMPT,
+    build_review_prompt,
+    build_split_review_prompt,
+    partition_changes,
+)
 from ai_reviewer.llm.gemini import (
     DEFAULT_MODEL,
     DEFAULT_PRICING,
@@ -30,7 +36,7 @@ if TYPE_CHECKING:
     from pydantic import SecretStr
 
     from ai_reviewer.core.config import Settings
-    from ai_reviewer.core.models import ReviewContext
+    from ai_reviewer.core.models import FileChange, ReviewContext
 
 logger = logging.getLogger(__name__)
 
@@ -97,13 +103,18 @@ class GeminiClient:
         return result.model_copy(update={"metrics": metrics})
 
 
+# ── Public API ────────────────────────────────────────────────────────
+
+
 def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewResult:
     """Analyze code changes using Gemini with automatic model fallback.
 
-    This function orchestrates the review process:
-    1. Builds the prompt from the context.
-    2. Tries the primary model.
-    3. On retryable failure, falls back to the secondary model (if configured).
+    When the prompt exceeds ``settings.review_split_threshold`` characters
+    and the MR contains both production and test files, the review is
+    performed in two sequential LLM requests:
+
+    1. Production code (with ``code_summary`` instruction).
+    2. Test files (with the ``code_summary`` as context).
 
     Args:
         context: The review context (MR, task, etc.).
@@ -114,19 +125,55 @@ def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewRe
     """
     logger.info("Starting code analysis for PR #%s", context.mr.number)
 
-    # 1. Build prompt
+    # 1. Build full prompt to measure size
     prompt = build_review_prompt(context, settings)
     logger.debug("Generated prompt of length %d chars", len(prompt))
 
-    api_key = settings.google_api_key.get_secret_value()
+    # 2. Check if splitting is needed
+    if len(prompt) > settings.review_split_threshold:
+        prod_changes, test_changes = partition_changes(context.mr.changes)
+        if prod_changes and test_changes:
+            logger.info(
+                "Prompt size %d > threshold %d; splitting review: "
+                "%d production file(s), %d test file(s)",
+                len(prompt),
+                settings.review_split_threshold,
+                len(prod_changes),
+                len(test_changes),
+            )
+            return _analyze_split(context, settings, prod_changes, test_changes)
+
+    # 3. Single-pass review (under threshold or all-one-type)
+    return _analyze_single(settings, prompt)
+
+
+# ── Internal helpers ──────────────────────────────────────────────────
+
+
+def _call_llm(
+    api_key: str,
+    settings: Settings,
+    prompt: str,
+    system_prompt: str,
+) -> ReviewResult:
+    """Call Gemini with fallback logic (shared by single and split paths).
+
+    Args:
+        api_key: Google API key (plain string).
+        settings: Application settings.
+        prompt: User prompt.
+        system_prompt: System prompt.
+
+    Returns:
+        ReviewResult with metrics attached.
+    """
     fallback_reason: str | None = None
 
-    # 2. Try primary model
     try:
         provider = GeminiProvider(api_key=api_key, model_name=settings.gemini_model)
         response = provider.generate(
             prompt,
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=system_prompt,
             response_schema=ReviewResult,
         )
     except (ServerError, RateLimitError, QuotaExhaustedError) as primary_err:
@@ -140,21 +187,19 @@ def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewRe
             settings.gemini_model_fallback,
         )
         fallback_reason = f"{settings.gemini_model} \u2192 {type(primary_err).__name__}"
-        # 3. Try fallback model
         fallback_provider = GeminiProvider(
             api_key=api_key,
             model_name=settings.gemini_model_fallback,
         )
         response = fallback_provider.generate(
             prompt,
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=system_prompt,
             response_schema=ReviewResult,
         )
 
     result = response.content
     assert isinstance(result, ReviewResult)  # guaranteed by response_schema
 
-    # 4. Map LLMResponse metrics → ReviewMetrics
     metrics = ReviewMetrics(
         model_name=response.model_name,
         prompt_tokens=response.prompt_tokens,
@@ -165,10 +210,142 @@ def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewRe
         fallback_reason=fallback_reason,
     )
 
-    result = result.model_copy(update={"metrics": metrics})
-    logger.info("Analysis complete. Found %d issues.", result.issue_count)
+    return result.model_copy(update={"metrics": metrics})
 
+
+def _analyze_single(
+    settings: Settings,
+    prompt: str,
+) -> ReviewResult:
+    """Perform single-pass review (original behavior).
+
+    Args:
+        settings: Application settings.
+        prompt: Pre-built review prompt.
+
+    Returns:
+        Review result with metrics.
+    """
+    api_key = settings.google_api_key.get_secret_value()
+    result = _call_llm(api_key, settings, prompt, SYSTEM_PROMPT)
+    logger.info("Analysis complete. Found %d issues.", result.issue_count)
     return result
+
+
+def _analyze_split(
+    context: ReviewContext,
+    settings: Settings,
+    prod_changes: tuple[FileChange, ...],
+    test_changes: tuple[FileChange, ...],
+) -> ReviewResult:
+    """Perform two-pass split review: production code then tests.
+
+    Pass 1 reviews production code and generates a compressed summary.
+    Pass 2 reviews test files using that summary as context.
+
+    Args:
+        context: Full review context.
+        settings: Application settings.
+        prod_changes: Production file changes.
+        test_changes: Test file changes.
+
+    Returns:
+        Merged review result from both passes.
+    """
+    api_key = settings.google_api_key.get_secret_value()
+
+    # Pass 1: Production code with code_summary instruction
+    code_prompt = build_split_review_prompt(context, settings, prod_changes)
+    system_with_summary = SYSTEM_PROMPT + CODE_SUMMARY_INSTRUCTION
+
+    code_result = _call_llm(api_key, settings, code_prompt, system_with_summary)
+    logger.info(
+        "Code pass complete: %d issue(s), summary %d chars",
+        code_result.issue_count,
+        len(code_result.code_summary),
+    )
+
+    # Pass 2: Test files with code_summary context
+    test_prompt = build_split_review_prompt(
+        context, settings, test_changes, code_summary=code_result.code_summary
+    )
+    test_result = _call_llm(api_key, settings, test_prompt, SYSTEM_PROMPT)
+    logger.info("Test pass complete: %d issue(s)", test_result.issue_count)
+
+    return _merge_review_results(code_result, test_result)
+
+
+def _merge_review_results(
+    code_result: ReviewResult,
+    test_result: ReviewResult,
+) -> ReviewResult:
+    """Merge ReviewResult from code and test review passes.
+
+    Args:
+        code_result: Result from reviewing production code.
+        test_result: Result from reviewing test files.
+
+    Returns:
+        Combined ReviewResult with merged issues, practices, and metrics.
+    """
+    merged_metrics = _merge_metrics(code_result.metrics, test_result.metrics)
+
+    combined_summary = code_result.summary
+    if test_result.summary:
+        combined_summary = f"{code_result.summary}\n\n**Test review:** {test_result.summary}"
+
+    merged_alignment = _merge_task_alignment(code_result.task_alignment, test_result.task_alignment)
+    merged_reasoning = "\n".join(
+        r for r in (code_result.task_alignment_reasoning, test_result.task_alignment_reasoning) if r
+    )
+
+    return ReviewResult(
+        issues=code_result.issues + test_result.issues,
+        good_practices=code_result.good_practices + test_result.good_practices,
+        task_alignment=merged_alignment,
+        task_alignment_reasoning=merged_reasoning,
+        summary=combined_summary,
+        code_summary=code_result.code_summary,
+        detected_language=code_result.detected_language,
+        reviewed_at=code_result.reviewed_at,
+        metrics=merged_metrics,
+    )
+
+
+# Worst-case wins: MISALIGNED < INSUFFICIENT_DATA < ALIGNED
+_ALIGNMENT_PRIORITY: dict[TaskAlignmentStatus, int] = {
+    TaskAlignmentStatus.MISALIGNED: 0,
+    TaskAlignmentStatus.INSUFFICIENT_DATA: 1,
+    TaskAlignmentStatus.ALIGNED: 2,
+}
+
+
+def _merge_task_alignment(
+    code_alignment: TaskAlignmentStatus,
+    test_alignment: TaskAlignmentStatus,
+) -> TaskAlignmentStatus:
+    """Pick the worst-case task alignment from two review passes."""
+    code_prio = _ALIGNMENT_PRIORITY.get(code_alignment, 1)
+    test_prio = _ALIGNMENT_PRIORITY.get(test_alignment, 1)
+    return code_alignment if code_prio <= test_prio else test_alignment
+
+
+def _merge_metrics(
+    code_metrics: ReviewMetrics | None,
+    test_metrics: ReviewMetrics | None,
+) -> ReviewMetrics | None:
+    """Sum metrics from two review passes."""
+    if code_metrics and test_metrics:
+        return ReviewMetrics(
+            model_name=code_metrics.model_name,
+            prompt_tokens=code_metrics.prompt_tokens + test_metrics.prompt_tokens,
+            completion_tokens=code_metrics.completion_tokens + test_metrics.completion_tokens,
+            total_tokens=code_metrics.total_tokens + test_metrics.total_tokens,
+            api_latency_ms=code_metrics.api_latency_ms + test_metrics.api_latency_ms,
+            estimated_cost_usd=code_metrics.estimated_cost_usd + test_metrics.estimated_cost_usd,
+            fallback_reason=code_metrics.fallback_reason or test_metrics.fallback_reason,
+        )
+    return code_metrics or test_metrics
 
 
 # Re-exports for backward compatibility

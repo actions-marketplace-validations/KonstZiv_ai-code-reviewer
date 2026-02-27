@@ -118,6 +118,7 @@ class TestAnalyzeCodeChanges:
         settings.gemini_model_fallback = "gemini-2.5-flash"
         settings.review_max_files = 5
         settings.review_max_diff_lines = 10
+        settings.review_split_threshold = 30_000
         return settings
 
     @pytest.fixture
@@ -322,7 +323,7 @@ class TestReExports:
 
     def test_default_model_reexported(self) -> None:
         """Test that DEFAULT_MODEL is re-exported."""
-        assert DEFAULT_MODEL == "gemini-3-flash-preview"
+        assert DEFAULT_MODEL == "gemini-2.5-flash"
 
     def test_default_pricing_reexported(self) -> None:
         """Test that DEFAULT_PRICING is re-exported."""

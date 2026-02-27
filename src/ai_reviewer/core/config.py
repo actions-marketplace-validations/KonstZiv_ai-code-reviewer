@@ -149,13 +149,15 @@ class Settings(BaseSettings):
         google_api_key: Google API key for Gemini access.
             Required for AI-powered code analysis.
         gemini_model: Gemini model to use for analysis.
-            Defaults to gemini-3-flash-preview for cost efficiency.
+            Defaults to gemini-2.5-flash for reliability and quota.
         log_level: Logging level for the application.
             One of: DEBUG, INFO, WARNING, ERROR, CRITICAL.
         review_max_files: Maximum number of files to include in review context.
             Limits context size to avoid token limits.
         review_max_diff_lines: Maximum diff lines per file to include.
             Limits context size for large changes.
+        review_split_threshold: Prompt char count above which the review is
+            split into separate code and test passes.
         api_timeout: API request timeout in seconds.
             Limits how long to wait for API responses.
         language: Default language for review responses.
@@ -220,12 +222,12 @@ class Settings(BaseSettings):
 
     # Optional configuration with defaults
     gemini_model: str = Field(
-        default="gemini-3-flash-preview",
+        default="gemini-2.5-flash",
         validation_alias=AliasChoices("AI_REVIEWER_GEMINI_MODEL", "GEMINI_MODEL"),
         description="Gemini model to use for analysis",
     )
     gemini_model_fallback: str | None = Field(
-        default="gemini-2.5-flash",
+        default="gemini-3-flash-preview",
         validation_alias=AliasChoices("AI_REVIEWER_GEMINI_MODEL_FALLBACK", "GEMINI_MODEL_FALLBACK"),
         description="Fallback model when primary is unavailable (None to disable)",
     )
@@ -247,6 +249,15 @@ class Settings(BaseSettings):
         le=5000,
         validation_alias=AliasChoices("AI_REVIEWER_REVIEW_MAX_DIFF_LINES", "REVIEW_MAX_DIFF_LINES"),
         description="Maximum diff lines per file to include",
+    )
+    review_split_threshold: int = Field(
+        default=30_000,
+        gt=0,
+        le=200_000,
+        validation_alias=AliasChoices(
+            "AI_REVIEWER_REVIEW_SPLIT_THRESHOLD", "REVIEW_SPLIT_THRESHOLD"
+        ),
+        description="Prompt char count above which review is split into code + tests",
     )
 
     # API timeout configuration

@@ -1,4 +1,4 @@
-.PHONY: help setup install test lint format check clean docs pre-commit
+.PHONY: help setup install test test-fast test-unit test-full lint format check clean docs pre-commit
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -27,11 +27,14 @@ install-dev: ## Install dev dependencies only
 install-docs: ## Install docs dependencies only
 	uv sync --group docs
 
-test: ## Run tests with coverage
-	uv run pytest --cov=ai_reviewer --cov-report=term --cov-report=html
+test-fast: ## Run unit tests excluding slow (fastest feedback loop)
+	uv run pytest tests/unit/ -x -q -m "not slow" --no-header --tb=short
 
-test-fast: ## Run tests without coverage
-	uv run pytest -x
+test: ## Run unit + integration tests (pre-commit check)
+	uv run pytest tests/unit/ tests/integration/ -x -q --tb=short
+
+test-full: ## Run all tests with coverage (CI / pre-PR)
+	uv run pytest --cov=ai_reviewer --cov-report=term-missing --cov-report=html --cov-report=xml
 
 lint: ## Run all linters (ruff + mypy)
 	@echo "Running ruff check..."
@@ -45,7 +48,7 @@ format: ## Format code with ruff
 	uv run ruff format .
 	uv run ruff check --fix .
 
-check: lint test ## Run all checks (lint + test)
+check: lint test-full ## Run all checks (lint + full tests with coverage)
 
 pre-commit: ## Run pre-commit on all files
 	uv run pre-commit run --all-files
