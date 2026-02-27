@@ -244,5 +244,5 @@ class TestFormatDiscoveryPrompt:
             layout="src",
         )
         result = format_discovery_prompt(raw)
-        # Rough estimate: 1 token ~ 4 chars; should be well under 2000 tokens
-        assert len(result) < 8000
+        # Rough estimate: 1 token ~ 4 chars; should be well under 1000 tokens
+        assert len(result) < 4000

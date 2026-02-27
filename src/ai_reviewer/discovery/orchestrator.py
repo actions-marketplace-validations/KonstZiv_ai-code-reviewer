@@ -246,6 +246,9 @@ class DiscoveryOrchestrator:
             if not isinstance(llm_result, LLMDiscoveryResult):
                 logger.warning("LLM returned unexpected type: %s", type(llm_result))
                 return _build_fallback_profile(platform_data, ci_insights)
+            if llm_result.gaps:
+                for gap in llm_result.gaps:
+                    logger.info("LLM discovery gap: %s", gap.observation)
             return _merge_llm_result(platform_data, ci_insights, llm_result)
         except Exception:
             logger.warning("LLM interpretation failed, using fallback", exc_info=True)
