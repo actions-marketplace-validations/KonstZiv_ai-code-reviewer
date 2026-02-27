@@ -146,7 +146,7 @@ class DiscoveryOrchestrator:
         configs = self._collect_configs(platform_data, ci_insights, repo_name)
 
         # Collect raw data (deterministic, 0 LLM tokens)
-        raw_data = _collect_raw_data(platform_data, ci_insights, configs)
+        raw_data = _collect_raw_data(platform_data, configs)
 
         # Layer 3: Build profile
         if _has_enough_data(ci_insights):
@@ -431,21 +431,14 @@ def _has_enough_data(ci_insights: CIInsights | None) -> bool:
 
 def _collect_raw_data(
     platform_data: PlatformData,
-    ci_insights: CIInsights | None,
     configs: tuple[ConfigContent, ...],
 ) -> RawProjectData:
     """Collect all deterministic data (0 LLM tokens).
 
     Classifies collected configs into dependency, config, and CI files.
-    CI file contents come from collected configs (variant b — no
-    ``CIInsights.raw_files`` needed).
     """
     config_dict = {cfg.path: cfg.content for cfg in configs}
     dep_files, cfg_files, ci_files = classify_collected_files(config_dict)
-
-    # Also include raw_yaml from CI insights if available and not already present
-    if ci_insights and ci_insights.raw_yaml and ci_insights.ci_file_path:
-        ci_files.setdefault(ci_insights.ci_file_path, ci_insights.raw_yaml)
 
     # Sanitize all file contents to prevent secret leakage to LLM / logs
     ci_files = {p: sanitize_secrets(c) for p, c in ci_files.items()}
