@@ -98,6 +98,10 @@ class TestLLMProviderABC:
         """Test that a fully implemented subclass can be instantiated."""
 
         class _Concrete(LLMProvider):
+            @property
+            def model_name(self) -> str:
+                return "test-model"
+
             def generate(  # type: ignore[override]
                 self,
                 prompt: str,

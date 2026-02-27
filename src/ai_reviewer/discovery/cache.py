@@ -135,7 +135,7 @@ def create_watch_files_snapshot(
         if content is None:
             snapshot[path] = _NOT_FOUND_HASH
         else:
-            snapshot[path] = hashlib.sha256(content.encode()).hexdigest()
+            snapshot[path] = hashlib.sha256(content.encode("utf-8")).hexdigest()
     return snapshot
 
 
@@ -185,7 +185,7 @@ def should_rerun_discovery(
         if content is None:
             new_hash = _NOT_FOUND_HASH
         else:
-            new_hash = hashlib.sha256(content.encode()).hexdigest()
+            new_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
 
         if new_hash != old_hash:
             logger.info("Watch-file changed: %s", path)

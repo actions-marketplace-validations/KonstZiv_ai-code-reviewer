@@ -283,7 +283,7 @@ class DiscoveryOrchestrator:
         if self._cache_storage is None:
             return None
 
-        llm_model = getattr(self._llm, "model_name", "")
+        llm_model = self._llm.model_name
         rerun, cached = should_rerun_discovery(
             self._repo, repo_name, self._cache_storage, llm_model=llm_model
         )
@@ -297,7 +297,7 @@ class DiscoveryOrchestrator:
             return
 
         snapshot = create_watch_files_snapshot(self._repo, repo_name, llm_result.watch_files)
-        llm_model = getattr(self._llm, "model_name", "")
+        llm_model = self._llm.model_name
         cache_entry = DiscoveryCache(
             repo_key=repo_name,
             result=llm_result,
