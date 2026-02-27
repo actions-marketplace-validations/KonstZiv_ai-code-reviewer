@@ -191,11 +191,25 @@ def _call_llm(
             api_key=api_key,
             model_name=settings.gemini_model_fallback,
         )
-        response = fallback_provider.generate(
-            prompt,
-            system_prompt=system_prompt,
-            response_schema=ReviewResult,
-        )
+        try:
+            response = fallback_provider.generate(
+                prompt,
+                system_prompt=system_prompt,
+                response_schema=ReviewResult,
+            )
+        except (ServerError, RateLimitError, QuotaExhaustedError) as fallback_err:
+            logger.exception(
+                "Fallback model %s also failed (%s). Both models exhausted.",
+                settings.gemini_model_fallback,
+                type(fallback_err).__name__,
+            )
+            msg = (
+                f"Both models failed — primary {settings.gemini_model} "
+                f"({type(primary_err).__name__}) and fallback "
+                f"{settings.gemini_model_fallback} ({type(fallback_err).__name__}). "
+                f"Check your Gemini API quota at https://ai.dev/rate-limit"
+            )
+            raise QuotaExhaustedError(msg) from fallback_err
 
     result = response.content
     assert isinstance(result, ReviewResult)  # guaranteed by response_schema

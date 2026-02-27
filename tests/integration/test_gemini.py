@@ -30,7 +30,12 @@ from ai_reviewer.integrations.gemini import (
     analyze_code_changes,
     calculate_cost,
 )
-from ai_reviewer.utils.retry import AuthenticationError, RateLimitError, ServerError
+from ai_reviewer.utils.retry import (
+    AuthenticationError,
+    QuotaExhaustedError,
+    RateLimitError,
+    ServerError,
+)
 
 
 class TestGeminiClientDeprecation:
@@ -307,6 +312,72 @@ class TestAnalyzeCodeChanges:
 
         assert result.metrics is not None
         assert result.metrics.fallback_reason is None
+
+    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_both_models_exhausted_raises_quota_error(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_provider_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that QuotaExhaustedError with clear message when both models fail."""
+        mock_build_prompt.return_value = "prompt"
+
+        primary = Mock()
+        fallback = Mock()
+        mock_provider_cls.side_effect = [primary, fallback]
+
+        primary.generate.side_effect = QuotaExhaustedError("primary quota exceeded")
+        fallback.generate.side_effect = QuotaExhaustedError("fallback quota exceeded")
+
+        with pytest.raises(QuotaExhaustedError, match="Both models failed"):
+            analyze_code_changes(mock_context, mock_settings)
+
+    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_both_models_exhausted_message_contains_model_names(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_provider_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that the error message names both primary and fallback models."""
+        mock_build_prompt.return_value = "prompt"
+
+        primary = Mock()
+        fallback = Mock()
+        mock_provider_cls.side_effect = [primary, fallback]
+
+        primary.generate.side_effect = QuotaExhaustedError("exhausted")
+        fallback.generate.side_effect = ServerError("503 overloaded")
+
+        with pytest.raises(QuotaExhaustedError, match=r"gemini-pro.*gemini-2\.5-flash"):
+            analyze_code_changes(mock_context, mock_settings)
+
+    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.build_review_prompt")
+    def test_fallback_non_retriable_error_propagates_directly(
+        self,
+        mock_build_prompt: MagicMock,
+        mock_provider_cls: MagicMock,
+        mock_context: ReviewContext,
+        mock_settings: Settings,
+    ) -> None:
+        """Test that non-retriable fallback errors propagate without wrapping."""
+        mock_build_prompt.return_value = "prompt"
+
+        primary = Mock()
+        fallback = Mock()
+        mock_provider_cls.side_effect = [primary, fallback]
+
+        primary.generate.side_effect = ServerError("503")
+        fallback.generate.side_effect = AuthenticationError("bad key")
+
+        with pytest.raises(AuthenticationError):
+            analyze_code_changes(mock_context, mock_settings)
 
 
 class TestReExports:

@@ -21,6 +21,7 @@ from ai_reviewer.integrations.base import GitProvider
 from ai_reviewer.reviewer import (
     _build_review_submission,
     _post_discovery_comment,
+    _post_error_comment,
     _run_discovery,
 )
 from tests.helpers import make_profile
@@ -524,3 +525,51 @@ class TestPostDiscoveryComment:
 
         args, _ = provider.post_comment.call_args
         assert "россиянин" not in args[2]
+
+
+class TestPostErrorComment:
+    """Tests for _post_error_comment."""
+
+    def test_generic_error_uses_review_failed_heading(self) -> None:
+        """Test that generic exceptions produce 'Review Failed' comment."""
+        provider = MagicMock(spec=GitProvider)
+
+        _post_error_comment(provider, "owner/repo", 1, RuntimeError("something broke"))
+
+        args, _ = provider.post_comment.call_args
+        comment = args[2]
+        assert "Review Failed" in comment
+        assert "something broke" in comment
+
+    def test_quota_exhausted_uses_quota_heading(self) -> None:
+        """Test that QuotaExhaustedError produces 'Quota Exhausted' comment."""
+        from ai_reviewer.utils.retry import QuotaExhaustedError
+
+        provider = MagicMock(spec=GitProvider)
+        error = QuotaExhaustedError("Both models failed — primary and fallback")
+
+        _post_error_comment(provider, "owner/repo", 1, error)
+
+        args, _ = provider.post_comment.call_args
+        comment = args[2]
+        assert "Quota Exhausted" in comment
+        assert "Both models failed" in comment
+        assert "Gemini API plan" in comment
+
+    def test_quota_comment_does_not_say_review_failed(self) -> None:
+        """Test that quota comment uses softer wording, not 'Review Failed'."""
+        from ai_reviewer.utils.retry import QuotaExhaustedError
+
+        provider = MagicMock(spec=GitProvider)
+
+        _post_error_comment(provider, "owner/repo", 1, QuotaExhaustedError("quota exceeded"))
+
+        args, _ = provider.post_comment.call_args
+        assert "Review Failed" not in args[2]
+
+    def test_provider_failure_is_swallowed(self) -> None:
+        """Test that post_comment failure is logged, not raised."""
+        provider = MagicMock(spec=GitProvider)
+        provider.post_comment.side_effect = RuntimeError("API down")
+
+        _post_error_comment(provider, "owner/repo", 1, RuntimeError("original"))
