@@ -371,16 +371,15 @@ class ProjectProfile(BaseModel):
         if auto_parts:
             parts.append(f"Automated: {'; '.join(auto_parts)}")
 
+        g = self.guidance
         if self.attention_zones:
             parts.extend(self._render_zone_sections())
         else:
-            g = self.guidance
             if g.skip_in_review:
                 parts.append(f"Skip: {'; '.join(g.skip_in_review)}")
             if g.focus_in_review:
                 parts.append(f"Focus: {'; '.join(g.focus_in_review)}")
 
-        g = self.guidance
         if g.conventions:
             parts.append(f"Conventions: {'; '.join(g.conventions)}")
 
@@ -392,24 +391,20 @@ class ProjectProfile(BaseModel):
         focus_lines: list[str] = []
         check_lines: list[str] = []
 
-        for zone in self.attention_zones:
+        def _format_entry(zone: AttentionZone) -> str:
             tools_str = f" ({', '.join(zone.tools)})" if zone.tools else ""
-            label = f"{zone.area}{tools_str}"
+            entry = f"- {zone.area}{tools_str}"
+            if zone.reason:
+                entry += f": {zone.reason}"
+            return entry
 
+        for zone in self.attention_zones:
             if zone.status == "well_covered":
-                entry = f"- {label}"
-                if zone.reason:
-                    entry += f": {zone.reason}"
-                skip_lines.append(entry)
+                skip_lines.append(_format_entry(zone))
             elif zone.status == "not_covered":
-                entry = f"- {label}"
-                if zone.reason:
-                    entry += f": {zone.reason}"
-                focus_lines.append(entry)
+                focus_lines.append(_format_entry(zone))
             elif zone.status == "weakly_covered":
-                entry = f"- {label}"
-                if zone.reason:
-                    entry += f": {zone.reason}"
+                entry = _format_entry(zone)
                 if zone.recommendation:
                     entry += f"\n  → Recommendation: {zone.recommendation}"
                 check_lines.append(entry)
