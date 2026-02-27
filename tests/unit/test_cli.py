@@ -9,8 +9,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 from typer.testing import CliRunner
 
-from ai_reviewer.cli import Provider, app, detect_provider, extract_github_context
+from ai_reviewer.cli import (
+    Provider,
+    _format_discovery_output,
+    app,
+    detect_provider,
+    extract_github_context,
+)
 from ai_reviewer.core.config import clear_settings_cache
+from ai_reviewer.discovery.models import AttentionZone, Gap
+from tests.helpers import make_profile
 
 runner = CliRunner()
 
@@ -400,3 +408,173 @@ class TestCliApp:
             has_config = "configuration" in output_lower
             has_validation = "validation" in output_lower
             assert has_error or has_config or has_validation
+
+
+# ── Discover command ────────────────────────────────────────────────
+
+
+class TestDiscoverCommand:
+    """Tests for 'ai-review discover' subcommand."""
+
+    def test_discover_help(self) -> None:
+        """Test that discover --help works and shows expected content."""
+        result = runner.invoke(app, ["discover", "--help"])
+        assert result.exit_code == 0
+        assert "discover" in result.stdout.lower()
+        assert "repo" in result.stdout.lower()
+
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.cli._create_provider_client")
+    @patch("ai_reviewer.cli.get_settings")
+    def test_discover_json_output(
+        self,
+        mock_get_settings: MagicMock,
+        mock_create_client: MagicMock,
+        mock_gemini_cls: MagicMock,
+        mock_orch_cls: MagicMock,
+    ) -> None:
+        """Test that --json outputs valid JSON."""
+        mock_settings = MagicMock()
+        mock_settings.google_api_key.get_secret_value.return_value = "test-key"
+        mock_settings.gemini_model = "gemini-test"
+        mock_get_settings.return_value = mock_settings
+
+        profile = make_profile(framework="Django 5.1")
+        mock_orch_cls.return_value.discover.return_value = profile
+
+        result = runner.invoke(app, ["discover", "owner/repo", "--json"])
+        assert result.exit_code == 0, result.stdout
+        # Rich Console outputs ANSI; extract JSON from stdout
+        # The "Discovering..." line comes before JSON — find the first "{"
+        stdout = result.stdout
+        json_start = stdout.index("{")
+        parsed = json.loads(stdout[json_start:])
+        assert parsed["framework"] == "Django 5.1"
+
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.cli._create_provider_client")
+    @patch("ai_reviewer.cli.get_settings")
+    def test_discover_human_output_with_zones(
+        self,
+        mock_get_settings: MagicMock,
+        mock_create_client: MagicMock,
+        mock_gemini_cls: MagicMock,
+        mock_orch_cls: MagicMock,
+    ) -> None:
+        """Test human-friendly output includes attention zones."""
+        mock_settings = MagicMock()
+        mock_settings.google_api_key.get_secret_value.return_value = "test-key"
+        mock_settings.gemini_model = "gemini-test"
+        mock_get_settings.return_value = mock_settings
+
+        zones = (
+            AttentionZone(area="formatting", status="well_covered", tools=("ruff",), reason="CI"),
+            AttentionZone(
+                area="security",
+                status="not_covered",
+                reason="no SAST",
+                recommendation="Add bandit",
+            ),
+        )
+        profile = make_profile(framework="FastAPI", attention_zones=zones)
+        mock_orch_cls.return_value.discover.return_value = profile
+
+        result = runner.invoke(app, ["discover", "owner/repo"])
+        assert result.exit_code == 0
+        assert "Attention Zones" in result.stdout
+        assert "formatting" in result.stdout
+        assert "security" in result.stdout
+        assert "Add bandit" in result.stdout
+
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.cli._create_provider_client")
+    @patch("ai_reviewer.cli.get_settings")
+    def test_discover_verbose_shows_ci_tools(
+        self,
+        mock_get_settings: MagicMock,
+        mock_create_client: MagicMock,
+        mock_gemini_cls: MagicMock,
+        mock_orch_cls: MagicMock,
+    ) -> None:
+        """Test that --verbose shows CI tools."""
+        from ai_reviewer.discovery.models import DetectedTool, ToolCategory
+
+        mock_settings = MagicMock()
+        mock_settings.google_api_key.get_secret_value.return_value = "test-key"
+        mock_settings.gemini_model = "gemini-test"
+        mock_get_settings.return_value = mock_settings
+
+        profile = make_profile(
+            ci_tools=(DetectedTool(name="ruff", category=ToolCategory.LINTING),),
+        )
+        mock_orch_cls.return_value.discover.return_value = profile
+
+        result = runner.invoke(app, ["discover", "owner/repo", "--verbose"])
+        assert result.exit_code == 0
+        assert "CI Tools" in result.stdout
+        assert "ruff" in result.stdout
+
+    def test_discover_config_error(self) -> None:
+        """Test that missing config causes clean error."""
+        with patch.dict(os.environ, {}, clear=True):
+            result = runner.invoke(app, ["discover", "owner/repo"])
+            assert result.exit_code == 1
+
+
+# ── Format discovery output ─────────────────────────────────────────
+
+
+class TestFormatDiscoveryOutput:
+    """Tests for _format_discovery_output."""
+
+    def test_basic_stack_info(self) -> None:
+        """Test that stack info is rendered."""
+        profile = make_profile(
+            framework="Django 5.1",
+            package_manager="uv",
+            language_version="3.13",
+        )
+        output = _format_discovery_output(profile)
+        assert "Python" in output
+        assert "Django 5.1" in output
+        assert "uv" in output
+        assert "3.13" in output
+
+    def test_attention_zones_rendered(self) -> None:
+        """Test that zones are rendered with emoji."""
+        zones = (
+            AttentionZone(area="linting", status="well_covered", reason="ruff in CI"),
+            AttentionZone(area="security", status="not_covered", reason="missing"),
+        )
+        profile = make_profile(attention_zones=zones)
+        output = _format_discovery_output(profile)
+        assert "\u2705" in output
+        assert "\u274c" in output
+        assert "linting" in output
+
+    def test_gaps_rendered(self) -> None:
+        """Test that gaps appear in output."""
+        profile = make_profile(
+            gaps=(Gap(observation="No tests found", default_assumption="No testing"),),
+        )
+        output = _format_discovery_output(profile)
+        assert "Knowledge Gaps" in output
+        assert "No tests found" in output
+
+    def test_fallback_guidance_when_no_zones(self) -> None:
+        """Test that skip/focus from guidance is shown when no zones."""
+        profile = make_profile(skip=("formatting",), focus=("security",))
+        output = _format_discovery_output(profile)
+        assert "Skip" in output
+        assert "formatting" in output
+        assert "Focus" in output
+        assert "security" in output
+
+    def test_reviewbot_md_hint(self) -> None:
+        """Test that .reviewbot.md hint is always present."""
+        profile = make_profile()
+        output = _format_discovery_output(profile)
+        assert ".reviewbot.md" in output
