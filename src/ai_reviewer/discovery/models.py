@@ -185,6 +185,53 @@ class ReviewGuidance(BaseModel):
     conventions: tuple[str, ...] = Field(default=(), description="Project-specific conventions")
 
 
+class RawProjectData(BaseModel):
+    """All data collected deterministically (0 LLM tokens).
+
+    This is the input for LLM analysis (task 1.2).
+    Contains raw strings — LLM interprets them.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    languages: dict[str, float] = Field(
+        default_factory=dict,
+        description="Language → percentage from Platform API",
+    )
+    file_tree: tuple[str, ...] = Field(
+        default=(),
+        description="Flattened file paths",
+    )
+    file_tree_truncated: bool = Field(
+        default=False,
+        description="True if tree was cut at FILE_TREE_LIMIT",
+    )
+    ci_files: dict[str, str] = Field(
+        default_factory=dict,
+        description="Path → content of CI config files",
+    )
+    dependency_files: dict[str, str] = Field(
+        default_factory=dict,
+        description="Path → content (pyproject.toml, package.json, go.mod, etc.)",
+    )
+    config_files: dict[str, str] = Field(
+        default_factory=dict,
+        description="Path → content (ruff.toml, .eslintrc, tsconfig.json, etc.)",
+    )
+    detected_package_managers: tuple[str, ...] = Field(
+        default=(),
+        description="Deterministically detected: uv, pip, npm, yarn, pnpm, go modules",
+    )
+    layout: str | None = Field(
+        default=None,
+        description="src | flat | monorepo — from file tree heuristic",
+    )
+    reviewbot_config: str | None = Field(
+        default=None,
+        description="Content of .reviewbot.md if exists",
+    )
+
+
 class ProjectProfile(BaseModel):
     """Central Discovery output passed to the review prompt.
 
@@ -274,6 +321,7 @@ __all__ = [
     "Gap",
     "PlatformData",
     "ProjectProfile",
+    "RawProjectData",
     "ReviewGuidance",
     "ToolCategory",
 ]

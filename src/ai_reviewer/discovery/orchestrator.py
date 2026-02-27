@@ -21,19 +21,21 @@ from ai_reviewer.discovery.config_collector import (
     ConfigCollector,
     SmartConfigSelector,
 )
-from ai_reviewer.discovery.config_parser import (
-    detect_framework,
-    detect_layout,
-    extract_conventions,
-)
 from ai_reviewer.discovery.models import (
     AutomatedChecks,
     CIInsights,
     Gap,
     PlatformData,
     ProjectProfile,
+    RawProjectData,
     ReviewGuidance,
     ToolCategory,
+)
+from ai_reviewer.discovery.parsers import (
+    check_file_tree_truncation,
+    classify_collected_files,
+    detect_layout,
+    detect_package_managers,
 )
 from ai_reviewer.discovery.prompts import (
     DISCOVERY_SYSTEM_PROMPT,
@@ -130,10 +132,13 @@ class DiscoveryOrchestrator:
         # Layer 2: Config files
         configs = self._collect_configs(platform_data, ci_insights, repo_name)
 
+        # Collect raw data (deterministic, 0 LLM tokens)
+        raw_data = _collect_raw_data(platform_data, ci_insights, configs)
+
         # Layer 3: Build profile
         if _has_enough_data(ci_insights):
             assert ci_insights is not None  # narrowed by _has_enough_data
-            profile = _build_profile_deterministic(platform_data, ci_insights, configs)
+            profile = _build_profile_deterministic(platform_data, ci_insights, raw_data)
         else:
             profile = self._build_profile_with_llm(platform_data, ci_insights, configs)
 
@@ -238,11 +243,11 @@ class DiscoveryOrchestrator:
             llm_result = response.content
             if not isinstance(llm_result, LLMDiscoveryResponse):
                 logger.warning("LLM returned unexpected type: %s", type(llm_result))
-                return _build_fallback_profile(platform_data, ci_insights, configs)
+                return _build_fallback_profile(platform_data, ci_insights)
             return _merge_llm_result(platform_data, ci_insights, llm_result)
         except Exception:
             logger.warning("LLM interpretation failed, using fallback", exc_info=True)
-            return _build_fallback_profile(platform_data, ci_insights, configs)
+            return _build_fallback_profile(platform_data, ci_insights)
 
     # ── Conversation ─────────────────────────────────────────────
 
@@ -361,23 +366,46 @@ def _has_enough_data(ci_insights: CIInsights | None) -> bool:
     )
 
 
+def _collect_raw_data(
+    platform_data: PlatformData,
+    ci_insights: CIInsights | None,
+    configs: tuple[ConfigContent, ...],
+) -> RawProjectData:
+    """Collect all deterministic data (0 LLM tokens).
+
+    Classifies collected configs into dependency, config, and CI files.
+    CI file contents come from collected configs (variant b — no
+    ``CIInsights.raw_files`` needed).
+    """
+    config_dict = {cfg.path: cfg.content for cfg in configs}
+    dep_files, cfg_files, ci_files = classify_collected_files(config_dict)
+
+    # Also include raw_yaml from CI insights if available and not already present
+    if ci_insights and ci_insights.raw_yaml and ci_insights.ci_file_path:
+        ci_files.setdefault(ci_insights.ci_file_path, ci_insights.raw_yaml)
+
+    return RawProjectData(
+        languages=dict(platform_data.languages),
+        file_tree=platform_data.file_tree,
+        file_tree_truncated=check_file_tree_truncation(platform_data.file_tree),
+        ci_files=ci_files,
+        dependency_files=dep_files,
+        config_files=cfg_files,
+        detected_package_managers=detect_package_managers(platform_data.file_tree),
+        layout=detect_layout(platform_data.file_tree),
+        reviewbot_config=config_dict.get(".reviewbot.md"),
+    )
+
+
 def _build_profile_deterministic(
     platform_data: PlatformData,
     ci_insights: CIInsights,
-    configs: tuple[ConfigContent, ...],
+    raw_data: RawProjectData,
 ) -> ProjectProfile:
     """Build a ProjectProfile from deterministic data only."""
     ac = _build_automated_checks(ci_insights)
     guidance = _build_review_guidance(ci_insights)
     gaps = _detect_gaps(ci_insights)
-
-    # Enrich from configs
-    framework = detect_framework(configs)
-    layout = detect_layout(platform_data)
-    conventions = extract_conventions(configs)
-
-    if conventions:
-        guidance = guidance.model_copy(update={"conventions": conventions})
 
     return ProjectProfile(
         platform_data=platform_data,
@@ -386,8 +414,7 @@ def _build_profile_deterministic(
         or ci_insights.node_version
         or ci_insights.go_version,
         package_manager=ci_insights.package_manager,
-        framework=framework,
-        layout=layout,
+        layout=raw_data.layout,
         automated_checks=ac,
         guidance=guidance,
         gaps=gaps,
@@ -489,23 +516,16 @@ def _detect_gaps(ci_insights: CIInsights) -> tuple[Gap, ...]:
 def _build_fallback_profile(
     platform_data: PlatformData,
     ci_insights: CIInsights | None,
-    configs: tuple[ConfigContent, ...] = (),
 ) -> ProjectProfile:
     """Build a minimal profile when LLM interpretation fails."""
     ac = _build_automated_checks(ci_insights) if ci_insights else AutomatedChecks()
-
-    framework = detect_framework(configs)
-    layout = detect_layout(platform_data)
-    conventions = extract_conventions(configs)
-    guidance = ReviewGuidance(conventions=conventions) if conventions else ReviewGuidance()
+    layout = detect_layout(platform_data.file_tree)
 
     return ProjectProfile(
         platform_data=platform_data,
         ci_insights=ci_insights,
-        framework=framework,
         layout=layout,
         automated_checks=ac,
-        guidance=guidance,
     )
 
 
