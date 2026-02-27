@@ -9,7 +9,7 @@
 AI Code Reviewer is a tool that automatically analyzes your Pull Requests (GitHub) and Merge Requests (GitLab), finds issues and suggests fixes with an **"Apply Suggestion"** button.
 Essentially, you get an unbiased senior developer's perspective on your code along with suggestions for improvement.
 
-Integration with a wide range of existing LLM providers is possible (by default **Google Gemini**, model **gemini-3-flash-preview** — at the time of the current release, the free tier usage limits on requests per minute and per day are sufficient for a normal workflow of a team of 4-8 full-time developers).
+Integration with a wide range of existing LLM providers is possible (by default **Google Gemini**, model **gemini-2.5-flash** — at the time of the current release, the free tier usage limits on requests per minute and per day are sufficient for a normal workflow of a team of 4-8 full-time developers).
 
 
 ---
@@ -32,7 +32,7 @@ Integration with a wide range of existing LLM providers is possible (by default 
 
 Important: to follow the next steps you'll need your personal Google API key. You can get it for free either at [Google AI Studio](https://aistudio.google.com/api-keys) or [Google Cloud Console](https://console.cloud.google.com/).
 
-*AI Code Reviewer can be configured to use different LLM providers and models, both free and paid. The following examples use the* **gemini-3-flash-preview** *model. Other documentation sections explain how to connect other providers and use other models. We're interested in your opinion about the differences between various models — we'd love to read about your experience in the comments.*
+*AI Code Reviewer can be configured to use different LLM providers and models, both free and paid. The following examples use the* **gemini-2.5-flash** *model. Other documentation sections explain how to connect other providers and use other models. We're interested in your opinion about the differences between various models — we'd love to read about your experience in the comments.*
 
 
 ### GitHub
@@ -208,7 +208,7 @@ Additional options:
 |----------|-------------|---------|
 | `AI_REVIEWER_LANGUAGE` | Response language (ISO 639) | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Logging level | `INFO` |
 
 !!! tip "Legacy names"

@@ -9,7 +9,7 @@
 AI Code Reviewer es una herramienta que analiza automáticamente tus Pull Requests (GitHub) y Merge Requests (GitLab), encuentra problemas y sugiere correcciones con un botón **"Apply Suggestion"**.
 Esencialmente, obtienes la perspectiva imparcial de un desarrollador senior sobre tu código junto con sugerencias de mejora.
 
-Es posible la integración con una amplia gama de proveedores de LLM existentes (por defecto **Google Gemini**, modelo **gemini-3-flash-preview** — en el momento del lanzamiento actual, los límites de uso del nivel gratuito en solicitudes por minuto y por día son suficientes para un flujo de trabajo normal de un equipo de 4-8 desarrolladores a tiempo completo).
+Es posible la integración con una amplia gama de proveedores de LLM existentes (por defecto **Google Gemini**, modelo **gemini-2.5-flash** — en el momento del lanzamiento actual, los límites de uso del nivel gratuito en solicitudes por minuto y por día son suficientes para un flujo de trabajo normal de un equipo de 4-8 desarrolladores a tiempo completo).
 
 
 ---
@@ -150,7 +150,7 @@ Opciones adicionales:
 |----------|-------------|-------------|
 | `AI_REVIEWER_LANGUAGE` | Idioma de respuesta (ISO 639) | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Modelo Gemini | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Modelo Gemini | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Nivel de logging | `INFO` |
 
 !!! tip "Nombres legacy"

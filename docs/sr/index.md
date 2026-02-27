@@ -9,7 +9,7 @@
 AI Code Reviewer je alat koji automatski analizira vaše Pull Request-e (GitHub) i Merge Request-e (GitLab), pronalazi probleme i predlaže ispravke sa dugmetom **"Apply Suggestion"**.
 U suštini, dobijate nepristrasan pogled senior programera na vaš kod zajedno sa prijedlozima za poboljšanje.
 
-Moguća je integracija sa širokim spektrom postojećih LLM provajdera (podrazumijevano **Google Gemini**, model **gemini-3-flash-preview** — u trenutku ovog izdanja, besplatni nivo ograničenja zahtjeva po minuti i po danu je dovoljan za normalan radni tok tima od 4-8 programera sa punim radnim vremenom).
+Moguća je integracija sa širokim spektrom postojećih LLM provajdera (podrazumijevano **Google Gemini**, model **gemini-2.5-flash** — u trenutku ovog izdanja, besplatni nivo ograničenja zahtjeva po minuti i po danu je dovoljan za normalan radni tok tima od 4-8 programera sa punim radnim vremenom).
 
 
 ---
@@ -32,7 +32,7 @@ Moguća je integracija sa širokim spektrom postojećih LLM provajdera (podrazum
 
 Važno: da biste pratili sljedeće korake, trebat će vam lični Google API ključ. Možete ga dobiti besplatno na [Google AI Studio](https://aistudio.google.com/api-keys) ili [Google Cloud Console](https://console.cloud.google.com/).
 
-*AI Code Reviewer se može konfigurisati da koristi različite LLM provajdere i modele, besplatne i plaćene. Sljedeći primjeri koriste model* **gemini-3-flash-preview**. *Drugi dijelovi dokumentacije objašnjavaju kako povezati druge provajdere i koristiti druge modele. Zainteresovani smo za vaše mišljenje o razlikama između različitih modela — rado bismo čitali o vašem iskustvu u komentarima.*
+*AI Code Reviewer se može konfigurisati da koristi različite LLM provajdere i modele, besplatne i plaćene. Sljedeći primjeri koriste model* **gemini-2.5-flash**. *Drugi dijelovi dokumentacije objašnjavaju kako povezati druge provajdere i koristiti druge modele. Zainteresovani smo za vaše mišljenje o razlikama između različitih modela — rado bismo čitali o vašem iskustvu u komentarima.*
 
 
 ### GitHub
@@ -204,7 +204,7 @@ Dodatne opcije:
 |----------|-------------|---------|
 | `AI_REVIEWER_LANGUAGE` | Jezik odgovora (ISO 639) | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini model | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Nivo logovanja | `INFO` |
 
 !!! tip "Stari nazivi"

@@ -9,7 +9,7 @@
 AI Code Reviewer ist ein Tool, das automatisch Ihre Pull Requests (GitHub) und Merge Requests (GitLab) analysiert, Probleme findet und Korrekturen mit einem **"Apply Suggestion"**-Button vorschlägt.
 Im Wesentlichen erhalten Sie die unvoreingenommene Perspektive eines Senior-Entwicklers auf Ihren Code zusammen mit Verbesserungsvorschlägen.
 
-Die Integration mit einer Vielzahl bestehender LLM-Anbieter ist möglich (standardmäßig **Google Gemini**, Modell **gemini-3-flash-preview** — zum Zeitpunkt der aktuellen Version sind die kostenlosen Limits für Anfragen pro Minute und pro Tag ausreichend für einen normalen Workflow eines Teams von 4-8 Vollzeit-Entwicklern).
+Die Integration mit einer Vielzahl bestehender LLM-Anbieter ist möglich (standardmäßig **Google Gemini**, Modell **gemini-2.5-flash** — zum Zeitpunkt der aktuellen Version sind die kostenlosen Limits für Anfragen pro Minute und pro Tag ausreichend für einen normalen Workflow eines Teams von 4-8 Vollzeit-Entwicklern).
 
 
 ---
@@ -32,7 +32,7 @@ Die Integration mit einer Vielzahl bestehender LLM-Anbieter ist möglich (standa
 
 Wichtig: Um die folgenden Schritte durchzuführen, benötigen Sie Ihren persönlichen Google API-Schlüssel. Sie können ihn kostenlos entweder bei [Google AI Studio](https://aistudio.google.com/api-keys) oder [Google Cloud Console](https://console.cloud.google.com/) erhalten.
 
-*AI Code Reviewer kann für die Verwendung verschiedener LLM-Anbieter und Modelle konfiguriert werden, sowohl kostenlos als auch kostenpflichtig. Die folgenden Beispiele verwenden das* **gemini-3-flash-preview** *Modell. Andere Dokumentationsabschnitte erklären, wie Sie andere Anbieter verbinden und andere Modelle verwenden können. Wir sind an Ihrer Meinung zu den Unterschieden zwischen verschiedenen Modellen interessiert — wir würden gerne in den Kommentaren über Ihre Erfahrungen lesen.*
+*AI Code Reviewer kann für die Verwendung verschiedener LLM-Anbieter und Modelle konfiguriert werden, sowohl kostenlos als auch kostenpflichtig. Die folgenden Beispiele verwenden das* **gemini-2.5-flash** *Modell. Andere Dokumentationsabschnitte erklären, wie Sie andere Anbieter verbinden und andere Modelle verwenden können. Wir sind an Ihrer Meinung zu den Unterschieden zwischen verschiedenen Modellen interessiert — wir würden gerne in den Kommentaren über Ihre Erfahrungen lesen.*
 
 
 ### GitHub
@@ -206,7 +206,7 @@ Zusätzliche Optionen:
 |----------|--------------|----------|
 | `AI_REVIEWER_LANGUAGE` | Antwortsprache (ISO 639) | `en` |
 | `AI_REVIEWER_LANGUAGE_MODE` | `adaptive` / `fixed` | `adaptive` |
-| `AI_REVIEWER_GEMINI_MODEL` | Gemini-Modell | `gemini-3-flash-preview` |
+| `AI_REVIEWER_GEMINI_MODEL` | Gemini-Modell | `gemini-2.5-flash` |
 | `AI_REVIEWER_LOG_LEVEL` | Logging-Level | `INFO` |
 
 !!! tip "Legacy-Namen"

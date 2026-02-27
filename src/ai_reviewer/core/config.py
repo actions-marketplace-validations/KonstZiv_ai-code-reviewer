@@ -355,7 +355,7 @@ def get_settings() -> Settings:
     Example:
         >>> settings = get_settings()  # doctest: +SKIP
         >>> print(settings.gemini_model)  # doctest: +SKIP
-        gemini-3-flash-preview
+        gemini-2.5-flash
     """
     # pydantic-settings loads required fields from environment variables
     return Settings()
