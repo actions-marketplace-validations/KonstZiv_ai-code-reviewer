@@ -57,7 +57,6 @@ def sample_ci_insights(sample_tool: DetectedTool) -> CIInsights:
     """CIInsights with representative data."""
     return CIInsights(
         ci_file_path=".github/workflows/ci.yml",
-        raw_yaml="name: CI\non: push",
         detected_tools=(
             sample_tool,
             DetectedTool(name="mypy", category=ToolCategory.TYPE_CHECKING, command="mypy src/"),

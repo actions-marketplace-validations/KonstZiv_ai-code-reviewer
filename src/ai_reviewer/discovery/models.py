@@ -64,7 +64,6 @@ class CIInsights(BaseModel):
 
     Attributes:
         ci_file_path: Path to the CI config file (e.g. ``.github/workflows/ci.yml``).
-        raw_yaml: Raw content of the CI file for LLM interpretation.
         detected_tools: Tools found in CI commands.
         python_version: Python version specified in CI.
         node_version: Node.js version specified in CI.
@@ -78,7 +77,6 @@ class CIInsights(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     ci_file_path: str = Field(..., min_length=1, description="CI config file path")
-    raw_yaml: str = Field(default="", description="Raw CI file content")
     detected_tools: tuple[DetectedTool, ...] = Field(default=(), description="Tools detected in CI")
     python_version: str | None = Field(default=None, description="Python version from CI")
     node_version: str | None = Field(default=None, description="Node.js version from CI")
