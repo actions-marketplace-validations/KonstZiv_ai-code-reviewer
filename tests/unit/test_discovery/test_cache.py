@@ -19,7 +19,7 @@ from ai_reviewer.integrations.repository import RepositoryProvider
 
 
 def _sha256(text: str) -> str:
-    return hashlib.sha256(text.encode()).hexdigest()
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 @pytest.fixture
