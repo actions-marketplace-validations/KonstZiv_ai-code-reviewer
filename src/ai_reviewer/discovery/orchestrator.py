@@ -22,9 +22,11 @@ from ai_reviewer.discovery.config_collector import (
     SmartConfigSelector,
 )
 from ai_reviewer.discovery.models import (
+    AttentionZone,  # noqa: TC001
     AutomatedChecks,
     CIInsights,
     Gap,
+    LLMDiscoveryResult,
     PlatformData,
     ProjectProfile,
     RawProjectData,
@@ -40,8 +42,7 @@ from ai_reviewer.discovery.parsers import (
 )
 from ai_reviewer.discovery.prompts import (
     DISCOVERY_SYSTEM_PROMPT,
-    LLMDiscoveryResponse,
-    build_interpretation_prompt,
+    format_discovery_prompt,
 )
 from ai_reviewer.discovery.reviewbot_config import parse_reviewbot_md
 from ai_reviewer.integrations.conversation import (  # noqa: TC001
@@ -141,7 +142,7 @@ class DiscoveryOrchestrator:
             assert ci_insights is not None  # narrowed by _has_enough_data
             profile = _build_profile_deterministic(platform_data, ci_insights, raw_data)
         else:
-            profile = self._build_profile_with_llm(platform_data, ci_insights, configs)
+            profile = self._build_profile_with_llm(platform_data, ci_insights, raw_data)
 
         # Enrich from answered threads
         profile = _enrich_from_threads(profile, threads)
@@ -231,18 +232,18 @@ class DiscoveryOrchestrator:
         self,
         platform_data: PlatformData,
         ci_insights: CIInsights | None,
-        configs: tuple[ConfigContent, ...],
+        raw_data: RawProjectData,
     ) -> ProjectProfile:
         """Build profile using LLM when deterministic data is insufficient."""
-        prompt = build_interpretation_prompt(platform_data, ci_insights, configs)
+        prompt = format_discovery_prompt(raw_data)
         try:
             response = self._llm.generate(
                 prompt,
                 system_prompt=DISCOVERY_SYSTEM_PROMPT,
-                response_schema=LLMDiscoveryResponse,
+                response_schema=LLMDiscoveryResult,
             )
             llm_result = response.content
-            if not isinstance(llm_result, LLMDiscoveryResponse):
+            if not isinstance(llm_result, LLMDiscoveryResult):
                 logger.warning("LLM returned unexpected type: %s", type(llm_result))
                 return _build_fallback_profile(platform_data, ci_insights)
             return _merge_llm_result(platform_data, ci_insights, llm_result)
@@ -538,22 +539,96 @@ def _build_fallback_profile(
 def _merge_llm_result(
     platform_data: PlatformData,
     ci_insights: CIInsights | None,
-    llm_result: LLMDiscoveryResponse,
+    llm_result: LLMDiscoveryResult,
 ) -> ProjectProfile:
-    """Merge LLM interpretation with deterministic data."""
-    ac = _build_automated_checks(ci_insights) if ci_insights else AutomatedChecks()
+    """Merge LLM interpretation with deterministic data.
+
+    Builds ``AutomatedChecks`` from both CI analysis (if available) and
+    LLM attention zones.  Review guidance is derived from attention zones:
+    well-covered areas go to ``skip``, not/weakly covered go to ``focus``.
+    """
+    ac = _build_automated_checks_from_llm(ci_insights, llm_result)
+    guidance = _build_guidance_from_zones(llm_result.attention_zones)
+
+    # Merge LLM conventions into guidance
+    if llm_result.conventions_detected:
+        guidance = ReviewGuidance(
+            skip_in_review=guidance.skip_in_review,
+            focus_in_review=guidance.focus_in_review,
+            conventions=llm_result.conventions_detected,
+        )
 
     return ProjectProfile(
         platform_data=platform_data,
         ci_insights=ci_insights,
         framework=llm_result.framework,
         automated_checks=ac,
-        guidance=ReviewGuidance(
-            skip_in_review=tuple(llm_result.skip_in_review),
-            focus_in_review=tuple(llm_result.focus_in_review),
-            conventions=tuple(llm_result.conventions),
-        ),
+        guidance=guidance,
         gaps=tuple(llm_result.gaps),
+    )
+
+
+def _build_automated_checks_from_llm(
+    ci_insights: CIInsights | None,
+    llm_result: LLMDiscoveryResult,
+) -> AutomatedChecks:
+    """Build AutomatedChecks by combining CI analysis with LLM zones.
+
+    CI-detected tools take priority; LLM zones fill in any gaps.
+    """
+    if ci_insights:
+        return _build_automated_checks(ci_insights)
+
+    # No CI insights — derive from LLM attention zones
+    linting: list[str] = []
+    formatting: list[str] = []
+    type_checking: list[str] = []
+    testing: list[str] = []
+    security: list[str] = []
+
+    area_to_bucket = {
+        "linting": linting,
+        "formatting": formatting,
+        "type checking": type_checking,
+        "type_checking": type_checking,
+        "testing": testing,
+        "security": security,
+        "security scanning": security,
+    }
+
+    for zone in llm_result.attention_zones:
+        bucket = area_to_bucket.get(zone.area.lower())
+        if bucket is not None and zone.status == "well_covered":
+            bucket.extend(zone.tools)
+
+    return AutomatedChecks(
+        linting=tuple(linting),
+        formatting=tuple(formatting),
+        type_checking=tuple(type_checking),
+        testing=tuple(testing),
+        security=tuple(security),
+    )
+
+
+def _build_guidance_from_zones(
+    zones: tuple[AttentionZone, ...],
+) -> ReviewGuidance:
+    """Derive review guidance from LLM attention zones."""
+    skip: list[str] = []
+    focus: list[str] = []
+
+    for zone in zones:
+        label = f"{zone.area} ({', '.join(zone.tools)})" if zone.tools else zone.area
+        if zone.status == "well_covered":
+            skip.append(f"{label} (covered by CI)")
+        elif zone.status == "not_covered":
+            focus.append(f"{label} (not automated)")
+        elif zone.status == "weakly_covered":
+            focus.append(f"{label} (weakly covered)")
+
+    return ReviewGuidance(
+        skip_in_review=tuple(skip),
+        focus_in_review=tuple(focus),
     )
 
 

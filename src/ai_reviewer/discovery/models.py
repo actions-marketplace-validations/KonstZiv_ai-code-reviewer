@@ -11,6 +11,7 @@ to maintain consistency with ``core.models``.
 from __future__ import annotations
 
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -185,6 +186,66 @@ class ReviewGuidance(BaseModel):
     conventions: tuple[str, ...] = Field(default=(), description="Project-specific conventions")
 
 
+class AttentionZone(BaseModel):
+    """One area of code quality with its automation coverage status.
+
+    Attributes:
+        area: Quality area name (e.g. ``formatting``, ``type checking``).
+        status: Coverage status from CI/tooling analysis.
+        tools: CI tools handling this area.
+        reason: Why this status was assigned.
+        recommendation: Suggested improvement, if any.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    area: str = Field(..., min_length=1, description="Quality area name")
+    status: Literal["well_covered", "not_covered", "weakly_covered"] = Field(
+        ..., description="Coverage status"
+    )
+    tools: tuple[str, ...] = Field(default=(), description="CI tools handling this area")
+    reason: str = Field(default="", description="Why this status was assigned")
+    recommendation: str = Field(default="", description="Suggested improvement")
+
+
+class LLMDiscoveryResult(BaseModel):
+    """Structured LLM response for project analysis.
+
+    Replaces the simpler ``LLMDiscoveryResponse`` with richer output:
+    three attention zones, framework detection with confidence, watch-files
+    for caching, and security concerns.
+
+    Attributes:
+        attention_zones: Code quality areas classified by coverage status.
+        framework: Detected framework (e.g. ``Django 5.1``, ``Next.js 14``).
+        framework_confidence: Confidence score 0.0-1.0 for framework detection.
+        stack_summary: One-line stack description.
+        watch_files: Files to monitor for re-analysis triggers.
+        watch_files_reason: Why these files matter.
+        conventions_detected: Specific rules from config files.
+        security_concerns: Missing security practices.
+        gaps: Unresolved questions the LLM could not answer.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    attention_zones: tuple[AttentionZone, ...] = Field(
+        default=(), description="Code quality areas by coverage status"
+    )
+    framework: str | None = Field(default=None, description="Detected framework")
+    framework_confidence: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Framework detection confidence"
+    )
+    stack_summary: str = Field(default="", description="One-line stack description")
+    watch_files: tuple[str, ...] = Field(default=(), description="Files to monitor for re-analysis")
+    watch_files_reason: str = Field(default="", description="Why watch-files matter")
+    conventions_detected: tuple[str, ...] = Field(
+        default=(), description="Specific rules from config files"
+    )
+    security_concerns: tuple[str, ...] = Field(default=(), description="Missing security practices")
+    gaps: tuple[Gap, ...] = Field(default_factory=tuple, description="Unresolved questions")
+
+
 class RawProjectData(BaseModel):
     """All data collected deterministically (0 LLM tokens).
 
@@ -319,10 +380,12 @@ class ProjectProfile(BaseModel):
 
 
 __all__ = [
+    "AttentionZone",
     "AutomatedChecks",
     "CIInsights",
     "DetectedTool",
     "Gap",
+    "LLMDiscoveryResult",
     "PlatformData",
     "ProjectProfile",
     "RawProjectData",

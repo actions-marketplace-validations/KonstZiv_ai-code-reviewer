@@ -13,10 +13,12 @@ Layers:
 
 from ai_reviewer.discovery.config_collector import ConfigContent
 from ai_reviewer.discovery.models import (
+    AttentionZone,
     AutomatedChecks,
     CIInsights,
     DetectedTool,
     Gap,
+    LLMDiscoveryResult,
     PlatformData,
     ProjectProfile,
     RawProjectData,
@@ -26,8 +28,7 @@ from ai_reviewer.discovery.models import (
 from ai_reviewer.discovery.orchestrator import DiscoveryOrchestrator
 from ai_reviewer.discovery.prompts import (
     DISCOVERY_SYSTEM_PROMPT,
-    LLMDiscoveryResponse,
-    build_interpretation_prompt,
+    format_discovery_prompt,
 )
 from ai_reviewer.discovery.reviewbot_config import (
     generate_reviewbot_md,
@@ -36,19 +37,20 @@ from ai_reviewer.discovery.reviewbot_config import (
 
 __all__ = [
     "DISCOVERY_SYSTEM_PROMPT",
+    "AttentionZone",
     "AutomatedChecks",
     "CIInsights",
     "ConfigContent",
     "DetectedTool",
     "DiscoveryOrchestrator",
     "Gap",
-    "LLMDiscoveryResponse",
+    "LLMDiscoveryResult",
     "PlatformData",
     "ProjectProfile",
     "RawProjectData",
     "ReviewGuidance",
     "ToolCategory",
-    "build_interpretation_prompt",
+    "format_discovery_prompt",
     "generate_reviewbot_md",
     "parse_reviewbot_md",
 ]
