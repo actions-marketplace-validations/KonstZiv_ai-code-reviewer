@@ -11,6 +11,8 @@ The reviewer is provider-agnostic and works with any GitProvider implementation.
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import TYPE_CHECKING
 
 from ai_reviewer.core.config import BOT_NAME
@@ -280,13 +282,19 @@ def _run_discovery(
             conversation=provider,  # type: ignore[arg-type]
             llm=llm,
         )
-        profile = discovery.discover(repo_name, mr_id)
+        timeout = settings.discovery_timeout
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(discovery.discover, repo_name, mr_id)
+            profile = future.result(timeout=timeout)
         tool_count = len(profile.ci_insights.detected_tools) if profile.ci_insights else 0
         logger.info(
             "Discovery: %s project, %d CI tool(s)",
             profile.platform_data.primary_language,
             tool_count,
         )
+    except FuturesTimeoutError:
+        logger.warning("Discovery timed out after %ds, continuing without profile", timeout)
+        return None
     except Exception:
         logger.warning("Discovery failed, continuing without profile", exc_info=True)
         return None

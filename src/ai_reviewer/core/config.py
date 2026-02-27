@@ -319,6 +319,13 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("AI_REVIEWER_DISCOVERY_VERBOSE", "DISCOVERY_VERBOSE"),
         description="Always post discovery comment (default: only on gaps)",
     )
+    discovery_timeout: int = Field(
+        default=30,
+        gt=0,
+        le=300,
+        validation_alias=AliasChoices("AI_REVIEWER_DISCOVERY_TIMEOUT", "DISCOVERY_TIMEOUT"),
+        description="Discovery pipeline timeout in seconds",
+    )
 
     # Inline comments
     review_post_inline_comments: bool = Field(

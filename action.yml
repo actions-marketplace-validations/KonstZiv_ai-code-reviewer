@@ -53,6 +53,10 @@ inputs:
     description: 'Always post discovery comment (default: only on gaps)'
     required: false
     default: 'false'
+  discovery_timeout:
+    description: 'Discovery pipeline timeout in seconds (1-300)'
+    required: false
+    default: '30'
 
 runs:
   using: 'docker'
@@ -71,4 +75,5 @@ runs:
     AI_REVIEWER_REVIEW_ENABLE_DIALOGUE: ${{ inputs.review_enable_dialogue }}
     AI_REVIEWER_DISCOVERY_ENABLED: ${{ inputs.discovery_enabled }}
     AI_REVIEWER_DISCOVERY_VERBOSE: ${{ inputs.discovery_verbose }}
+    AI_REVIEWER_DISCOVERY_TIMEOUT: ${{ inputs.discovery_timeout }}
     GITHUB_ACTIONS: 'true'

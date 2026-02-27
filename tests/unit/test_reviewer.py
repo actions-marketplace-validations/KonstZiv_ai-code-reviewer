@@ -296,6 +296,7 @@ def _make_settings() -> Mock:
     settings.gemini_model = "gemini-pro"
     settings.gemini_model_fallback = "gemini-2.5-flash"
     settings.discovery_enabled = True
+    settings.discovery_timeout = 30
     settings.language_mode = LanguageMode.FIXED
     settings.language = "en"
     return settings
@@ -379,6 +380,46 @@ class TestRunDiscovery:
         call_kwargs = mock_orch_cls.call_args
         assert call_kwargs.kwargs["repo_provider"] is provider
         assert call_kwargs.kwargs["conversation"] is provider
+
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    def test_timeout_returns_none(
+        self,
+        mock_orch_cls: MagicMock,
+        mock_gemini_cls: MagicMock,
+    ) -> None:
+        """Test that discovery timeout returns None (fail-open)."""
+        import time
+
+        def slow_discover(*_args: object, **_kwargs: object) -> None:
+            time.sleep(5)
+
+        mock_orch_cls.return_value.discover.side_effect = slow_discover
+        provider = MagicMock(spec=GitProvider)
+        settings = _make_settings()
+        settings.discovery_timeout = 1
+
+        result = _run_discovery(provider, "owner/repo", 1, settings)
+
+        assert result is None
+
+    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
+    def test_timeout_uses_settings_value(
+        self,
+        mock_orch_cls: MagicMock,
+        mock_gemini_cls: MagicMock,
+    ) -> None:
+        """Test that discovery_timeout from settings is used."""
+        profile = make_profile()
+        mock_orch_cls.return_value.discover.return_value = profile
+        provider = MagicMock(spec=GitProvider)
+        settings = _make_settings()
+        settings.discovery_timeout = 120
+
+        result = _run_discovery(provider, "owner/repo", 1, settings)
+
+        assert result is profile
 
 
 # ── TestPostDiscoveryComment ─────────────────────────────────────────
