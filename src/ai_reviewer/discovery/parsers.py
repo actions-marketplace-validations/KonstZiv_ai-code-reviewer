@@ -8,7 +8,6 @@ file contents — interpretation is delegated to LLM (task 1.2).
 from __future__ import annotations
 
 import re
-from pathlib import PurePath
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -179,7 +178,7 @@ def classify_collected_files(
     ci_files: dict[str, str] = {}
 
     for path, content in collected_configs.items():
-        name = PurePath(path).name
+        name = path.rsplit("/", 1)[-1]
         if name in DEPENDENCY_FILES:
             dep_files[path] = content
         if name in CONFIG_FILES:
@@ -200,7 +199,7 @@ def detect_package_managers(file_tree: Sequence[str]) -> tuple[str, ...]:
         Sorted tuple of detected package manager names.
     """
     managers: list[str] = []
-    tree_names = {PurePath(p).name for p in file_tree}
+    tree_names = {p.rsplit("/", 1)[-1] for p in file_tree}
 
     for indicator, manager in PACKAGE_MANAGER_INDICATORS.items():
         if indicator in tree_names:
@@ -232,10 +231,10 @@ def detect_layout(file_tree: Sequence[str]) -> str | None:
     # Monorepo: multiple dirs containing their own dependency files
     dirs_with_packages: set[str] = set()
     for path in file_tree:
-        parts = PurePath(path).parts
+        parts = path.split("/")
         if len(parts) >= _MIN_PARTS_FOR_SUBDIR and parts[-1] in DEPENDENCY_FILES:
             # Use parent dir as the "package" identity
-            dirs_with_packages.add(str(PurePath(*parts[:-1])))
+            dirs_with_packages.add("/".join(parts[:-1]))
 
     is_monorepo = (
         has_packages or (has_apps and has_src) or len(dirs_with_packages) >= _MIN_DIRS_FOR_MONOREPO
@@ -268,7 +267,7 @@ def check_file_tree_truncation(file_tree: Sequence[str]) -> bool:
 
 def _is_ci_file(path: str) -> bool:
     """Check if a path looks like a CI configuration file."""
-    name = PurePath(path).name
+    name = path.rsplit("/", 1)[-1]
     if name in CI_FILE_NAMES:
         return True
     return any(path.startswith(prefix) for prefix in CI_FILE_PREFIXES)
