@@ -255,8 +255,8 @@ on:
 
 ```bash
 pip install ai-reviewbot
-export GOOGLE_API_KEY=your_key
-export GITHUB_TOKEN=your_token
+export AI_REVIEWER_GOOGLE_API_KEY=your_key
+export AI_REVIEWER_GITHUB_TOKEN=your_token
 ai-review --provider github --repo owner/repo --pr 123
 ```
 

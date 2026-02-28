@@ -61,10 +61,10 @@ ai-review:
   needs: []
 
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
-    LANGUAGE_MODE: adaptive
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
+    AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ---
@@ -90,9 +90,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    GITLAB_URL: https://gitlab.mycompany.com
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
 ```
 
 ### Con Docker Registry Personalizzato
@@ -109,9 +109,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LOG_LEVEL: DEBUG
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LOG_LEVEL: DEBUG
 ```
 
 ### Solo per Branch Specifici
@@ -133,7 +133,7 @@ ai-review:
 ### La Review Non Pubblica Commenti
 
 1. Controlla i log del job
-2. Controlla che `GITLAB_TOKEN` abbia scope `api`
+2. Controlla che `AI_REVIEWER_GITLAB_TOKEN` abbia scope `api`
 3. Controlla che la pipeline sia in esecuzione per una MR
 
 ### "401 Unauthorized"
@@ -181,9 +181,9 @@ ai-review:
   interruptible: true
   needs: []
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
 
 deploy:
   stage: deploy

@@ -53,6 +53,23 @@ The key needs to be added as a secret variable in your repository.
 
     ### Step 2a: Create a GitLab Token
 
+    === "Personal Access Token (All plans, including Free)"
+
+        **Path:** User avatar → `Edit profile` → `Access Tokens`
+
+        | Field | Value |
+        |-------|-------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Choose a date (max 1 year) |
+        | **Scopes** | :white_check_mark: `api` |
+
+        Click **"Create personal access token"** → **Copy the token** (shown only once!)
+
+        !!! warning "Comments will appear under your username"
+            A Personal Access Token is tied to your account. All review comments will be posted on your behalf.
+
+        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+
     === "Project Access Token (Premium/Ultimate)"
 
         !!! note "Maintainer rights required"
@@ -73,25 +90,6 @@ The key needs to be added as a secret variable in your repository.
 
         :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
 
-    === "Personal Access Token (All plans)"
-
-        Use this option if Project Access Tokens are not available on your plan (e.g., GitLab Free).
-
-        **Path:** User avatar → `Edit profile` → `Access Tokens`
-
-        | Field | Value |
-        |-------|-------|
-        | **Token name** | `ai-reviewer` |
-        | **Expiration date** | Choose a date (max 1 year) |
-        | **Scopes** | :white_check_mark: `api` |
-
-        Click **"Create personal access token"** → **Copy the token** (shown only once!)
-
-        !!! warning "Comments will appear under your username"
-            Unlike Project Access Tokens, a Personal Access Token is tied to your account. All review comments will be posted on your behalf.
-
-        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
-
     ### Step 2b: Add Variables to CI/CD
 
     **Path:** Project → `Settings` → `CI/CD` → `Variables`
@@ -103,9 +101,9 @@ The key needs to be added as a secret variable in your repository.
     | `GOOGLE_API_KEY` | Your Gemini key (`AIza...`) | :white_check_mark: Mask variable |
     | `GITLAB_TOKEN` | Token from step 2a | :white_check_mark: Mask variable |
 
-    !!! tip "AI_REVIEWER_ prefix"
-        You can also use `AI_REVIEWER_GOOGLE_API_KEY` and `AI_REVIEWER_GITLAB_TOKEN` as variable names.
-        Both old and new names are supported.
+    !!! danger "`CI_JOB_TOKEN` does not work"
+        GitLab's automatic `CI_JOB_TOKEN` **cannot post comments** to Merge Requests.
+        You **must** create a Personal Access Token (or Project Access Token on Premium+).
 
     ??? info "Detailed instructions"
         1. Open your project on GitLab
@@ -218,8 +216,8 @@ The key needs to be added as a secret variable in your repository.
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
       variables:
-        GITLAB_TOKEN: $GITLAB_TOKEN
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
     3. Commit and push the file
@@ -241,8 +239,8 @@ The key needs to be added as a secret variable in your repository.
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
       variables:
-        GITLAB_TOKEN: $GITLAB_TOKEN
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
 ---
@@ -281,6 +279,7 @@ Check the checklist:
 
 - [ ] Is `GOOGLE_API_KEY` added as a secret?
 - [ ] Is `github_token` passed explicitly? (for GitHub)
+- [ ] For GitLab: is `AI_REVIEWER_GITLAB_TOKEN` set to a Personal Access Token?
 - [ ] Did the CI job complete successfully? (check logs)
 - [ ] For GitHub: do you have `permissions: pull-requests: write`?
 - [ ] For fork PRs: secrets are not available — this is expected behavior
@@ -289,7 +288,7 @@ Check the checklist:
 
 This means the CLI didn't receive the required parameters. Check:
 
-- Is `github_token` / `GITLAB_TOKEN` passed explicitly
+- Is `github_token` / `AI_REVIEWER_GITLAB_TOKEN` passed explicitly
 - Is the YAML format correct (indentation!)
 
 ### Rate limit?

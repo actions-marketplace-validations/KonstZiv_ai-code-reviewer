@@ -68,8 +68,8 @@ jobs:
 Erstellen Sie in Ihrem Repository:
 
 1. **GitLab Token erstellen** (für das Schreiben von Kommentaren):
-    - **Project Access Token** (Premium/Ultimate) — `Settings` → `Access Tokens` → `Add new token`: Token name `ai-reviewer`, Role `Developer`, Scopes `api` ✓
     - **Personal Access Token** (alle Pläne, einschließlich Free) — `User Settings` → `Access Tokens`, Scope `api`. Kommentare erscheinen unter Ihrem Benutzernamen.
+    - **Project Access Token** (Premium/Ultimate) — `Settings` → `Access Tokens` → `Add new token`: Token name `ai-reviewer`, Role `Developer`, Scopes `api` :white_check_mark:
     - Kopieren Sie den Token (wird nur einmal angezeigt!)
 
 2. **CI/CD-Variablen hinzufügen:** `Settings` → `CI/CD` → `Variables`:
@@ -88,8 +88,8 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 :point_right: [Mehr erfahren →](quick-start.md)
@@ -197,7 +197,7 @@ graph TD
 Minimale Konfiguration — nur der API-Schlüssel:
 
 ```bash
-export GOOGLE_API_KEY=your_api_key
+export AI_REVIEWER_GOOGLE_API_KEY=your_api_key
 ```
 
 Zusätzliche Optionen:

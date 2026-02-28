@@ -141,7 +141,7 @@ graph TD
 Configuración mínima — solo la clave API:
 
 ```bash
-export GOOGLE_API_KEY=your_api_key
+export AI_REVIEWER_GOOGLE_API_KEY=your_api_key
 ```
 
 Opciones adicionales:

@@ -53,6 +53,23 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
 
     ### Passo 2a: Crea un token GitLab
 
+    === "Personal Access Token (Tutti i piani)"
+
+        **Percorso:** Avatar utente → `Edit profile` → `Access Tokens`
+
+        | Campo | Valore |
+        |-------|--------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Scegli una data (max 1 anno) |
+        | **Scopes** | :white_check_mark: `api` |
+
+        Clicca **"Create personal access token"** → **Copia il token** (viene mostrato una sola volta!)
+
+        !!! warning "I commenti appariranno sotto il tuo nome utente"
+            A differenza dei Project Access Token, un Personal Access Token e legato al tuo account. Tutti i commenti della revisione saranno pubblicati a tuo nome.
+
+        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+
     === "Project Access Token (Premium/Ultimate)"
 
         !!! note "Servono i permessi Maintainer"
@@ -73,25 +90,6 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
 
         :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
 
-    === "Personal Access Token (Tutti i piani)"
-
-        Usa questa opzione se i Project Access Token non sono disponibili nel tuo piano (es. GitLab Free).
-
-        **Percorso:** Avatar utente → `Edit profile` → `Access Tokens`
-
-        | Campo | Valore |
-        |-------|--------|
-        | **Token name** | `ai-reviewer` |
-        | **Expiration date** | Scegli una data (max 1 anno) |
-        | **Scopes** | :white_check_mark: `api` |
-
-        Clicca **"Create personal access token"** → **Copia il token** (viene mostrato una sola volta!)
-
-        !!! warning "I commenti appariranno sotto il tuo nome utente"
-            A differenza dei Project Access Token, un Personal Access Token e legato al tuo account. Tutti i commenti della revisione saranno pubblicati a tuo nome.
-
-        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
-
     ### Passo 2b: Aggiungi le Variabili in CI/CD
 
     **Percorso:** Project → `Settings` → `CI/CD` → `Variables`
@@ -103,9 +101,9 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
     | `GOOGLE_API_KEY` | La tua chiave Gemini (`AIza...`) | :white_check_mark: Mask variable |
     | `GITLAB_TOKEN` | Token dal passo 2a | :white_check_mark: Mask variable |
 
-    !!! tip "Prefisso AI_REVIEWER_"
-        Puoi anche usare `AI_REVIEWER_GOOGLE_API_KEY` e `AI_REVIEWER_GITLAB_TOKEN` come nomi di variabili.
-        Sia i nomi vecchi che quelli nuovi sono supportati.
+    !!! danger "`CI_JOB_TOKEN` non funziona"
+        Il `CI_JOB_TOKEN` automatico di GitLab **non puo pubblicare commenti** sulle Merge Request.
+        Devi usare un Personal Access Token o un Project Access Token.
 
     ??? info "Istruzioni dettagliate"
         1. Apri il tuo progetto su GitLab
@@ -218,8 +216,8 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
       variables:
-        GITLAB_TOKEN: $GITLAB_TOKEN
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
     3. Committa e pusha il file
@@ -241,8 +239,8 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
       variables:
-        GITLAB_TOKEN: $GITLAB_TOKEN
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
 ---
@@ -279,7 +277,7 @@ Ogni commento contiene:
 
 Controlla questa checklist:
 
-- [ ] `GOOGLE_API_KEY` aggiunto come secret?
+- [ ] `GOOGLE_API_KEY` (GitHub) / `AI_REVIEWER_GOOGLE_API_KEY` (GitLab) aggiunto come secret?
 - [ ] `github_token` passato esplicitamente? (per GitHub)
 - [ ] Il job CI e terminato con successo? (controlla i log)
 - [ ] Per GitHub: hai `permissions: pull-requests: write`?
@@ -289,7 +287,7 @@ Controlla questa checklist:
 
 Significa che la CLI non ha ricevuto i parametri necessari. Controlla:
 
-- Se `github_token` / `GITLAB_TOKEN` e passato esplicitamente
+- Se `github_token` / `AI_REVIEWER_GITLAB_TOKEN` e passato esplicitamente
 - Se il formato YAML e corretto (indentazione!)
 
 ### Rate limit?

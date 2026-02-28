@@ -27,16 +27,16 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token with 'api' scope
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token with 'api' scope
 ```
 
 ### Docker Run (Local Testing)
 
 ```bash
 docker run --rm \
-  -e GOOGLE_API_KEY="your-api-key" \
-  -e GITHUB_TOKEN="your-token" \
+  -e AI_REVIEWER_GOOGLE_API_KEY="your-api-key" \
+  -e AI_REVIEWER_GITHUB_TOKEN="your-token" \
   -e GITHUB_REPOSITORY="owner/repo" \
   -e GITHUB_EVENT_NUMBER="123" \
   koszivdocker/ai-reviewbot:1
@@ -46,13 +46,13 @@ docker run --rm \
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GOOGLE_API_KEY` | Yes | Google Gemini API key |
-| `GITHUB_TOKEN` | GitHub | GitHub token for API access |
-| `GITLAB_TOKEN` | GitLab | Project Access Token with `api` scope |
-| `LANGUAGE` | No | Response language (default: `en`) |
-| `LANGUAGE_MODE` | No | `adaptive` or `fixed` (default: `adaptive`) |
-| `GEMINI_MODEL` | No | Model to use (default: `gemini-2.5-flash`) |
-| `LOG_LEVEL` | No | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Yes | Google Gemini API key |
+| `AI_REVIEWER_GITHUB_TOKEN` | GitHub | GitHub token for API access |
+| `AI_REVIEWER_GITLAB_TOKEN` | GitLab | Personal Access Token with `api` scope |
+| `AI_REVIEWER_LANGUAGE` | No | Response language (default: `en`) |
+| `AI_REVIEWER_LANGUAGE_MODE` | No | `adaptive` or `fixed` (default: `adaptive`) |
+| `AI_REVIEWER_GEMINI_MODEL` | No | Model to use (default: `gemini-2.5-flash`) |
+| `AI_REVIEWER_LOG_LEVEL` | No | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 
 ## Tags
 

@@ -6,32 +6,14 @@ Detaljan vodič za integraciju sa GitLab CI.
 
 ## Tokeni {#tokens}
 
-### CI_JOB_TOKEN (automatski)
-
-U GitLab CI, `CI_JOB_TOKEN` je automatski dostupan:
-
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN
-```
-
-**Ograničenja `CI_JOB_TOKEN`:**
-
-| Funkcionalnost | Status |
-|---------|--------|
-| Čitanje MR | :white_check_mark: |
-| Čitanje diff-a | :white_check_mark: |
-| Objavljivanje bilješki | :white_check_mark: |
-| Kreiranje diskusija | :x: |
-
-!!! warning "Ograničene dozvole"
-    `CI_JOB_TOKEN` ne može kreirati inline diskusije.
-
-    Za punu funkcionalnost, koristite Personal Access Token.
-
 ### Personal Access Token (PAT) {#get-token}
 
-Za **sve GitLab planove** (uključujući Free). Preporučeno za lokalno pokretanje ili punu funkcionalnost u CI-ju.
+**Preporučeno za sve GitLab planove** (uključujući Free).
+
+!!! danger "`CI_JOB_TOKEN` ne radi"
+    GitLab-ov automatski `CI_JOB_TOKEN` **ne može postavljati komentare** na Merge Request-e
+    (Notes API zahtijeva `api` scope, koji `CI_JOB_TOKEN` nema).
+    **Morate** koristiti Personal Access Token ili Project Access Token.
 
 **Kako kreirati:**
 
@@ -48,14 +30,14 @@ Za **sve GitLab planove** (uključujući Free). Preporučeno za lokalno pokretan
 
 1. Idite na **Settings → CI/CD → Variables → Add variable**
 2. Dodajte varijablu:
-    - **Key:** `AI_REVIEWER_GITLAB_TOKEN` (ili `GITLAB_TOKEN`)
+    - **Key:** `GITLAB_TOKEN`
     - **Value:** nalijepite vaš token
     - **Flags:** označite **Masked** i **Protected**
 3. Koristite u `.gitlab-ci.yml`:
 
 ```yaml
 variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token iz CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 !!! warning "Sačuvajte token"
@@ -92,13 +74,13 @@ variables:
 ```
 
 !!! info "Koji token odabrati?"
-    | | CI_JOB_TOKEN | Personal Access Token | Project Access Token |
-    |---|---|---|---|
-    | **Plan** | Svi | Svi (uključujući Free) | Samo Premium/Ultimate |
-    | **Podešavanje** | Automatsko | Ručno | Ručno |
-    | **Opseg** | Samo trenutni job | Svi projekti korisnika | Jedan projekat |
-    | **Inline komentari** | :x: | :white_check_mark: | :white_check_mark: |
-    | **Najbolje za** | Brzi početak | Free plan + pune funkcije | Timovi na Premium/Ultimate |
+    | | Personal Access Token | Project Access Token |
+    |---|---|---|
+    | **Plan** | Svi (uključujući Free) | Samo Premium/Ultimate |
+    | **Podešavanje** | Ručno | Ručno |
+    | **Opseg** | Svi projekti korisnika | Jedan projekat |
+    | **Inline komentari** | :white_check_mark: | :white_check_mark: |
+    | **Najbolje za** | Free plan + pune funkcije | Timovi na Premium/Ultimate |
 
 ---
 
@@ -111,7 +93,7 @@ variables:
 | Varijabla | Vrijednost | Opcije |
 |----------|-------|---------|
 | `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API ključ | Masked |
-| `AI_REVIEWER_GITLAB_TOKEN` | PAT (ako je potreban) | Masked |
+| `GITLAB_TOKEN` | Personal Access Token (scope: `api`) | Masked |
 
 !!! tip "Masked"
     Uvijek omogućite **Masked** za tajne — neće se prikazivati u logovima.
@@ -154,7 +136,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatski, ne zahtijeva podešavanje
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Puni (preporučeno)
@@ -171,8 +153,7 @@ ai-review:
   timeout: 10m
   variables:
     AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    # CI_JOB_TOKEN (automatski) ili Personal Access Token za pune dozvole:
-    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN    # ili: $GITLAB_PAT (vidi "Dobijanje tokena")
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
     AI_REVIEWER_LANGUAGE_MODE: adaptive
   interruptible: true
@@ -243,7 +224,7 @@ AI Code Reviewer automatski koristi:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | Broj MR-a |
 | `CI_SERVER_URL` | GitLab URL |
-| `CI_JOB_TOKEN` | Automatski token |
+| `CI_JOB_TOKEN` | Automatski token (ne može postavljati komentare) |
 
 Ne morate proslijeđivati `--repo` i `--pr` — uzimaju se iz CI-ja automatski.
 
@@ -257,7 +238,7 @@ AI Review objavljuje komentare na MR kao bilješke.
 
 ### Diskusije (inline)
 
-Za inline komentare, trebate pun PAT token (ne `CI_JOB_TOKEN`).
+Za inline komentare, trebate Personal Access Token ili Project Access Token.
 
 Inline komentari se pojavljuju direktno pored linija koda u diff pogledu.
 
@@ -277,8 +258,8 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 **Provjerite:**
 
-1. `AI_REVIEWER_GOOGLE_API_KEY` (ili `GOOGLE_API_KEY`) varijabla je podešena
-2. `AI_REVIEWER_GITLAB_TOKEN` (ili `GITLAB_TOKEN`) ima dovoljne dozvole (scope: `api`)
+1. `AI_REVIEWER_GOOGLE_API_KEY` varijabla je podešena
+2. `AI_REVIEWER_GITLAB_TOKEN` ima dovoljne dozvole (scope: `api`)
 3. Pipeline se pokreće za MR (ne za granu)
 
 ### "401 Unauthorized"
@@ -296,7 +277,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 **Rješenje:**
 
-- Koristite PAT umjesto `CI_JOB_TOKEN`
+- Provjerite da koristite Personal Access Token (ne `CI_JOB_TOKEN`)
 - Provjerite da token ima pristup projektu
 
 ### "404 Not Found"
@@ -325,7 +306,7 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 
 ```yaml
 variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, ne CI_JOB_TOKEN
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### 2. Dodajte allow_failure

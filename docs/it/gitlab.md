@@ -6,32 +6,14 @@ Guida dettagliata per l'integrazione con GitLab CI.
 
 ## Token {#tokens}
 
-### CI_JOB_TOKEN (automatico)
-
-In GitLab CI, `CI_JOB_TOKEN` e automaticamente disponibile:
-
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN
-```
-
-**Limitazioni di `CI_JOB_TOKEN`:**
-
-| Funzionalita | Stato |
-|--------------|-------|
-| Leggi MR | :white_check_mark: |
-| Leggi diff | :white_check_mark: |
-| Pubblica note | :white_check_mark: |
-| Crea discussioni | :x: |
-
-!!! warning "Permessi limitati"
-    `CI_JOB_TOKEN` non puo creare discussioni inline.
-
-    Per la funzionalita completa, usa un Personal Access Token.
-
 ### Personal Access Token (PAT) {#get-token}
 
-Per **tutti i piani GitLab** (incluso Free). Consigliato per esecuzioni locali o funzionalita completa in CI.
+**Consigliato per tutti i piani GitLab** (incluso Free).
+
+!!! danger "`CI_JOB_TOKEN` non funziona"
+    Il `CI_JOB_TOKEN` automatico di GitLab **non puo pubblicare commenti** sulle Merge Request
+    (l'API Notes richiede lo scope `api`, che `CI_JOB_TOKEN` non possiede).
+    **Devi** usare un Personal Access Token o un Project Access Token.
 
 **Come creare:**
 
@@ -48,14 +30,14 @@ Per **tutti i piani GitLab** (incluso Free). Consigliato per esecuzioni locali o
 
 1. Vai su **Settings → CI/CD → Variables → Add variable**
 2. Aggiungi la variabile:
-    - **Key:** `AI_REVIEWER_GITLAB_TOKEN` (o `GITLAB_TOKEN`)
+    - **Key:** `GITLAB_TOKEN`
     - **Value:** incolla il tuo token
     - **Flags:** seleziona **Masked** e **Protected**
 3. Usa in `.gitlab-ci.yml`:
 
 ```yaml
 variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token da CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 !!! warning "Salva il token"
@@ -92,13 +74,13 @@ variables:
 ```
 
 !!! info "Quale token scegliere?"
-    | | CI_JOB_TOKEN | Personal Access Token | Project Access Token |
-    |---|---|---|---|
-    | **Piano** | Tutti | Tutti (incluso Free) | Solo Premium/Ultimate |
-    | **Configurazione** | Automatica | Manuale | Manuale |
-    | **Ambito** | Solo il job corrente | Tutti i progetti dell'utente | Singolo progetto |
-    | **Commenti inline** | :x: | :white_check_mark: | :white_check_mark: |
-    | **Ideale per** | Avvio rapido | Piano Free + funzionalita completa | Team su Premium/Ultimate |
+    | | Personal Access Token | Project Access Token |
+    |---|---|---|
+    | **Piano** | Tutti (incluso Free) | Solo Premium/Ultimate |
+    | **Configurazione** | Manuale | Manuale |
+    | **Ambito** | Tutti i progetti dell'utente | Singolo progetto |
+    | **Commenti inline** | :white_check_mark: | :white_check_mark: |
+    | **Ideale per** | Piano Free + funzionalita completa | Team su Premium/Ultimate |
 
 ---
 
@@ -111,7 +93,7 @@ variables:
 | Variabile | Valore | Opzioni |
 |-----------|--------|---------|
 | `AI_REVIEWER_GOOGLE_API_KEY` | Chiave API Gemini | Masked |
-| `AI_REVIEWER_GITLAB_TOKEN` | PAT (se necessario) | Masked |
+| `AI_REVIEWER_GITLAB_TOKEN` | PAT o Project Access Token | Masked |
 
 !!! tip "Masked"
     Abilita sempre **Masked** per i secret — non verranno mostrati nei log.
@@ -154,7 +136,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatico, nessuna configurazione necessaria
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Completo (consigliato)
@@ -171,8 +153,7 @@ ai-review:
   timeout: 10m
   variables:
     AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    # CI_JOB_TOKEN (automatico) o Personal Access Token per permessi completi:
-    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN    # o: $GITLAB_PAT (vedi "Ottenere il token")
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
     AI_REVIEWER_LANGUAGE_MODE: adaptive
   interruptible: true
@@ -243,7 +224,6 @@ AI Code Reviewer usa automaticamente:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | Numero MR |
 | `CI_SERVER_URL` | URL GitLab |
-| `CI_JOB_TOKEN` | Token automatico |
 
 Non hai bisogno di passare `--repo` e `--pr` — vengono presi automaticamente dalla CI.
 
@@ -257,7 +237,7 @@ AI Review pubblica commenti sulla MR come note.
 
 ### Discussioni (inline)
 
-Per commenti inline, hai bisogno di un token PAT completo (non `CI_JOB_TOKEN`).
+Per commenti inline, hai bisogno di un Personal Access Token o Project Access Token con scope `api`.
 
 I commenti inline appaiono direttamente accanto alle righe di codice nella vista diff.
 
@@ -277,8 +257,8 @@ Alla fine della revisione, viene pubblicata una nota Summary con:
 
 **Controlla:**
 
-1. La variabile `AI_REVIEWER_GOOGLE_API_KEY` (o `GOOGLE_API_KEY`) e impostata
-2. `AI_REVIEWER_GITLAB_TOKEN` (o `GITLAB_TOKEN`) ha permessi sufficienti (scope: `api`)
+1. La variabile `AI_REVIEWER_GOOGLE_API_KEY` e impostata
+2. `AI_REVIEWER_GITLAB_TOKEN` ha permessi sufficienti (scope: `api`)
 3. La pipeline e in esecuzione per una MR (non per un branch)
 
 ### "401 Unauthorized"
@@ -296,7 +276,7 @@ Alla fine della revisione, viene pubblicata una nota Summary con:
 
 **Soluzione:**
 
-- Usa PAT invece di `CI_JOB_TOKEN`
+- Controlla che il token abbia scope `api`
 - Controlla che il token abbia accesso al progetto
 
 ### "404 Not Found"
@@ -325,7 +305,7 @@ Alla fine della revisione, viene pubblicata una nota Summary con:
 
 ```yaml
 variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, non CI_JOB_TOKEN
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### 2. Aggiungi allow_failure

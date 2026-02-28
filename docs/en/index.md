@@ -68,8 +68,8 @@ jobs:
 In your repository, create:
 
 1. **GitLab Token** (required for posting comments):
-    - **Project Access Token** (Premium/Ultimate) — go to `Settings` → `Access Tokens`, create token with name `ai-reviewer`, role `Developer`, scope `api`
     - **Personal Access Token** (all plans, including Free) — go to your `User Settings` → `Access Tokens`, create token with scope `api`. Comments will appear under your username.
+    - **Project Access Token** (Premium/Ultimate only) — go to `Settings` → `Access Tokens`, create token with name `ai-reviewer`, role `Developer`, scope `api`
     - Copy the token (shown only once!)
 
 2. **CI/CD Variables**:
@@ -90,8 +90,8 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   allow_failure: true
   variables:
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
 ```
 
 :point_right: [Learn more →](quick-start.md)
@@ -199,7 +199,7 @@ graph TD
 Minimal configuration — just the API key:
 
 ```bash
-export GOOGLE_API_KEY=your_api_key
+export AI_REVIEWER_GOOGLE_API_KEY=your_api_key
 ```
 
 Additional options:

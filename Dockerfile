@@ -71,7 +71,9 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD ai-review --help > /dev/null 2>&1 || exit 1
 
-# Default entrypoint - runs ai-review
-# ENTRYPOINT allows `docker run image --repo X --pr 1` to work naturally.
-# GitLab CI Runner overrides entrypoint via `script:`, so no conflict.
-ENTRYPOINT ["ai-review"]
+# Default command - runs ai-review
+# CMD (not ENTRYPOINT) is required for GitLab CI compatibility:
+# GitLab Runner executes `script:` via shell (sh -c "..."), which replaces CMD
+# but would be appended as arguments to ENTRYPOINT, causing "No such command 'sh'".
+# GitHub Actions overrides both CMD and ENTRYPOINT via action.yml, so no impact.
+CMD ["ai-review"]
