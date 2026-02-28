@@ -23,7 +23,7 @@ from functools import lru_cache
 from typing import Annotated
 
 import iso639
-from pydantic import AfterValidator, AliasChoices, Field, SecretStr
+from pydantic import AfterValidator, AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -335,6 +335,29 @@ class Settings(BaseSettings):
         ),
         description="Post inline comments on specific lines instead of a single summary",
     )
+
+    @property
+    def google_api_keys(self) -> list[str]:
+        """Parse comma-separated API keys from google_api_key.
+
+        Returns:
+            List of individual API key strings (at least one).
+        """
+        raw = self.google_api_key.get_secret_value()
+        return [k.strip() for k in raw.split(",") if k.strip()]
+
+    @model_validator(mode="after")
+    def _validate_individual_keys(self) -> Settings:
+        """Validate each comma-separated key meets minimum length."""
+        for key in self.google_api_keys:
+            if len(key) < MIN_SECRET_LENGTH:
+                msg = (
+                    f"One of the GOOGLE_API_KEY values is too short "
+                    f"(minimum {MIN_SECRET_LENGTH} characters). "
+                    f"Key ending '...{key[-4:]}' is only {len(key)} characters."
+                )
+                raise ValueError(msg)
+        return self
 
 
 @lru_cache(maxsize=1)

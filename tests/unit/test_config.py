@@ -408,6 +408,52 @@ class TestNewSettings:
             assert settings.gitlab_url == "https://gitlab.example.com"
 
 
+class TestGoogleApiKeys:
+    """Tests for google_api_keys property (comma-separated multi-key)."""
+
+    def test_single_key_returns_list_of_one(self) -> None:
+        """Test that a single key returns a list with one element."""
+        env = {"GOOGLE_API_KEY": "AIza_test_key_12345"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.google_api_keys == ["AIza_test_key_12345"]
+
+    def test_comma_separated_keys(self) -> None:
+        """Test comma-separated keys are parsed into a list."""
+        env = {"GOOGLE_API_KEY": "AIza_key_one_1,AIza_key_two_2"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.google_api_keys == ["AIza_key_one_1", "AIza_key_two_2"]
+
+    def test_whitespace_trimmed(self) -> None:
+        """Test that whitespace around comma-separated keys is trimmed."""
+        env = {"GOOGLE_API_KEY": " AIza_key_one_1 , AIza_key_two_2 "}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.google_api_keys == ["AIza_key_one_1", "AIza_key_two_2"]
+
+    def test_empty_segments_ignored(self) -> None:
+        """Test that empty segments from trailing commas are ignored."""
+        env = {"GOOGLE_API_KEY": "AIza_key_one_1,,AIza_key_two_2,"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert settings.google_api_keys == ["AIza_key_one_1", "AIza_key_two_2"]
+
+    def test_short_individual_key_raises(self) -> None:
+        """Test that a short individual key in comma-separated list raises."""
+        env = {"GOOGLE_API_KEY": "AIza_key_one_1,short"}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError, match="too short"):
+                Settings()
+
+    def test_three_keys(self) -> None:
+        """Test three comma-separated keys are all returned."""
+        env = {"GOOGLE_API_KEY": "AIza_key_aaa_1,AIza_key_bbb_2,AIza_key_ccc_3"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = Settings()
+            assert len(settings.google_api_keys) == 3
+
+
 class TestLanguageValidation:
     """Tests for ISO 639 language code validation."""
 

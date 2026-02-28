@@ -56,6 +56,7 @@ def _make_settings(**overrides: object) -> Mock:
     settings.gemini_model_fallback = None
     settings.google_api_key = Mock()
     settings.google_api_key.get_secret_value.return_value = "test-key"
+    settings.google_api_keys = ["test-key"]
     for k, v in overrides.items():
         setattr(settings, k, v)
     return settings

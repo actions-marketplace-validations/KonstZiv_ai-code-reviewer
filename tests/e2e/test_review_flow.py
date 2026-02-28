@@ -35,6 +35,7 @@ class TestReviewFlow:
         settings = Mock(spec=Settings)
         settings.github_token = SecretStr("gh-token")
         settings.google_api_key = SecretStr("ai-key")
+        settings.google_api_keys = ["ai-key"]
         settings.gemini_model = "gemini-pro"
         settings.gemini_model_fallback = "gemini-2.5-flash"
         settings.review_max_files = 5
@@ -273,6 +274,7 @@ class TestDiscoveryIntegration:
         settings = Mock(spec=Settings)
         settings.github_token = SecretStr("gh-token")
         settings.google_api_key = SecretStr("ai-key")
+        settings.google_api_keys = ["ai-key"]
         settings.gemini_model = "gemini-pro"
         settings.gemini_model_fallback = "gemini-2.5-flash"
         settings.review_max_files = 5

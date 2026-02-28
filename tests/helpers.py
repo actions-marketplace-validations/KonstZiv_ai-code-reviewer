@@ -81,6 +81,7 @@ def make_mock_settings(**overrides: object) -> Mock:
     """
     settings = Mock(spec=Settings)
     settings.google_api_key = SecretStr("test-key-for-unit-tests")
+    settings.google_api_keys = ["test-key-for-unit-tests"]
     settings.gemini_model = "gemini-test"
     settings.gemini_model_fallback = "gemini-2.5-flash"
     settings.review_max_files = 20

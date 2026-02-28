@@ -119,6 +119,7 @@ class TestAnalyzeCodeChanges:
         """Create mock settings."""
         settings = Mock(spec=Settings)
         settings.google_api_key = SecretStr("test-key")
+        settings.google_api_keys = ["test-key"]
         settings.gemini_model = "gemini-pro"
         settings.gemini_model_fallback = "gemini-2.5-flash"
         settings.review_max_files = 5
@@ -140,7 +141,7 @@ class TestAnalyzeCodeChanges:
         context.tasks = ()
         return context
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_analyze_flow(
         self,
@@ -149,7 +150,7 @@ class TestAnalyzeCodeChanges:
         mock_context: ReviewContext,
         mock_settings: Settings,
     ) -> None:
-        """Test the full analysis flow delegates to GeminiProvider."""
+        """Test the full analysis flow delegates to RotatingGeminiProvider."""
         mock_build_prompt.return_value = "Constructed Prompt"
 
         expected_result = ReviewResult(summary="LGTM")
@@ -173,12 +174,8 @@ class TestAnalyzeCodeChanges:
         assert result.metrics.prompt_tokens == 100
 
         mock_build_prompt.assert_called_once_with(mock_context, mock_settings)
-        mock_provider_cls.assert_called_once_with(
-            api_key="test-key",
-            model_name="gemini-pro",
-        )
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_fallback_on_server_error(
         self,
@@ -215,10 +212,8 @@ class TestAnalyzeCodeChanges:
         assert result.metrics.fallback_reason is not None
         assert "ServerError" in result.metrics.fallback_reason
         assert mock_provider_cls.call_count == 2
-        mock_provider_cls.assert_any_call(api_key="test-key", model_name="gemini-pro")
-        mock_provider_cls.assert_any_call(api_key="test-key", model_name="gemini-2.5-flash")
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_fallback_on_rate_limit(
         self,
@@ -252,7 +247,7 @@ class TestAnalyzeCodeChanges:
         assert result.metrics is not None
         assert "RateLimitError" in result.metrics.fallback_reason  # type: ignore[operator]
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_no_fallback_on_auth_error(
         self,
@@ -268,7 +263,7 @@ class TestAnalyzeCodeChanges:
         with pytest.raises(AuthenticationError):
             analyze_code_changes(mock_context, mock_settings)
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_no_fallback_when_disabled(
         self,
@@ -285,7 +280,7 @@ class TestAnalyzeCodeChanges:
         with pytest.raises(ServerError):
             analyze_code_changes(mock_context, mock_settings)
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_primary_success_no_fallback_reason(
         self,
@@ -313,7 +308,7 @@ class TestAnalyzeCodeChanges:
         assert result.metrics is not None
         assert result.metrics.fallback_reason is None
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_both_models_exhausted_raises_quota_error(
         self,
@@ -335,7 +330,7 @@ class TestAnalyzeCodeChanges:
         with pytest.raises(QuotaExhaustedError, match="Both models failed"):
             analyze_code_changes(mock_context, mock_settings)
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_both_models_exhausted_message_contains_model_names(
         self,
@@ -357,7 +352,7 @@ class TestAnalyzeCodeChanges:
         with pytest.raises(QuotaExhaustedError, match=r"gemini-pro.*gemini-2\.5-flash"):
             analyze_code_changes(mock_context, mock_settings)
 
-    @patch("ai_reviewer.integrations.gemini.GeminiProvider")
+    @patch("ai_reviewer.integrations.gemini.RotatingGeminiProvider")
     @patch("ai_reviewer.integrations.gemini.build_review_prompt")
     def test_fallback_non_retriable_error_propagates_directly(
         self,

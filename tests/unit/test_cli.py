@@ -424,7 +424,7 @@ class TestDiscoverCommand:
         assert "repo" in result.stdout.lower()
 
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.cli._create_provider_client")
     @patch("ai_reviewer.cli.get_settings")
     def test_discover_json_output(
@@ -437,6 +437,7 @@ class TestDiscoverCommand:
         """Test that --json outputs valid JSON."""
         mock_settings = MagicMock()
         mock_settings.google_api_key.get_secret_value.return_value = "test-key"
+        mock_settings.google_api_keys = ["test-key"]
         mock_settings.gemini_model = "gemini-test"
         mock_get_settings.return_value = mock_settings
 
@@ -453,7 +454,7 @@ class TestDiscoverCommand:
         assert parsed["framework"] == "Django 5.1"
 
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.cli._create_provider_client")
     @patch("ai_reviewer.cli.get_settings")
     def test_discover_human_output_with_zones(
@@ -466,6 +467,7 @@ class TestDiscoverCommand:
         """Test human-friendly output includes attention zones."""
         mock_settings = MagicMock()
         mock_settings.google_api_key.get_secret_value.return_value = "test-key"
+        mock_settings.google_api_keys = ["test-key"]
         mock_settings.gemini_model = "gemini-test"
         mock_get_settings.return_value = mock_settings
 
@@ -489,7 +491,7 @@ class TestDiscoverCommand:
         assert "Add bandit" in result.stdout
 
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.cli._create_provider_client")
     @patch("ai_reviewer.cli.get_settings")
     def test_discover_verbose_shows_ci_tools(
@@ -504,6 +506,7 @@ class TestDiscoverCommand:
 
         mock_settings = MagicMock()
         mock_settings.google_api_key.get_secret_value.return_value = "test-key"
+        mock_settings.google_api_keys = ["test-key"]
         mock_settings.gemini_model = "gemini-test"
         mock_get_settings.return_value = mock_settings
 

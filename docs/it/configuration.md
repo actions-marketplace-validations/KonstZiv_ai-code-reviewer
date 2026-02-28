@@ -11,7 +11,7 @@ Tutte le impostazioni vengono configurate tramite variabili d'ambiente.
 
 | Variabile | Descrizione | Esempio | Come ottenerla |
 |-----------|-------------|---------|----------------|
-| `AI_REVIEWER_GOOGLE_API_KEY` | Chiave API Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Chiave API Google Gemini (separate da virgola per la rotazione delle chiavi) | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
 | `AI_REVIEWER_GITHUB_TOKEN` | GitHub PAT (per GitHub) | `ghp_...` | [Istruzioni](github.md#get-token) |
 | `AI_REVIEWER_GITLAB_TOKEN` | GitLab PAT (per GitLab) | `glpat-...` | [Istruzioni](gitlab.md#get-token) |
 

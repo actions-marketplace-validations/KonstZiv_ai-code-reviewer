@@ -11,7 +11,7 @@
 
 | Змінна | Опис | Приклад | Як отримати |
 |--------|------|---------|-------------|
-| `AI_REVIEWER_GOOGLE_API_KEY` | API ключ Google Gemini | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
+| `AI_REVIEWER_GOOGLE_API_KEY` | API ключ Google Gemini (через кому для ротації ключів) | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
 | `AI_REVIEWER_GITHUB_TOKEN` | GitHub токен (для GitHub) | `ghp_...` | [Інструкція](github.md#get-token) |
 | `AI_REVIEWER_GITLAB_TOKEN` | GitLab токен (для GitLab) | `glpat-...` | [Інструкція](gitlab.md#get-token) |
 

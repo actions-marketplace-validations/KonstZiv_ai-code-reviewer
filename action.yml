@@ -11,7 +11,7 @@ inputs:
     description: 'GitHub token for API access (usually secrets.GITHUB_TOKEN)'
     required: true
   google_api_key:
-    description: 'Google API key for Gemini'
+    description: 'Google API key for Gemini (comma-separated for multi-key rotation)'
     required: true
   language:
     description: 'Response language (ISO 639 code, e.g., en, uk, de)'

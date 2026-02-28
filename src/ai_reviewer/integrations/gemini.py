@@ -30,6 +30,7 @@ from ai_reviewer.llm.gemini import (
     GeminiProvider,
     calculate_cost,
 )
+from ai_reviewer.llm.key_pool import KeyPool, RotatingGeminiProvider
 from ai_reviewer.utils.retry import QuotaExhaustedError, RateLimitError, ServerError
 
 if TYPE_CHECKING:
@@ -151,15 +152,17 @@ def analyze_code_changes(context: ReviewContext, settings: Settings) -> ReviewRe
 
 
 def _call_llm(
-    api_key: str,
+    key_pool: KeyPool,
     settings: Settings,
     prompt: str,
     system_prompt: str,
 ) -> ReviewResult:
-    """Call Gemini with fallback logic (shared by single and split paths).
+    """Call Gemini with key rotation and model fallback.
+
+    Strategy: all keys on primary model, then all keys on fallback model.
 
     Args:
-        api_key: Google API key (plain string).
+        key_pool: Pool of API keys to rotate through.
         settings: Application settings.
         prompt: User prompt.
         system_prompt: System prompt.
@@ -170,7 +173,7 @@ def _call_llm(
     fallback_reason: str | None = None
 
     try:
-        provider = GeminiProvider(api_key=api_key, model_name=settings.gemini_model)
+        provider = RotatingGeminiProvider(key_pool=key_pool, model_name=settings.gemini_model)
         response = provider.generate(
             prompt,
             system_prompt=system_prompt,
@@ -187,8 +190,8 @@ def _call_llm(
             settings.gemini_model_fallback,
         )
         fallback_reason = f"{settings.gemini_model} \u2192 {type(primary_err).__name__}"
-        fallback_provider = GeminiProvider(
-            api_key=api_key,
+        fallback_provider = RotatingGeminiProvider(
+            key_pool=key_pool,
             model_name=settings.gemini_model_fallback,
         )
         try:
@@ -240,8 +243,8 @@ def _analyze_single(
     Returns:
         Review result with metrics.
     """
-    api_key = settings.google_api_key.get_secret_value()
-    result = _call_llm(api_key, settings, prompt, SYSTEM_PROMPT)
+    key_pool = KeyPool(settings.google_api_keys)
+    result = _call_llm(key_pool, settings, prompt, SYSTEM_PROMPT)
     logger.info("Analysis complete. Found %d issues.", result.issue_count)
     return result
 
@@ -266,24 +269,24 @@ def _analyze_split(
     Returns:
         Merged review result from both passes.
     """
-    api_key = settings.google_api_key.get_secret_value()
+    key_pool = KeyPool(settings.google_api_keys)
 
     # Pass 1: Production code with code_summary instruction
     code_prompt = build_split_review_prompt(context, settings, prod_changes)
     system_with_summary = SYSTEM_PROMPT + CODE_SUMMARY_INSTRUCTION
 
-    code_result = _call_llm(api_key, settings, code_prompt, system_with_summary)
+    code_result = _call_llm(key_pool, settings, code_prompt, system_with_summary)
     logger.info(
         "Code pass complete: %d issue(s), summary %d chars",
         code_result.issue_count,
         len(code_result.code_summary),
     )
 
-    # Pass 2: Test files with code_summary context
+    # Pass 2: Test files with code_summary context (same key pool)
     test_prompt = build_split_review_prompt(
         context, settings, test_changes, code_summary=code_result.code_summary
     )
-    test_result = _call_llm(api_key, settings, test_prompt, SYSTEM_PROMPT)
+    test_result = _call_llm(key_pool, settings, test_prompt, SYSTEM_PROMPT)
     logger.info("Test pass complete: %d issue(s)", test_result.issue_count)
 
     return _merge_review_results(code_result, test_result)

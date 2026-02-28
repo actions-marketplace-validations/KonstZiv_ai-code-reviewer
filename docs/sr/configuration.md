@@ -11,7 +11,7 @@ Sva podešavanja se konfigurišu putem varijabli okruženja.
 
 | Varijabla | Opis | Primjer | Kako dobiti |
 |----------|-------------|---------|------------|
-| `AI_REVIEWER_GOOGLE_API_KEY` | Google Gemini API ključ | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Google Gemini API ključ (раздвојене зарезом за ротацију кључева) | `AIza...` | [Google AI Studio](https://aistudio.google.com/) |
 | `AI_REVIEWER_GITHUB_TOKEN` | GitHub PAT (za GitHub) | `ghp_...` | [Instrukcije](github.md#get-token) |
 | `AI_REVIEWER_GITLAB_TOKEN` | GitLab PAT (za GitLab) | `glpat-...` | [Instrukcije](gitlab.md#get-token) |
 

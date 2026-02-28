@@ -294,6 +294,7 @@ def _make_settings() -> Mock:
     """Build a mock Settings object with all required attributes."""
     settings = Mock(spec=Settings)
     settings.google_api_key = SecretStr("test-key")
+    settings.google_api_keys = ["test-key"]
     settings.gemini_model = "gemini-pro"
     settings.gemini_model_fallback = "gemini-2.5-flash"
     settings.discovery_enabled = True
@@ -309,7 +310,7 @@ def _make_settings() -> Mock:
 class TestRunDiscovery:
     """Tests for _run_discovery."""
 
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
     def test_success_returns_profile(
         self,
@@ -327,7 +328,7 @@ class TestRunDiscovery:
         assert result is profile
         mock_orch_cls.return_value.discover.assert_called_once_with("owner/repo", 1)
 
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
     def test_failure_returns_none(
         self,
@@ -343,14 +344,14 @@ class TestRunDiscovery:
 
         assert result is None
 
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
-    def test_gemini_provider_receives_settings(
+    def test_rotating_provider_receives_settings(
         self,
         mock_orch_cls: MagicMock,
-        mock_gemini_cls: MagicMock,
+        mock_rotating_cls: MagicMock,
     ) -> None:
-        """Test that GeminiProvider is created with correct settings."""
+        """Test that RotatingGeminiProvider is created with correct settings."""
         profile = make_profile()
         mock_orch_cls.return_value.discover.return_value = profile
         provider = MagicMock(spec=GitProvider)
@@ -358,17 +359,16 @@ class TestRunDiscovery:
 
         _run_discovery(provider, "owner/repo", 1, settings)
 
-        mock_gemini_cls.assert_called_once_with(
-            api_key="test-key",
-            model_name="gemini-pro",
-        )
+        mock_rotating_cls.assert_called_once()
+        call_kwargs = mock_rotating_cls.call_args[1]
+        assert call_kwargs["model_name"] == "gemini-pro"
 
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
     def test_provider_passed_as_repo_and_conversation(
         self,
         mock_orch_cls: MagicMock,
-        mock_gemini_cls: MagicMock,
+        mock_rotating_cls: MagicMock,
     ) -> None:
         """Test that provider is used for both repo_provider and conversation."""
         profile = make_profile()
@@ -382,7 +382,7 @@ class TestRunDiscovery:
         assert call_kwargs.kwargs["repo_provider"] is provider
         assert call_kwargs.kwargs["conversation"] is provider
 
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
     def test_timeout_returns_none(
         self,
@@ -404,7 +404,7 @@ class TestRunDiscovery:
 
         assert result is None
 
-    @patch("ai_reviewer.llm.gemini.GeminiProvider")
+    @patch("ai_reviewer.llm.key_pool.RotatingGeminiProvider")
     @patch("ai_reviewer.discovery.DiscoveryOrchestrator")
     def test_timeout_uses_settings_value(
         self,
