@@ -100,8 +100,8 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `GOOGLE_API_KEY` | Ihr Gemini-Schlüssel (`AIza...`) | :white_check_mark: Mask variable |
-    | `GITLAB_TOKEN` | Token aus Schritt 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Ihr Gemini-Schlüssel (`AIza...`) | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Token aus Schritt 2a | :white_check_mark: Mask variable |
 
     !!! danger "`CI_JOB_TOKEN` funktioniert nicht"
         Verwenden Sie **nicht** GitLabs automatischen `CI_JOB_TOKEN` — er kann keine Kommentare zu Merge Requests posten.
@@ -112,13 +112,13 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
         2. Gehen Sie zu **Settings** → **CI/CD**
         3. Erweitern Sie den Abschnitt **Variables**
         4. Klicken Sie auf **Add variable**
-        5. Fügen Sie `GOOGLE_API_KEY` hinzu:
-            - Key: `GOOGLE_API_KEY`
+        5. Fügen Sie `AI_REVIEWER_GOOGLE_API_KEY` hinzu:
+            - Key: `AI_REVIEWER_GOOGLE_API_KEY`
             - Value: Ihr Gemini API-Schlüssel
             - Flags: Mask variable :white_check_mark:
         6. Klicken Sie auf **Add variable**
-        7. Wiederholen Sie für `GITLAB_TOKEN`:
-            - Key: `GITLAB_TOKEN`
+        7. Wiederholen Sie für `AI_REVIEWER_GITLAB_TOKEN`:
+            - Key: `AI_REVIEWER_GITLAB_TOKEN`
             - Value: Token aus Schritt 2a
             - Flags: Mask variable :white_check_mark:
 
@@ -217,10 +217,9 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    CI/CD-Variablen `AI_REVIEWER_GOOGLE_API_KEY` und `AI_REVIEWER_GITLAB_TOKEN` werden automatisch vererbt.
 
     3. Committen und pushen Sie die Datei
 
@@ -240,10 +239,9 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    CI/CD-Variablen werden automatisch vererbt.
 
 ---
 

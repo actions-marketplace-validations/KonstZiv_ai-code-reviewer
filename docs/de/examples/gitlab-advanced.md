@@ -22,8 +22,8 @@ Produktionsreife Konfiguration mit allen Best Practices.
 
 | Name | Wert | Optionen |
 |------|------|----------|
-| `GOOGLE_API_KEY` | Gemini API-Schlüssel | Masked |
-| `GITLAB_TOKEN` | PAT aus Schritt 1 | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API-Schlüssel | Masked |
+| `AI_REVIEWER_GITLAB_TOKEN` | PAT aus Schritt 1 | Masked |
 
 ---
 
@@ -61,8 +61,6 @@ ai-review:
   needs: []
 
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
     AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
@@ -90,8 +88,6 @@ ai-review:
 ai-review:
   # ...
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
 ```
 
@@ -109,8 +105,6 @@ ai-review:
 ai-review:
   # ...
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LOG_LEVEL: DEBUG
 ```
 
@@ -133,7 +127,7 @@ ai-review:
 ### Review postet keine Kommentare
 
 1. Job-Logs überprüfen
-2. Überprüfen, ob `GITLAB_TOKEN` (CI/CD-Variable) den Scope `api` hat
+2. Überprüfen, ob `AI_REVIEWER_GITLAB_TOKEN` (CI/CD-Variable) den Scope `api` hat
 3. Überprüfen, ob die Pipeline für MR läuft
 
 ### "401 Unauthorized"
@@ -181,8 +175,6 @@ ai-review:
   interruptible: true
   needs: []
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
 
 deploy:

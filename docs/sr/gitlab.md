@@ -30,15 +30,9 @@ Detaljan vodič za integraciju sa GitLab CI.
 
 1. Idite na **Settings → CI/CD → Variables → Add variable**
 2. Dodajte varijablu:
-    - **Key:** `GITLAB_TOKEN`
+    - **Key:** `AI_REVIEWER_GITLAB_TOKEN`
     - **Value:** nalijepite vaš token
     - **Flags:** označite **Masked** i **Protected**
-3. Koristite u `.gitlab-ci.yml`:
-
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-```
 
 !!! warning "Sačuvajte token"
     GitLab prikazuje token **samo jednom**. Sačuvajte ga odmah na sigurnom mjestu.
@@ -68,10 +62,8 @@ Dostupan samo na **GitLab Premium** i **Ultimate** planovima. Dobar izbor ako pr
 
 Isto kao PAT — dodajte kao `AI_REVIEWER_GITLAB_TOKEN` u CI/CD Variables:
 
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token iz CI/CD Variables
-```
+1. **Key:** `AI_REVIEWER_GITLAB_TOKEN`
+2. **Value:** nalijepite vaš Project Access Token
 
 !!! info "Koji token odabrati?"
     | | Personal Access Token | Project Access Token |
@@ -93,7 +85,7 @@ variables:
 | Varijabla | Vrijednost | Opcije |
 |----------|-------|---------|
 | `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API ključ | Masked |
-| `GITLAB_TOKEN` | Personal Access Token (scope: `api`) | Masked |
+| `AI_REVIEWER_GITLAB_TOKEN` | Personal Access Token (scope: `api`) | Masked |
 
 !!! tip "Masked"
     Uvijek omogućite **Masked** za tajne — neće se prikazivati u logovima.
@@ -134,10 +126,9 @@ ai-review:
     - ai-review
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
+
+CI/CD varijable `AI_REVIEWER_GOOGLE_API_KEY` i `AI_REVIEWER_GITLAB_TOKEN` se nasljeđuju automatski.
 
 ### Puni (preporučeno)
 
@@ -152,8 +143,6 @@ ai-review:
   allow_failure: true
   timeout: 10m
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
     AI_REVIEWER_LANGUAGE_MODE: adaptive
   interruptible: true
@@ -192,8 +181,6 @@ ai-review:
 ```yaml
 variables:
   AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
-  AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Docker registar
@@ -303,11 +290,6 @@ Na kraju revizije, objavljuje se bilješka Rezime sa:
 ## Najbolje prakse
 
 ### 1. Koristite PAT za punu funkcionalnost
-
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-```
 
 ### 2. Dodajte allow_failure
 

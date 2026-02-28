@@ -74,8 +74,8 @@ In your repository, create:
 
 2. **CI/CD Variables**:
     - Go to `Settings` → `CI/CD` → `Variables`
-    - Add `GOOGLE_API_KEY`: your Google API key (Masked)
-    - Add `GITLAB_TOKEN`: token from step 1 (Masked)
+    - Add `AI_REVIEWER_GOOGLE_API_KEY`: your Google API key (Masked)
+    - Add `AI_REVIEWER_GITLAB_TOKEN`: token from step 1 (Masked)
 
 3. **CI configuration**:
     - Create file `.gitlab-ci.yml` in the project root:
@@ -89,9 +89,6 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   allow_failure: true
-  variables:
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
 ```
 
 :point_right: [Learn more →](quick-start.md)

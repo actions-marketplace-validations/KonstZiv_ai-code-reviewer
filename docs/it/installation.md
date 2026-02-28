@@ -180,9 +180,6 @@ Esecuzione review su base programmata — per risparmiare risorse o quando non s
           done
       rules:
         - if: $CI_PIPELINE_SOURCE == "schedule"
-      variables:
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     ```
 
     **Configurazione schedule:** Project → Build → Pipeline schedules → New schedule

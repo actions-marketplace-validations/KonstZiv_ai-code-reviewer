@@ -275,7 +275,7 @@ ai-review
 
 ```bash
 # Controlla che le variabili siano impostate
-echo $GOOGLE_API_KEY | head -c 10
+echo $AI_REVIEWER_GOOGLE_API_KEY | head -c 10
 echo $GITHUB_TOKEN | head -c 10
 ```
 
@@ -283,7 +283,7 @@ echo $GITHUB_TOKEN | head -c 10
 
 ```bash
 # Testa Gemini API
-curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=$GOOGLE_API_KEY" \
+curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=$AI_REVIEWER_GOOGLE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"contents":[{"parts":[{"text":"Hello"}]}]}'
 ```

@@ -180,9 +180,6 @@ export AI_REVIEWER_GITHUB_TOKEN=your_token  # або AI_REVIEWER_GITLAB_TOKEN д
           done
       rules:
         - if: $CI_PIPELINE_SOURCE == "schedule"
-      variables:
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     ```
 
     **Налаштування розкладу:** Project → Build → Pipeline schedules → New schedule

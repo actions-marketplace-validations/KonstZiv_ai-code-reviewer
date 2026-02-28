@@ -100,8 +100,8 @@
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `GOOGLE_API_KEY` | Ваш Gemini ключ (`AIza...`) | :white_check_mark: Mask variable |
-    | `GITLAB_TOKEN` | Токен з кроку 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Ваш Gemini ключ (`AIza...`) | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Токен з кроку 2a | :white_check_mark: Mask variable |
 
     !!! danger "`CI_JOB_TOKEN` не працює"
         Автоматичний `CI_JOB_TOKEN` від GitLab **не може постити коментарі** до Merge Requests.
@@ -112,13 +112,13 @@
         2. Перейдіть **Settings** → **CI/CD**
         3. Розгорніть секцію **Variables**
         4. Натисніть **Add variable**
-        5. Додайте `GOOGLE_API_KEY`:
-            - Key: `GOOGLE_API_KEY`
+        5. Додайте `AI_REVIEWER_GOOGLE_API_KEY`:
+            - Key: `AI_REVIEWER_GOOGLE_API_KEY`
             - Value: ваш Gemini API ключ
             - Flags: Mask variable ✓
         6. Натисніть **Add variable**
-        7. Повторіть для `GITLAB_TOKEN`:
-            - Key: `GITLAB_TOKEN`
+        7. Повторіть для `AI_REVIEWER_GITLAB_TOKEN`:
+            - Key: `AI_REVIEWER_GITLAB_TOKEN`
             - Value: токен з кроку 2a
             - Flags: Mask variable ✓
 
@@ -217,10 +217,9 @@
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    CI/CD змінні `AI_REVIEWER_GOOGLE_API_KEY` та `AI_REVIEWER_GITLAB_TOKEN` наслідуються автоматично.
 
     3. Закомітьте та запуште файл
 
@@ -240,10 +239,9 @@
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    CI/CD змінні наслідуються автоматично.
 
 ---
 

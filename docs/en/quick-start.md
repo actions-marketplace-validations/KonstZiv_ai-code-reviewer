@@ -98,8 +98,8 @@ The key needs to be added as a secret variable in your repository.
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `GOOGLE_API_KEY` | Your Gemini key (`AIza...`) | :white_check_mark: Mask variable |
-    | `GITLAB_TOKEN` | Token from step 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Your Gemini key (`AIza...`) | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Token from step 2a | :white_check_mark: Mask variable |
 
     !!! danger "`CI_JOB_TOKEN` does not work"
         GitLab's automatic `CI_JOB_TOKEN` **cannot post comments** to Merge Requests.
@@ -110,13 +110,13 @@ The key needs to be added as a secret variable in your repository.
         2. Go to **Settings** → **CI/CD**
         3. Expand the **Variables** section
         4. Click **Add variable**
-        5. Add `GOOGLE_API_KEY`:
-            - Key: `GOOGLE_API_KEY`
+        5. Add `AI_REVIEWER_GOOGLE_API_KEY`:
+            - Key: `AI_REVIEWER_GOOGLE_API_KEY`
             - Value: your Gemini API key
             - Flags: Mask variable ✓
         6. Click **Add variable**
-        7. Repeat for `GITLAB_TOKEN`:
-            - Key: `GITLAB_TOKEN`
+        7. Repeat for `AI_REVIEWER_GITLAB_TOKEN`:
+            - Key: `AI_REVIEWER_GITLAB_TOKEN`
             - Value: token from step 2a
             - Flags: Mask variable ✓
 
@@ -215,10 +215,9 @@ The key needs to be added as a secret variable in your repository.
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    CI/CD variables `AI_REVIEWER_GOOGLE_API_KEY` and `AI_REVIEWER_GITLAB_TOKEN` from Step 2b are available automatically — no `variables:` section needed.
 
     3. Commit and push the file
 
@@ -238,9 +237,6 @@ The key needs to be added as a secret variable in your repository.
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
 ---

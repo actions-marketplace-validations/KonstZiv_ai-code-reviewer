@@ -98,8 +98,8 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `GOOGLE_API_KEY` | Vaš Gemini ključ (`AIza...`) | :white_check_mark: Mask variable |
-    | `GITLAB_TOKEN` | Token iz koraka 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Vaš Gemini ključ (`AIza...`) | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Token iz koraka 2a | :white_check_mark: Mask variable |
 
     !!! danger "`CI_JOB_TOKEN` ne radi"
         GitLab-ov automatski `CI_JOB_TOKEN` **ne može postavljati komentare** na Merge Request-e.
@@ -110,13 +110,13 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
         2. Idite na **Settings** → **CI/CD**
         3. Proširite sekciju **Variables**
         4. Kliknite **Add variable**
-        5. Dodajte `GOOGLE_API_KEY`:
-            - Key: `GOOGLE_API_KEY`
+        5. Dodajte `AI_REVIEWER_GOOGLE_API_KEY`:
+            - Key: `AI_REVIEWER_GOOGLE_API_KEY`
             - Value: vaš Gemini API ključ
             - Flags: Mask variable ✓
         6. Kliknite **Add variable**
-        7. Ponovite za `GITLAB_TOKEN`:
-            - Key: `GITLAB_TOKEN`
+        7. Ponovite za `AI_REVIEWER_GITLAB_TOKEN`:
+            - Key: `AI_REVIEWER_GITLAB_TOKEN`
             - Value: token iz koraka 2a
             - Flags: Mask variable ✓
 
@@ -215,10 +215,9 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    CI/CD varijable `AI_REVIEWER_GOOGLE_API_KEY` i `AI_REVIEWER_GITLAB_TOKEN` se nasljeđuju automatski.
 
     3. Komitujte i pušujte fajl
 
@@ -238,10 +237,9 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    CI/CD varijable se nasljeđuju automatski.
 
 ---
 

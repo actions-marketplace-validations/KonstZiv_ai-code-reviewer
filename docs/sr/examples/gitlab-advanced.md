@@ -22,8 +22,8 @@ Konfiguracija spremna za produkciju sa svim najboljim praksama.
 
 | Ime | Vrijednost | Opcije |
 |------|-------|---------|
-| `GOOGLE_API_KEY` | Gemini API ključ | Masked |
-| `GITLAB_TOKEN` | PAT iz Koraka 1 | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API ključ | Masked |
+| `AI_REVIEWER_GITLAB_TOKEN` | PAT iz Koraka 1 | Masked |
 
 ---
 
@@ -61,8 +61,6 @@ ai-review:
   needs: []
 
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
     AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
@@ -90,8 +88,6 @@ ai-review:
 ai-review:
   # ...
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
 ```
 
@@ -109,8 +105,6 @@ ai-review:
 ai-review:
   # ...
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LOG_LEVEL: DEBUG
 ```
 
@@ -181,8 +175,6 @@ ai-review:
   interruptible: true
   needs: []
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
 
 deploy:

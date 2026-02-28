@@ -30,15 +30,11 @@ Detailed guide for integration with GitLab CI.
 
 1. Go to **Settings → CI/CD → Variables → Add variable**
 2. Add variable:
-    - **Key:** `GITLAB_TOKEN`
+    - **Key:** `AI_REVIEWER_GITLAB_TOKEN`
     - **Value:** paste your token
     - **Flags:** check **Masked** and **Protected**
-3. Use in `.gitlab-ci.yml`:
 
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-```
+The variable is automatically available to all jobs — no YAML `variables:` mapping needed.
 
 !!! warning "Save the token"
     GitLab shows the token **only once**. Save it in a secure location immediately.
@@ -66,12 +62,9 @@ Available only on **GitLab Premium** and **Ultimate** plans. A good choice if yo
 
 **How to use in CI:**
 
-Same as PAT — add as CI/CD variable (e.g. key `GITLAB_PROJECT_TOKEN`) and reference it:
+Same as PAT — add as CI/CD variable with key `AI_REVIEWER_GITLAB_TOKEN` and check **Masked** + **Protected**.
 
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN
-```
+The variable is automatically available to all jobs — no YAML `variables:` mapping needed.
 
 !!! info "Which token to choose?"
     | | Personal Access Token | Project Access Token |
@@ -135,10 +128,10 @@ ai-review:
     - ai-review
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
+
+!!! note "CI/CD variables"
+    `AI_REVIEWER_GOOGLE_API_KEY` and `AI_REVIEWER_GITLAB_TOKEN` are inherited automatically from project CI/CD variables — no `variables:` section needed.
 
 ### Full (recommended)
 
@@ -153,8 +146,6 @@ ai-review:
   allow_failure: true
   timeout: 10m
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
     AI_REVIEWER_LANGUAGE_MODE: adaptive
   interruptible: true
@@ -193,8 +184,6 @@ ai-review:
 ```yaml
 variables:
   AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
-  AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Docker Registry
@@ -259,8 +248,8 @@ At the end of the review, a Summary note is posted with:
 
 **Check:**
 
-1. `AI_REVIEWER_GOOGLE_API_KEY` (or `GOOGLE_API_KEY`) variable is set
-2. `AI_REVIEWER_GITLAB_TOKEN` (or `GITLAB_TOKEN`) has sufficient permissions (scope: `api`)
+1. `AI_REVIEWER_GOOGLE_API_KEY` variable is set
+2. `AI_REVIEWER_GITLAB_TOKEN` has sufficient permissions (scope: `api`)
 3. Pipeline is running for MR (not for a branch)
 
 ### "401 Unauthorized"
@@ -305,10 +294,7 @@ At the end of the review, a Summary note is posted with:
 
 ### 1. Use a Personal Access Token
 
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-```
+Create a CI/CD variable named `AI_REVIEWER_GITLAB_TOKEN` with your PAT value — it will be inherited by all jobs automatically.
 
 ### 2. Add allow_failure
 

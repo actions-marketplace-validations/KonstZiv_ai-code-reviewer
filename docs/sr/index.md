@@ -72,8 +72,8 @@ U vašem repozitorijumu kreirajte:
     - **Project Access Token** (Premium/Ultimate) — `Settings` → `Access Tokens` → `Add new token`: Token name `ai-reviewer`, Role `Developer`, Scopes `api`
 
 2. **CI/CD varijable** u `Settings` → `CI/CD` → `Variables`:
-   - `GOOGLE_API_KEY`: vaš Google API ključ (Masked)
-   - `GITLAB_TOKEN`: token iz koraka 1 (Masked)
+   - `AI_REVIEWER_GOOGLE_API_KEY`: vaš Google API ključ (Masked)
+   - `AI_REVIEWER_GITLAB_TOKEN`: token iz koraka 1 (Masked)
 
 3. **Workflow fajl** `.gitlab-ci.yml` u korijenu repozitorijuma:
 
@@ -85,9 +85,6 @@ ai-review:
     - ai-review
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 :point_right: [Saznajte više →](quick-start.md)

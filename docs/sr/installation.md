@@ -180,9 +180,6 @@ Pokretanje revizije po rasporedu — za uštedu resursa ili kada nije potreban t
           done
       rules:
         - if: $CI_PIPELINE_SOURCE == "schedule"
-      variables:
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     ```
 
     **Podešavanje rasporeda:** Project → Build → Pipeline schedules → New schedule

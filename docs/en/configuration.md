@@ -173,8 +173,8 @@ env:
 
 ```yaml
 variables:
-  AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY  # From CI/CD Variables
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN      # Project Access Token
+  # AI_REVIEWER_GOOGLE_API_KEY and AI_REVIEWER_GITLAB_TOKEN
+  # are inherited from CI/CD Variables automatically
   AI_REVIEWER_LANGUAGE: uk
   AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```

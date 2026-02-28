@@ -98,8 +98,8 @@ La clave debe añadirse como variable secreta en tu repositorio.
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `GOOGLE_API_KEY` | Tu clave Gemini (`AIza...`) | :white_check_mark: Mask variable |
-    | `GITLAB_TOKEN` | Token del paso 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Tu clave Gemini (`AIza...`) | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Token del paso 2a | :white_check_mark: Mask variable |
 
     !!! danger "`CI_JOB_TOKEN` no funciona"
         El `CI_JOB_TOKEN` automático de GitLab **no puede publicar comentarios** en Merge Requests.
@@ -110,13 +110,13 @@ La clave debe añadirse como variable secreta en tu repositorio.
         2. Ve a **Settings** → **CI/CD**
         3. Expande la sección **Variables**
         4. Haz clic en **Add variable**
-        5. Añade `GOOGLE_API_KEY`:
-            - Key: `GOOGLE_API_KEY`
+        5. Añade `AI_REVIEWER_GOOGLE_API_KEY`:
+            - Key: `AI_REVIEWER_GOOGLE_API_KEY`
             - Value: tu clave Gemini API
             - Flags: Mask variable ✓
         6. Haz clic en **Add variable**
-        7. Repite para `GITLAB_TOKEN`:
-            - Key: `GITLAB_TOKEN`
+        7. Repite para `AI_REVIEWER_GITLAB_TOKEN`:
+            - Key: `AI_REVIEWER_GITLAB_TOKEN`
             - Value: token del paso 2a
             - Flags: Mask variable ✓
 
@@ -215,10 +215,9 @@ La clave debe añadirse como variable secreta en tu repositorio.
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    Las variables CI/CD `AI_REVIEWER_GOOGLE_API_KEY` y `AI_REVIEWER_GITLAB_TOKEN` se heredan automáticamente.
 
     3. Haz commit y push del archivo
 
@@ -238,10 +237,9 @@ La clave debe añadirse como variable secreta en tu repositorio.
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    Las variables CI/CD se heredan automáticamente.
 
 ---
 

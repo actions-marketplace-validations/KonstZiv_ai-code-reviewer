@@ -10,8 +10,8 @@ Die einfachste Konfiguration für GitLab CI.
 
 | Name | Wert | Optionen |
 |------|------|----------|
-| `GOOGLE_API_KEY` | Ihr Gemini API-Schlüssel | Masked |
-| `GITLAB_TOKEN` | Personal Access Token mit `api`-Scope | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Ihr Gemini API-Schlüssel | Masked |
+| `AI_REVIEWER_GITLAB_TOKEN` | Personal Access Token mit `api`-Scope | Masked |
 
 ---
 
@@ -26,9 +26,6 @@ ai-review:
     - ai-review
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ---

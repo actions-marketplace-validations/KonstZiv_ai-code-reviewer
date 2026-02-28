@@ -10,8 +10,8 @@ Najjednostavnija konfiguracija za GitLab CI.
 
 | Ime | Vrijednost | Opcije |
 |------|-------|---------|
-| `GOOGLE_API_KEY` | Vaš Gemini API ključ | Masked |
-| `GITLAB_TOKEN` | Personal Access Token sa scope `api` | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Vaš Gemini API ključ | Masked |
+| `AI_REVIEWER_GITLAB_TOKEN` | Personal Access Token sa scope `api` | Masked |
 
 ---
 
@@ -26,9 +26,6 @@ ai-review:
     - ai-review
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ---

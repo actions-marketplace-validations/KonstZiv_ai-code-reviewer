@@ -98,8 +98,8 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `GOOGLE_API_KEY` | La tua chiave Gemini (`AIza...`) | :white_check_mark: Mask variable |
-    | `GITLAB_TOKEN` | Token dal passo 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | La tua chiave Gemini (`AIza...`) | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Token dal passo 2a | :white_check_mark: Mask variable |
 
     !!! danger "`CI_JOB_TOKEN` non funziona"
         Il `CI_JOB_TOKEN` automatico di GitLab **non puo pubblicare commenti** sulle Merge Request.
@@ -110,13 +110,13 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
         2. Vai su **Settings** → **CI/CD**
         3. Espandi la sezione **Variables**
         4. Clicca **Add variable**
-        5. Aggiungi `GOOGLE_API_KEY`:
-            - Key: `GOOGLE_API_KEY`
+        5. Aggiungi `AI_REVIEWER_GOOGLE_API_KEY`:
+            - Key: `AI_REVIEWER_GOOGLE_API_KEY`
             - Value: la tua chiave API Gemini
             - Flags: Mask variable ✓
         6. Clicca **Add variable**
-        7. Ripeti per `GITLAB_TOKEN`:
-            - Key: `GITLAB_TOKEN`
+        7. Ripeti per `AI_REVIEWER_GITLAB_TOKEN`:
+            - Key: `AI_REVIEWER_GITLAB_TOKEN`
             - Value: token dal passo 2a
             - Flags: Mask variable ✓
 
@@ -215,10 +215,9 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    Le variabili CI/CD `AI_REVIEWER_GOOGLE_API_KEY` e `AI_REVIEWER_GITLAB_TOKEN` vengono ereditate automaticamente.
 
     3. Committa e pusha il file
 
@@ -238,10 +237,9 @@ La chiave deve essere aggiunta come variabile segreta nel tuo repository.
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
-      variables:
-        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
+
+    Le variabili CI/CD vengono ereditate automaticamente.
 
 ---
 

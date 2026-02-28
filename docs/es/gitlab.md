@@ -30,15 +30,9 @@ Guía detallada para integración con GitLab CI.
 
 1. Ve a **Settings → CI/CD → Variables → Add variable**
 2. Añade la variable:
-    - **Key:** `GITLAB_TOKEN`
+    - **Key:** `AI_REVIEWER_GITLAB_TOKEN`
     - **Value:** pega tu token
     - **Flags:** marca **Masked** y **Protected**
-3. Usa en `.gitlab-ci.yml`:
-
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-```
 
 !!! warning "Guarda el token"
     GitLab muestra el token **solo una vez**. Guárdalo en un lugar seguro inmediatamente.
@@ -68,10 +62,8 @@ Disponible solo en planes **GitLab Premium** y **Ultimate**. Una buena opción s
 
 Igual que PAT — añade como `AI_REVIEWER_GITLAB_TOKEN` en CI/CD Variables:
 
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token desde CI/CD Variables
-```
+1. **Key:** `AI_REVIEWER_GITLAB_TOKEN`
+2. **Value:** pega tu Project Access Token
 
 !!! info "¿Qué token elegir?"
     | | Personal Access Token | Project Access Token |
@@ -134,10 +126,9 @@ ai-review:
     - ai-review
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
+
+Las variables CI/CD `AI_REVIEWER_GOOGLE_API_KEY` y `AI_REVIEWER_GITLAB_TOKEN` se heredan automáticamente.
 
 ### Completo (recomendado)
 
@@ -152,8 +143,6 @@ ai-review:
   allow_failure: true
   timeout: 10m
   variables:
-    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
     AI_REVIEWER_LANGUAGE_MODE: adaptive
   interruptible: true
@@ -192,8 +181,6 @@ ai-review:
 ```yaml
 variables:
   AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
-  AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Docker Registry
@@ -303,11 +290,6 @@ Al final de la revisión, se publica una nota de Resumen con:
 ## Mejores Prácticas
 
 ### 1. Usa PAT para funcionalidad completa
-
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
-```
 
 ### 2. Añade allow_failure
 
