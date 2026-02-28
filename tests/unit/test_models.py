@@ -435,10 +435,21 @@ class TestReviewContext:
         with pytest.raises(ValidationError):
             ReviewContext(mr=sample_mr, repository="owner/")
 
-    def test_repository_format_invalid_multiple_slashes(self, sample_mr: MergeRequest) -> None:
-        """Test that repository with multiple slashes is rejected."""
+    def test_repository_format_nested_namespaces(self, sample_mr: MergeRequest) -> None:
+        """Test that GitLab nested namespaces (group/subgroup/repo) are accepted."""
+        context = ReviewContext(mr=sample_mr, repository="owner/repo/extra")
+        assert context.repository == "owner/repo/extra"
+
+        context2 = ReviewContext(mr=sample_mr, repository="group/sub1/sub2/project")
+        assert context2.repository == "group/sub1/sub2/project"
+
+    def test_repository_format_invalid_empty_segments(self, sample_mr: MergeRequest) -> None:
+        """Test that repository with empty segments is rejected."""
         with pytest.raises(ValidationError):
-            ReviewContext(mr=sample_mr, repository="owner/repo/extra")
+            ReviewContext(mr=sample_mr, repository="owner//repo")
+
+        with pytest.raises(ValidationError):
+            ReviewContext(mr=sample_mr, repository="owner/repo/")
 
 
 class TestCodeIssue:

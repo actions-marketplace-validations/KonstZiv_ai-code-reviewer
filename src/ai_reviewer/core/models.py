@@ -231,13 +231,11 @@ class ReviewContext(BaseModel):
     @field_validator("repository")
     @classmethod
     def validate_repository_format(cls, v: str) -> str:
-        """Validate repository is in owner/repo format."""
-        if v.count("/") != 1:
-            msg = "Repository must be in 'owner/repo' format"
-            raise ValueError(msg)
-        owner, repo = v.split("/")
-        if not owner or not repo:
-            msg = "Repository must be in 'owner/repo' format"
+        """Validate repository is in owner/repo or namespace/subgroup/.../repo format."""
+        _min_segments = 2
+        parts = v.split("/")
+        if len(parts) < _min_segments or not all(parts):
+            msg = "Repository must be in 'owner/repo' format (nested namespaces allowed)"
             raise ValueError(msg)
         return v
 
