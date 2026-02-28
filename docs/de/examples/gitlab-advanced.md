@@ -61,10 +61,10 @@ ai-review:
   needs: []
 
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
-    LANGUAGE_MODE: adaptive
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
+    AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ---
@@ -90,9 +90,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    GITLAB_URL: https://gitlab.mycompany.com
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
 ```
 
 ### Mit benutzerdefinierter Docker Registry
@@ -109,9 +109,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LOG_LEVEL: DEBUG
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LOG_LEVEL: DEBUG
 ```
 
 ### Nur für bestimmte Branches
@@ -133,7 +133,7 @@ ai-review:
 ### Review postet keine Kommentare
 
 1. Job-Logs überprüfen
-2. Überprüfen, ob `GITLAB_TOKEN` den Scope `api` hat
+2. Überprüfen, ob `GITLAB_TOKEN` (CI/CD-Variable) den Scope `api` hat
 3. Überprüfen, ob die Pipeline für MR läuft
 
 ### "401 Unauthorized"
@@ -181,9 +181,9 @@ ai-review:
   interruptible: true
   needs: []
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
 
 deploy:
   stage: deploy

@@ -68,8 +68,8 @@ jobs:
 U vašem repozitorijumu kreirajte:
 
 1. **GitLab Token** (za pisanje komentara):
-    - **Project Access Token** (Premium/Ultimate) — `Settings` → `Access Tokens` → `Add new token`: Token name `ai-reviewer`, Role `Developer`, Scopes `api`
     - **Personal Access Token** (svi planovi, uključujući Free) — `User Settings` → `Access Tokens`, Scope `api`. Komentari će se pojavljivati pod vašim korisničkim imenom.
+    - **Project Access Token** (Premium/Ultimate) — `Settings` → `Access Tokens` → `Add new token`: Token name `ai-reviewer`, Role `Developer`, Scopes `api`
 
 2. **CI/CD varijable** u `Settings` → `CI/CD` → `Variables`:
    - `GOOGLE_API_KEY`: vaš Google API ključ (Masked)
@@ -86,8 +86,8 @@ ai-review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 :point_right: [Saznajte više →](quick-start.md)
@@ -195,7 +195,7 @@ graph TD
 Minimalna konfiguracija — samo API ključ:
 
 ```bash
-export GOOGLE_API_KEY=your_api_key
+export AI_REVIEWER_GOOGLE_API_KEY=your_api_key
 ```
 
 Dodatne opcije:

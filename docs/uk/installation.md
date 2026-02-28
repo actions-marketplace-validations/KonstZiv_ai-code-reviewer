@@ -169,7 +169,7 @@ export AI_REVIEWER_GITHUB_TOKEN=your_token  # або AI_REVIEWER_GITLAB_TOKEN д
       script:
         - |
           # Отримати список відкритих MR
-          MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+          MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $AI_REVIEWER_GITLAB_TOKEN" \
             "$CI_SERVER_URL/api/v4/projects/$CI_PROJECT_ID/merge_requests?state=opened" \
             | jq -r '.[].iid')
 
@@ -203,8 +203,8 @@ export AI_REVIEWER_GITHUB_TOKEN=your_token  # або AI_REVIEWER_GITLAB_TOKEN д
         steps:
           - name: Get open PRs and review
             env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+              AI_REVIEWER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
             run: |
               # Отримати список відкритих PR
               PRS=$(gh pr list --repo ${{ github.repository }} --state open --json number -q '.[].number')
@@ -212,7 +212,7 @@ export AI_REVIEWER_GITHUB_TOKEN=your_token  # або AI_REVIEWER_GITLAB_TOKEN д
               for PR in $PRS; do
                 echo "Reviewing PR #$PR"
                 docker run --rm \
-                  -e GOOGLE_API_KEY -e GITHUB_TOKEN \
+                  -e AI_REVIEWER_GOOGLE_API_KEY -e AI_REVIEWER_GITHUB_TOKEN \
                   ghcr.io/konstziv/ai-code-reviewer:1 \
                   --repo ${{ github.repository }} --pr $PR || true
               done

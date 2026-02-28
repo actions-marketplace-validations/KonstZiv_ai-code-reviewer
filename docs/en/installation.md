@@ -169,7 +169,7 @@ Running reviews on a schedule — for resource savings or when instant feedback 
       script:
         - |
           # Get list of open MRs
-          MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+          MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $AI_REVIEWER_GITLAB_TOKEN" \
             "$CI_SERVER_URL/api/v4/projects/$CI_PROJECT_ID/merge_requests?state=opened" \
             | jq -r '.[].iid')
 
@@ -203,8 +203,8 @@ Running reviews on a schedule — for resource savings or when instant feedback 
         steps:
           - name: Get open PRs and review
             env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+              AI_REVIEWER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
             run: |
               # Get list of open PRs
               PRS=$(gh pr list --repo ${{ github.repository }} --state open --json number -q '.[].number')
@@ -212,7 +212,7 @@ Running reviews on a schedule — for resource savings or when instant feedback 
               for PR in $PRS; do
                 echo "Reviewing PR #$PR"
                 docker run --rm \
-                  -e GOOGLE_API_KEY -e GITHUB_TOKEN \
+                  -e AI_REVIEWER_GOOGLE_API_KEY -e AI_REVIEWER_GITHUB_TOKEN \
                   ghcr.io/konstziv/ai-code-reviewer:1 \
                   --repo ${{ github.repository }} --pr $PR || true
               done
@@ -244,7 +244,7 @@ For deployment on your own infrastructure with Git API access.
 export AI_REVIEWER_GOOGLE_API_KEY="your_key"
 export AI_REVIEWER_GITLAB_TOKEN="your_token"
 
-MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+MR_LIST=$(curl -s --header "PRIVATE-TOKEN: $AI_REVIEWER_GITLAB_TOKEN" \
   "https://gitlab.company.com/api/v4/projects/123/merge_requests?state=opened" \
   | jq -r '.[].iid')
 

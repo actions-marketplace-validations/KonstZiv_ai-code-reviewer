@@ -6,32 +6,14 @@ Detailed guide for integration with GitLab CI.
 
 ## Tokens {#tokens}
 
-### CI_JOB_TOKEN (automatic)
-
-In GitLab CI, `CI_JOB_TOKEN` is automatically available:
-
-```yaml
-variables:
-  AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN
-```
-
-**`CI_JOB_TOKEN` limitations:**
-
-| Feature | Status |
-|---------|--------|
-| Read MR | :white_check_mark: |
-| Read diff | :white_check_mark: |
-| Post notes | :white_check_mark: |
-| Create discussions | :x: |
-
-!!! warning "Limited permissions"
-    `CI_JOB_TOKEN` cannot create inline discussions.
-
-    For full functionality, use a Personal Access Token.
-
 ### Personal Access Token (PAT) {#get-token}
 
-For **all GitLab plans** (including Free). Recommended for local runs or full CI functionality.
+**Recommended for all GitLab plans** (including Free).
+
+!!! danger "`CI_JOB_TOKEN` does not work"
+    GitLab's automatic `CI_JOB_TOKEN` **cannot post comments** to Merge Requests
+    (the Notes API requires `api` scope, which `CI_JOB_TOKEN` does not have).
+    You **must** use a Personal Access Token or Project Access Token.
 
 **How to create:**
 
@@ -48,14 +30,14 @@ For **all GitLab plans** (including Free). Recommended for local runs or full CI
 
 1. Go to **Settings → CI/CD → Variables → Add variable**
 2. Add variable:
-    - **Key:** `AI_REVIEWER_GITLAB_TOKEN` (or `GITLAB_TOKEN`)
+    - **Key:** `GITLAB_TOKEN`
     - **Value:** paste your token
     - **Flags:** check **Masked** and **Protected**
 3. Use in `.gitlab-ci.yml`:
 
 ```yaml
 variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token from CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 !!! warning "Save the token"
@@ -84,21 +66,22 @@ Available only on **GitLab Premium** and **Ultimate** plans. A good choice if yo
 
 **How to use in CI:**
 
-Same as PAT — add as `AI_REVIEWER_GITLAB_TOKEN` in CI/CD Variables:
+Same as PAT — add as CI/CD variable (e.g. key `GITLAB_PROJECT_TOKEN`) and reference it:
 
 ```yaml
 variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN  # Project Access Token from CI/CD Variables
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_PROJECT_TOKEN
 ```
 
 !!! info "Which token to choose?"
-    | | CI_JOB_TOKEN | Personal Access Token | Project Access Token |
-    |---|---|---|---|
-    | **Plan** | All | All (including Free) | Premium/Ultimate only |
-    | **Setup** | Automatic | Manual | Manual |
-    | **Scope** | Current job only | All user's projects | Single project |
-    | **Inline comments** | :x: | :white_check_mark: | :white_check_mark: |
-    | **Best for** | Quick start | Free plan + full features | Teams on Premium/Ultimate |
+    | | Personal Access Token | Project Access Token |
+    |---|---|---|
+    | **Plan** | All (including Free) | Premium/Ultimate only |
+    | **Setup** | Manual | Manual |
+    | **Scope** | All user's projects | Single project |
+    | **Post comments** | :white_check_mark: | :white_check_mark: |
+    | **Inline discussions** | :white_check_mark: | :white_check_mark: |
+    | **Best for** | Free plan, personal use | Teams on Premium/Ultimate |
 
 ---
 
@@ -154,7 +137,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN  # Automatic, no setup needed
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### Full (recommended)
@@ -171,8 +154,7 @@ ai-review:
   timeout: 10m
   variables:
     AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    # Use CI_JOB_TOKEN (automatic) or a Personal Access Token for full permissions:
-    AI_REVIEWER_GITLAB_TOKEN: $CI_JOB_TOKEN    # or: $GITLAB_PAT (see "Get Token" above)
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
     AI_REVIEWER_LANGUAGE: uk
     AI_REVIEWER_LANGUAGE_MODE: adaptive
   interruptible: true
@@ -243,7 +225,7 @@ AI Code Reviewer automatically uses:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | MR number |
 | `CI_SERVER_URL` | GitLab URL |
-| `CI_JOB_TOKEN` | Automatic token |
+| `CI_JOB_TOKEN` | Automatic token (read-only, cannot post comments) |
 
 You don't need to pass `--repo` and `--pr` — they're taken from CI automatically.
 
@@ -257,7 +239,7 @@ AI Review posts comments to MR as notes.
 
 ### Discussions (inline)
 
-For inline comments, you need a full PAT token (not `CI_JOB_TOKEN`).
+For inline comments, you need a Personal Access Token (or Project Access Token) with `api` scope.
 
 Inline comments appear directly next to code lines in the diff view.
 
@@ -296,7 +278,7 @@ At the end of the review, a Summary note is posted with:
 
 **Solution:**
 
-- Use PAT instead of `CI_JOB_TOKEN`
+- Ensure you are using a Personal Access Token (or Project Access Token) with `api` scope
 - Check that the token has access to the project
 
 ### "404 Not Found"
@@ -321,11 +303,11 @@ At the end of the review, a Summary note is posted with:
 
 ## Best Practices
 
-### 1. Use PAT for full functionality
+### 1. Use a Personal Access Token
 
 ```yaml
 variables:
-  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # PAT, not CI_JOB_TOKEN
+  AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
 ```
 
 ### 2. Add allow_failure

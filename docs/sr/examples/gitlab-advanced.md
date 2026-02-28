@@ -61,10 +61,10 @@ ai-review:
   needs: []
 
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
-    LANGUAGE_MODE: adaptive
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
+    AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ---
@@ -90,9 +90,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    GITLAB_URL: https://gitlab.mycompany.com
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
 ```
 
 ### Sa prilagođenim Docker registrom
@@ -109,9 +109,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LOG_LEVEL: DEBUG
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LOG_LEVEL: DEBUG
 ```
 
 ### Samo za određene grane
@@ -133,7 +133,7 @@ ai-review:
 ### Revizija ne objavljuje komentare
 
 1. Provjerite logove job-a
-2. Provjerite da `GITLAB_TOKEN` ima scope `api`
+2. Provjerite da `AI_REVIEWER_GITLAB_TOKEN` ima scope `api`
 3. Provjerite da se pipeline pokreće za MR
 
 ### "401 Unauthorized"
@@ -181,9 +181,9 @@ ai-review:
   interruptible: true
   needs: []
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
 
 deploy:
   stage: deploy

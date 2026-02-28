@@ -53,6 +53,23 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
 
     ### Korak 2a: Kreirajte GitLab token
 
+    === "Personal Access Token (Svi planovi, uključujući Free)"
+
+        **Putanja:** Korisnički avatar → `Edit profile` → `Access Tokens`
+
+        | Polje | Vrijednost |
+        |------|----------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Izaberite datum (maks. 1 godina) |
+        | **Scopes** | :white_check_mark: `api` |
+
+        Kliknite **"Create personal access token"** → **Kopirajte token** (prikazuje se samo jednom!)
+
+        !!! warning "Komentari će se pojavljivati pod vašim korisničkim imenom"
+            Personal Access Token je vezan za vaš nalog. Svi komentari revizije biće objavljeni u vaše ime.
+
+        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+
     === "Project Access Token (Premium/Ultimate)"
 
         !!! note "Potrebna Maintainer prava"
@@ -73,25 +90,6 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
 
         :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
 
-    === "Personal Access Token (Svi planovi)"
-
-        Koristite ovu opciju ako Project Access Tokeni nisu dostupni na vašem planu (npr. GitLab Free).
-
-        **Putanja:** Korisnički avatar → `Edit profile` → `Access Tokens`
-
-        | Polje | Vrijednost |
-        |------|----------|
-        | **Token name** | `ai-reviewer` |
-        | **Expiration date** | Izaberite datum (maks. 1 godina) |
-        | **Scopes** | :white_check_mark: `api` |
-
-        Kliknite **"Create personal access token"** → **Kopirajte token** (prikazuje se samo jednom!)
-
-        !!! warning "Komentari će se pojavljivati pod vašim korisničkim imenom"
-            Za razliku od Project Access Tokena, Personal Access Token je vezan za vaš nalog. Svi komentari revizije biće objavljeni u vaše ime.
-
-        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
-
     ### Korak 2b: Dodajte varijable u CI/CD
 
     **Putanja:** Project → `Settings` → `CI/CD` → `Variables`
@@ -103,9 +101,9 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
     | `GOOGLE_API_KEY` | Vaš Gemini ključ (`AIza...`) | :white_check_mark: Mask variable |
     | `GITLAB_TOKEN` | Token iz koraka 2a | :white_check_mark: Mask variable |
 
-    !!! tip "AI_REVIEWER_ prefiks"
-        Možete koristiti i `AI_REVIEWER_GOOGLE_API_KEY` i `AI_REVIEWER_GITLAB_TOKEN` kao nazive varijabli.
-        Podržani su i stari i novi nazivi.
+    !!! danger "`CI_JOB_TOKEN` ne radi"
+        GitLab-ov automatski `CI_JOB_TOKEN` **ne može postavljati komentare** na Merge Request-e.
+        **Morate** kreirati Personal Access Token (ili Project Access Token na Premium+).
 
     ??? info "Detaljna uputstva"
         1. Otvorite vaš projekat na GitLab-u
@@ -218,8 +216,8 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
       variables:
-        GITLAB_TOKEN: $GITLAB_TOKEN
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
     3. Komitujte i pušujte fajl
@@ -241,8 +239,8 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
       variables:
-        GITLAB_TOKEN: $GITLAB_TOKEN
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
 ---
@@ -281,6 +279,7 @@ Provjerite listu:
 
 - [ ] `GOOGLE_API_KEY` dodan kao tajna?
 - [ ] `github_token` eksplicitno proslijeđen? (za GitHub)
+- [ ] Za GitLab: da li je `AI_REVIEWER_GITLAB_TOKEN` podešen na Personal Access Token?
 - [ ] CI job završen uspješno? (provjerite logove)
 - [ ] Za GitHub: ima li `permissions: pull-requests: write`?
 - [ ] Za fork PR-ove: tajne nijesu dostupne — ovo je očekivano ponašanje
@@ -289,7 +288,7 @@ Provjerite listu:
 
 Ovo znači da CLI nije dobio potrebne parametre. Provjerite:
 
-- Da li je proslijeđen `github_token` / `GITLAB_TOKEN` eksplicitno
+- Da li je proslijeđen `github_token` / `AI_REVIEWER_GITLAB_TOKEN` eksplicitno
 - Da li je YAML format ispravan (uvlačenja!)
 
 ### Rate limit?

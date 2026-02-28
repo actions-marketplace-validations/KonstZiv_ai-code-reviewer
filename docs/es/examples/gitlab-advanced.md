@@ -23,7 +23,7 @@ Configuración lista para producción con todas las mejores prácticas.
 | Nombre | Valor | Opciones |
 |--------|-------|----------|
 | `GOOGLE_API_KEY` | Clave API de Gemini | Masked |
-| `GITLAB_TOKEN` | PAT del Paso 1 | Masked |
+| `GITLAB_TOKEN` | Personal Access Token del Paso 1 | Masked |
 
 ---
 
@@ -61,10 +61,10 @@ ai-review:
   needs: []
 
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
-    LANGUAGE_MODE: adaptive
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
+    AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ---
@@ -78,7 +78,7 @@ ai-review:
 | Timeout | :white_check_mark: | 10 minutos |
 | Interruptible | :white_check_mark: | Se cancela con nuevo commit |
 | Ejecución paralela | :white_check_mark: | `needs: []` |
-| Idioma personalizado | :white_check_mark: | `LANGUAGE: uk` |
+| Idioma personalizado | :white_check_mark: | `AI_REVIEWER_LANGUAGE: uk` |
 
 ---
 
@@ -90,9 +90,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    GITLAB_URL: https://gitlab.mycompany.com
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
 ```
 
 ### Con Docker Registry Personalizado
@@ -109,9 +109,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LOG_LEVEL: DEBUG
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LOG_LEVEL: DEBUG
 ```
 
 ### Solo para Ramas Específicas
@@ -128,12 +128,20 @@ ai-review:
 
 ---
 
+## CI_JOB_TOKEN
+
+!!! danger "`CI_JOB_TOKEN` no funciona"
+    El `CI_JOB_TOKEN` automático de GitLab **no puede publicar comentarios** en Merge Requests.
+    **Debes** usar un Personal Access Token o un Project Access Token con scope `api`.
+
+---
+
 ## Solución de Problemas
 
 ### La Revisión No Publica Comentarios
 
 1. Revisa los logs del job
-2. Verifica que `GITLAB_TOKEN` tenga scope `api`
+2. Verifica que `AI_REVIEWER_GITLAB_TOKEN` tenga scope `api`
 3. Verifica que el pipeline esté ejecutándose para un MR
 
 ### "401 Unauthorized"
@@ -181,9 +189,9 @@ ai-review:
   interruptible: true
   needs: []
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
 
 deploy:
   stage: deploy

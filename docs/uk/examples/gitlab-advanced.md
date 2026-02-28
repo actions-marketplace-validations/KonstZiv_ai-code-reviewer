@@ -66,10 +66,10 @@ ai-review:
   needs: []
 
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
-    LANGUAGE_MODE: adaptive
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
+    AI_REVIEWER_LANGUAGE_MODE: adaptive
 ```
 
 ---
@@ -95,9 +95,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    GITLAB_URL: https://gitlab.mycompany.com
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_GITLAB_URL: https://gitlab.mycompany.com
 ```
 
 ### З кастомним Docker registry
@@ -114,9 +114,9 @@ ai-review:
 ai-review:
   # ...
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LOG_LEVEL: DEBUG
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LOG_LEVEL: DEBUG
 ```
 
 ### Тільки для певних гілок
@@ -133,14 +133,12 @@ ai-review:
 
 ---
 
-## CI_JOB_TOKEN vs PAT
+## Токен для GitLab
 
-| Функція | CI_JOB_TOKEN | PAT |
-|---------|--------------|-----|
-| Читати MR | :white_check_mark: | :white_check_mark: |
-| Постити notes | :white_check_mark: | :white_check_mark: |
-| Inline discussions | :x: | :white_check_mark: |
-| Потребує налаштування | :x: | :white_check_mark: |
+!!! danger "`CI_JOB_TOKEN` не працює"
+    Автоматичний `CI_JOB_TOKEN` від GitLab **не може постити коментарі** до Merge Requests
+    (Notes API потребує scope `api`, якого `CI_JOB_TOKEN` не має).
+    Ви **повинні** використовувати Personal Access Token або Project Access Token.
 
 **Рекомендація:** Використовуйте Personal Access Token для повної функціональності. Він працює на всіх планах GitLab, включаючи Free.
 
@@ -151,7 +149,7 @@ ai-review:
 ### Review не постить коментарі
 
 1. Перевірте логи job
-2. Перевірте що `GITLAB_TOKEN` має scope `api`
+2. Перевірте що `AI_REVIEWER_GITLAB_TOKEN` має scope `api`
 3. Перевірте що pipeline запущено для MR
 
 ### "401 Unauthorized"
@@ -199,9 +197,9 @@ ai-review:
   interruptible: true
   needs: []
   variables:
-    GOOGLE_API_KEY: $GOOGLE_API_KEY
-    GITLAB_TOKEN: $GITLAB_TOKEN
-    LANGUAGE: uk
+    AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+    AI_REVIEWER_LANGUAGE: uk
 
 deploy:
   stage: deploy

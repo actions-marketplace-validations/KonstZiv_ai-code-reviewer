@@ -53,6 +53,25 @@
 
     ### Крок 2a: Створіть GitLab токен
 
+    === "Personal Access Token (всі плани)"
+
+        **Рекомендовано.** Працює на **всіх планах GitLab**, включаючи Free.
+
+        **Шлях:** Аватар користувача → `Edit profile` → `Access Tokens`
+
+        | Поле | Значення |
+        |------|----------|
+        | **Token name** | `ai-reviewer` |
+        | **Expiration date** | Оберіть дату (макс. 1 рік) |
+        | **Scopes** | :white_check_mark: `api` |
+
+        Натисніть **"Create personal access token"** → **Скопіюйте токен** (показується лише раз!)
+
+        !!! warning "Коментарі будуть від вашого імені"
+            На відміну від Project Access Token, Personal Access Token прив'язаний до вашого облікового запису. Всі коментарі ревʼю будуть опубліковані від вашого імені.
+
+        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+
     === "Project Access Token (Premium/Ultimate)"
 
         !!! note "Потрібні права Maintainer"
@@ -73,25 +92,6 @@
 
         :material-book-open-variant: [GitLab Docs: Project access tokens](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
 
-    === "Personal Access Token (всі плани)"
-
-        Використовуйте цю опцію, якщо Project Access Token недоступний на вашому плані (напр., GitLab Free).
-
-        **Шлях:** Аватар користувача → `Edit profile` → `Access Tokens`
-
-        | Поле | Значення |
-        |------|----------|
-        | **Token name** | `ai-reviewer` |
-        | **Expiration date** | Оберіть дату (макс. 1 рік) |
-        | **Scopes** | :white_check_mark: `api` |
-
-        Натисніть **"Create personal access token"** → **Скопіюйте токен** (показується лише раз!)
-
-        !!! warning "Коментарі будуть від вашого імені"
-            На відміну від Project Access Token, Personal Access Token прив'язаний до вашого облікового запису. Всі коментарі ревʼю будуть опубліковані від вашого імені.
-
-        :material-book-open-variant: [GitLab Docs: Personal access tokens](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
-
     ### Крок 2b: Додайте змінні в CI/CD
 
     **Шлях:** Project → `Settings` → `CI/CD` → `Variables`
@@ -103,9 +103,9 @@
     | `GOOGLE_API_KEY` | Ваш Gemini ключ (`AIza...`) | :white_check_mark: Mask variable |
     | `GITLAB_TOKEN` | Токен з кроку 2a | :white_check_mark: Mask variable |
 
-    !!! tip "Префікс AI_REVIEWER_"
-        Ви також можете використовувати `AI_REVIEWER_GOOGLE_API_KEY` та `AI_REVIEWER_GITLAB_TOKEN` як назви змінних.
-        Обидва старі та нові назви підтримуються.
+    !!! danger "`CI_JOB_TOKEN` не працює"
+        Автоматичний `CI_JOB_TOKEN` від GitLab **не може постити коментарі** до Merge Requests.
+        Ви **повинні** використовувати Personal Access Token або Project Access Token.
 
     ??? info "Детальна інструкція"
         1. Відкрийте ваш проєкт на GitLab
@@ -218,8 +218,8 @@
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
       variables:
-        GITLAB_TOKEN: $GITLAB_TOKEN
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
     3. Закомітьте та запуште файл
@@ -241,8 +241,8 @@
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       allow_failure: true
       variables:
-        GITLAB_TOKEN: $GITLAB_TOKEN
-        GOOGLE_API_KEY: $GOOGLE_API_KEY
+        AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN
+        AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
     ```
 
 ---
@@ -279,7 +279,7 @@
 
 Перевірте чеклист:
 
-- [ ] `GOOGLE_API_KEY` доданий як секрет?
+- [ ] `GOOGLE_API_KEY` (GitHub) або `AI_REVIEWER_GOOGLE_API_KEY` (GitLab) доданий як секрет?
 - [ ] `github_token` передано явно? (для GitHub)
 - [ ] CI job завершився успішно? (перевірте логи)
 - [ ] Для GitHub: є `permissions: pull-requests: write`?
@@ -289,7 +289,7 @@
 
 Це означає, що CLI не отримав необхідні параметри. Перевірте:
 
-- Чи передано `github_token` / `GITLAB_TOKEN` явно
+- Чи передано `github_token` / `AI_REVIEWER_GITLAB_TOKEN` явно
 - Чи правильний формат YAML (відступи!)
 
 ### Rate limit?

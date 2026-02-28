@@ -85,7 +85,7 @@ ai-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     AI_REVIEWER_GOOGLE_API_KEY: $GOOGLE_API_KEY
-    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Project Access Token with 'api' scope
+    AI_REVIEWER_GITLAB_TOKEN: $GITLAB_TOKEN  # Personal Access Token with 'api' scope
 ```
 
 ### PyPI
@@ -94,8 +94,8 @@ ai-review:
 pip install ai-reviewbot
 
 # Set environment variables
-export GOOGLE_API_KEY="your-key"
-export GITHUB_TOKEN="your-token"
+export AI_REVIEWER_GOOGLE_API_KEY="your-key"
+export AI_REVIEWER_GITHUB_TOKEN="your-token"
 
 # Run review
 ai-review --repo owner/repo --pr 123
