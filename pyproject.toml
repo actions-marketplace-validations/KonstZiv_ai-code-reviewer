@@ -1,6 +1,6 @@
 [project]
 name = "ai-reviewbot"
-version = "1.0.0b6"
+version = "1.0.0b7"
 description = "AI-powered code review agent for CI/CD pipelines"
 readme = "README.md"
 requires-python = ">=3.13"
