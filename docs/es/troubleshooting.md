@@ -42,7 +42,7 @@ Si el problema persiste, especifica explícitamente la versión:
 **Verifica:**
 
 1. **Logs del job de CI** — ¿hay errores?
-2. **Clave API** — ¿es válida `GOOGLE_API_KEY`?
+2. **Clave API** — ¿es válida `AI_REVIEWER_GOOGLE_API_KEY`?
 3. **Token** — ¿hay permisos de escritura?
 4. **github_token** — ¿se pasó explícitamente?
 
@@ -60,7 +60,7 @@ Si el problema persiste, especifica explícitamente la versión:
 
 ---
 
-### "Configuration Error: GOOGLE_API_KEY is too short"
+### "Configuration Error: AI_REVIEWER_GOOGLE_API_KEY is too short"
 
 **Causa:** La clave no está configurada o es incorrecta.
 

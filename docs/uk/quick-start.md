@@ -31,7 +31,7 @@
 
     | Поле | Значення |
     |------|----------|
-    | **Name** | `GOOGLE_API_KEY` |
+    | **Name** | `AI_REVIEWER_GOOGLE_API_KEY` |
     | **Secret** | Ваш ключ (`AIza...`) |
 
     Натисніть **"Add secret"**.
@@ -41,7 +41,7 @@
         2. Натисніть **Settings** (шестерня у верхньому меню)
         3. У лівому меню знайдіть **Secrets and variables** → **Actions**
         4. Натисніть зелену кнопку **New repository secret**
-        5. У полі **Name** введіть: `GOOGLE_API_KEY`
+        5. У полі **Name** введіть: `AI_REVIEWER_GOOGLE_API_KEY`
         6. У полі **Secret** вставте ваш ключ
         7. Натисніть **Add secret**
 
@@ -165,7 +165,7 @@
           - uses: KonstZiv/ai-code-reviewer@v1
             with:
               github_token: ${{ secrets.GITHUB_TOKEN }}
-              google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+              google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
     !!! info "Про `GITHUB_TOKEN`"
@@ -193,7 +193,7 @@
         - uses: KonstZiv/ai-code-reviewer@v1
           with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
-            google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+            google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
     !!! note "Перевірте triggers"
@@ -280,7 +280,7 @@
 
 Перевірте чеклист:
 
-- [ ] `GOOGLE_API_KEY` (GitHub) або `AI_REVIEWER_GOOGLE_API_KEY` (GitLab) доданий як секрет?
+- [ ] `AI_REVIEWER_GOOGLE_API_KEY` доданий як секрет?
 - [ ] `github_token` передано явно? (для GitHub)
 - [ ] CI job завершився успішно? (перевірте логи)
 - [ ] Для GitHub: є `permissions: pull-requests: write`?

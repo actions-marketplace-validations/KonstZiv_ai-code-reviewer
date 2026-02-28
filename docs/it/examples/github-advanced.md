@@ -10,7 +10,7 @@ Configurazione pronta per produzione con tutte le best practice.
 
 | Nome | Valore |
 |------|--------|
-| `GOOGLE_API_KEY` | La tua chiave API Gemini |
+| `AI_REVIEWER_GOOGLE_API_KEY` | La tua chiave API Gemini |
 
 ---
 
@@ -57,7 +57,7 @@ jobs:
       - name: Run AI Code Review
         uses: KonstZiv/ai-code-reviewer@v1
         with:
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
           language: uk
           language_mode: adaptive
           log_level: INFO
@@ -108,7 +108,7 @@ on:
 ```yaml
 - uses: KonstZiv/ai-code-reviewer@v1
   with:
-    google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+    google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     gemini_model: gemini-1.5-pro  # Modello piu potente
 ```
 
@@ -117,7 +117,7 @@ on:
 ```yaml
 - uses: KonstZiv/ai-code-reviewer@v1
   with:
-    google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+    google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     log_level: DEBUG
 ```
 

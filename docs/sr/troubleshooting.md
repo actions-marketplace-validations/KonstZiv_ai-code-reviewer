@@ -42,7 +42,7 @@ Ako problem i dalje postoji, eksplicitno navedite verziju:
 **Provjerite:**
 
 1. **Logove CI job-a** — ima li grešaka?
-2. **API ključ** — je li `GOOGLE_API_KEY` validan?
+2. **API ključ** — je li `AI_REVIEWER_GOOGLE_API_KEY` validan?
 3. **Token** — ima li dozvole za pisanje?
 4. **github_token** — da li je eksplicitno proslijeđen?
 
@@ -60,7 +60,7 @@ Ako problem i dalje postoji, eksplicitno navedite verziju:
 
 ---
 
-### "Configuration Error: GOOGLE_API_KEY is too short"
+### "Configuration Error: AI_REVIEWER_GOOGLE_API_KEY is too short"
 
 **Uzrok:** Ključ nije podešen ili je neispravan.
 

@@ -201,7 +201,7 @@ Ejecución de revisiones programadas — para ahorrar recursos o cuando no se ne
           - name: Get open PRs and review
             env:
               AI_REVIEWER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+              AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
             run: |
               # Obtener lista de PR abiertos
               PRS=$(gh pr list --repo ${{ github.repository }} --state open --json number -q '.[].number')

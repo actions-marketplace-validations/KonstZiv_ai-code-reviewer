@@ -163,7 +163,7 @@ AI_REVIEWER_LOG_LEVEL=INFO
 
 ```yaml
 env:
-  AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
   AI_REVIEWER_GITHUB_TOKEN: ${{ github.token }}  # Automatic
   AI_REVIEWER_LANGUAGE: uk
   AI_REVIEWER_LANGUAGE_MODE: adaptive
@@ -188,7 +188,7 @@ AI Code Reviewer validates configuration at startup:
 ### Validation Errors
 
 ```
-ValidationError: GOOGLE_API_KEY is too short (minimum 10 characters)
+ValidationError: AI_REVIEWER_GOOGLE_API_KEY is too short (minimum 10 characters)
 ```
 
 **Solution:** Check that the variable is set correctly.

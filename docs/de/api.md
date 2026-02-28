@@ -195,7 +195,7 @@ CLI verwendet [Rich](https://rich.readthedocs.io/) für formatierte Ausgabe:
 ### Konfigurationsfehler
 
 ```
-Configuration Error: GOOGLE_API_KEY is too short (minimum 10 characters)
+Configuration Error: AI_REVIEWER_GOOGLE_API_KEY is too short (minimum 10 characters)
 ```
 
 **Ursache:** Ungültige Konfiguration.

@@ -207,7 +207,7 @@ Setzen Sie `AI_REVIEWER_DISCOVERY_ENABLED` auf `false`, um Discovery komplett zu
 - uses: KonstZiv/ai-code-reviewer@v1
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
-    google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+    google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     discovery_enabled: 'false'
 ```
 

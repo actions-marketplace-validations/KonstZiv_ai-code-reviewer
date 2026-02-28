@@ -40,7 +40,7 @@ Važno: da biste pratili sljedeće korake, trebat će vam lični Google API klju
 
 U vašem repozitorijumu kreirajte:
 - u `Settings` → `Secrets and variables [Security]` → `Actions` → pritisnite `New repository secret`:
-    - kreirajte tajnu pod imenom `GOOGLE_API_KEY` sa vašim Google API ključem kao vrijednošću.
+    - kreirajte tajnu pod imenom `AI_REVIEWER_GOOGLE_API_KEY` sa vašim Google API ključem kao vrijednošću.
 - u korijenu vašeg projektnog repozitorijuma:
     - kreirajte fajl `.github/workflows/ai-review.yml` sa sljedećim sadržajem:
 
@@ -60,7 +60,7 @@ jobs:
     steps:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
 ```
 
 ### GitLab

@@ -40,7 +40,7 @@ Wichtig: Um die folgenden Schritte durchzuführen, benötigen Sie Ihren persönl
 
 Erstellen Sie in Ihrem Repository:
 - unter `Settings` → `Secrets and variables [Security]` → `Actions` → klicken Sie auf `New repository secret`:
-    - erstellen Sie ein Secret namens `GOOGLE_API_KEY` mit Ihrem Google API-Schlüssel als Wert.
+    - erstellen Sie ein Secret namens `AI_REVIEWER_GOOGLE_API_KEY` mit Ihrem Google API-Schlüssel als Wert.
 - im Stammverzeichnis Ihres Projekt-Repositorys:
     - erstellen Sie die Datei `.github/workflows/ai-review.yml` mit folgendem Inhalt:
 
@@ -60,7 +60,7 @@ jobs:
     steps:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
 ```
 
 ### GitLab

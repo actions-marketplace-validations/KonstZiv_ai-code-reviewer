@@ -195,7 +195,7 @@ CLI usa [Rich](https://rich.readthedocs.io/) per output formattato:
 ### Errore Configurazione
 
 ```
-Configuration Error: GOOGLE_API_KEY is too short (minimum 10 characters)
+Configuration Error: AI_REVIEWER_GOOGLE_API_KEY is too short (minimum 10 characters)
 ```
 
 **Causa:** Configurazione non valida.

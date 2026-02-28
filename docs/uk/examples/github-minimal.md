@@ -10,7 +10,7 @@
 
 | Назва | Значення |
 |-------|----------|
-| `GOOGLE_API_KEY` | Ваш Gemini API ключ |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Ваш Gemini API ключ |
 
 ---
 
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
 ```
 
 ---

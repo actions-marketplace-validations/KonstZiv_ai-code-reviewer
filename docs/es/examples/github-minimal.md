@@ -10,7 +10,7 @@ La configuración más sencilla para GitHub Actions.
 
 | Nombre | Valor |
 |------|-------|
-| `GOOGLE_API_KEY` | Tu clave API de Gemini |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Tu clave API de Gemini |
 
 ---
 
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
 ```
 
 ---

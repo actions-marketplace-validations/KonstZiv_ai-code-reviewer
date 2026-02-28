@@ -31,7 +31,7 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
 
     | Feld | Wert |
     |------|------|
-    | **Name** | `GOOGLE_API_KEY` |
+    | **Name** | `AI_REVIEWER_GOOGLE_API_KEY` |
     | **Secret** | Ihr Schlüssel (`AIza...`) |
 
     Klicken Sie auf **"Add secret"**.
@@ -41,7 +41,7 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
         2. Klicken Sie auf **Settings** (Zahnrad im oberen Menü)
         3. Finden Sie im linken Menü **Secrets and variables** → **Actions**
         4. Klicken Sie auf die grüne Schaltfläche **New repository secret**
-        5. Geben Sie im Feld **Name** ein: `GOOGLE_API_KEY`
+        5. Geben Sie im Feld **Name** ein: `AI_REVIEWER_GOOGLE_API_KEY`
         6. Fügen Sie im Feld **Secret** Ihren Schlüssel ein
         7. Klicken Sie auf **Add secret**
 
@@ -165,7 +165,7 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
           - uses: KonstZiv/ai-code-reviewer@v1
             with:
               github_token: ${{ secrets.GITHUB_TOKEN }}
-              google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+              google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
     !!! info "Über `GITHUB_TOKEN`"
@@ -193,7 +193,7 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
         - uses: KonstZiv/ai-code-reviewer@v1
           with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
-            google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+            google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
     !!! note "Trigger überprüfen"
@@ -280,7 +280,7 @@ Jeder Kommentar enthält:
 
 Checkliste überprüfen:
 
-- [ ] `GOOGLE_API_KEY` (GitHub) / `GOOGLE_API_KEY` als CI/CD-Variable (GitLab) hinzugefügt?
+- [ ] `AI_REVIEWER_GOOGLE_API_KEY` als Secret (GitHub) / CI/CD-Variable (GitLab) hinzugefügt?
 - [ ] `github_token` explizit übergeben? (für GitHub)
 - [ ] CI-Job erfolgreich abgeschlossen? (Logs überprüfen)
 - [ ] Für GitHub: hat `permissions: pull-requests: write`?

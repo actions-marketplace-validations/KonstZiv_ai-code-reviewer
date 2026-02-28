@@ -195,7 +195,7 @@ CLI koristi [Rich](https://rich.readthedocs.io/) za formatirani izlaz:
 ### Greška konfiguracije
 
 ```
-Configuration Error: GOOGLE_API_KEY is too short (minimum 10 characters)
+Configuration Error: AI_REVIEWER_GOOGLE_API_KEY is too short (minimum 10 characters)
 ```
 
 **Uzrok:** Nevažeća konfiguracija.

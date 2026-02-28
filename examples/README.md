@@ -7,12 +7,12 @@ This directory contains example configurations for integrating AI Code Reviewer 
 ### GitHub Actions
 
 1. Copy `github-workflow.yml` to `.github/workflows/ai-review.yml` in your repository
-2. Add `GOOGLE_API_KEY` to your repository secrets (Settings → Secrets → Actions)
+2. Add `AI_REVIEWER_GOOGLE_API_KEY` to your repository secrets (Settings → Secrets → Actions)
 3. Create a pull request to see AI Code Review in action
 
 ### GitLab CI
 
-1. Add `GOOGLE_API_KEY` to your CI/CD variables (Settings → CI/CD → Variables)
+1. Add `AI_REVIEWER_GOOGLE_API_KEY` to your CI/CD variables (Settings → CI/CD → Variables)
 2. Include the template in your `.gitlab-ci.yml`:
 
 ```yaml
@@ -85,7 +85,7 @@ Both GitHub and GitLab have API rate limits. The reviewer automatically handles 
 - uses: KonstZiv/ai-code-reviewer@v1
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
-    google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+    google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     language: 'uk'
     language_mode: 'fixed'
 ```
@@ -96,7 +96,7 @@ Both GitHub and GitLab have API rate limits. The reviewer automatically handles 
 - uses: KonstZiv/ai-code-reviewer@v1
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
-    google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+    google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     gemini_model: 'gemini-2.5-flash'
 ```
 

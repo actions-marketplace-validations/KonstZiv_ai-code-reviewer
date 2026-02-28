@@ -31,7 +31,7 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
 
     | Polje | Vrijednost |
     |------|----------|
-    | **Name** | `GOOGLE_API_KEY` |
+    | **Name** | `AI_REVIEWER_GOOGLE_API_KEY` |
     | **Secret** | Vaš ključ (`AIza...`) |
 
     Kliknite **"Add secret"**.
@@ -41,7 +41,7 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
         2. Kliknite **Settings** (zupčanik u gornjem meniju)
         3. U lijevom meniju pronađite **Secrets and variables** → **Actions**
         4. Kliknite zeleno dugme **New repository secret**
-        5. U polje **Name** unesite: `GOOGLE_API_KEY`
+        5. U polje **Name** unesite: `AI_REVIEWER_GOOGLE_API_KEY`
         6. U polje **Secret** zalijepite vaš ključ
         7. Kliknite **Add secret**
 
@@ -163,7 +163,7 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
           - uses: KonstZiv/ai-code-reviewer@v1
             with:
               github_token: ${{ secrets.GITHUB_TOKEN }}
-              google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+              google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
     !!! info "O `GITHUB_TOKEN`"
@@ -191,7 +191,7 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
         - uses: KonstZiv/ai-code-reviewer@v1
           with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
-            google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+            google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
     !!! note "Provjerite triggere"
@@ -278,7 +278,7 @@ Svaki komentar sadrži:
 
 Provjerite listu:
 
-- [ ] `GOOGLE_API_KEY` dodan kao tajna?
+- [ ] `AI_REVIEWER_GOOGLE_API_KEY` dodan kao tajna?
 - [ ] `github_token` eksplicitno proslijeđen? (za GitHub)
 - [ ] Za GitLab: da li je `AI_REVIEWER_GITLAB_TOKEN` podešen na Personal Access Token?
 - [ ] CI job završen uspješno? (provjerite logove)

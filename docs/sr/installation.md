@@ -201,7 +201,7 @@ Pokretanje revizije po rasporedu — za uštedu resursa ili kada nije potreban t
           - name: Get open PRs and review
             env:
               AI_REVIEWER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+              AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
             run: |
               # Dobij listu otvorenih PR
               PRS=$(gh pr list --repo ${{ github.repository }} --state open --json number -q '.[].number')

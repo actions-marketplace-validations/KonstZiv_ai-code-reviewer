@@ -31,7 +31,7 @@ La clave debe añadirse como variable secreta en tu repositorio.
 
     | Campo | Valor |
     |-------|-------|
-    | **Name** | `GOOGLE_API_KEY` |
+    | **Name** | `AI_REVIEWER_GOOGLE_API_KEY` |
     | **Secret** | Tu clave (`AIza...`) |
 
     Haz clic en **"Add secret"**.
@@ -41,7 +41,7 @@ La clave debe añadirse como variable secreta en tu repositorio.
         2. Haz clic en **Settings** (engranaje en el menú superior)
         3. En el menú izquierdo, busca **Secrets and variables** → **Actions**
         4. Haz clic en el botón verde **New repository secret**
-        5. En el campo **Name** ingresa: `GOOGLE_API_KEY`
+        5. En el campo **Name** ingresa: `AI_REVIEWER_GOOGLE_API_KEY`
         6. En el campo **Secret** pega tu clave
         7. Haz clic en **Add secret**
 
@@ -163,7 +163,7 @@ La clave debe añadirse como variable secreta en tu repositorio.
           - uses: KonstZiv/ai-code-reviewer@v1
             with:
               github_token: ${{ secrets.GITHUB_TOKEN }}
-              google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+              google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
     !!! info "Sobre `GITHUB_TOKEN`"
@@ -191,7 +191,7 @@ La clave debe añadirse como variable secreta en tu repositorio.
         - uses: KonstZiv/ai-code-reviewer@v1
           with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
-            google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+            google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
     !!! note "Verifica triggers"
@@ -278,7 +278,7 @@ Cada comentario contiene:
 
 Verifica la lista:
 
-- [ ] ¿`GOOGLE_API_KEY` añadido como secreto?
+- [ ] ¿`AI_REVIEWER_GOOGLE_API_KEY` añadido como secreto?
 - [ ] ¿`github_token` pasado explícitamente? (para GitHub)
 - [ ] Para GitLab: ¿`AI_REVIEWER_GITLAB_TOKEN` configurado con un Personal Access Token?
 - [ ] ¿El job de CI terminó exitosamente? (revisa logs)

@@ -184,7 +184,7 @@ AI Code Reviewer valida la configuración al iniciar:
 ### Errores de Validación
 
 ```
-ValidationError: GOOGLE_API_KEY is too short (minimum 10 characters)
+ValidationError: AI_REVIEWER_GOOGLE_API_KEY is too short (minimum 10 characters)
 ```
 
 **Solución:** Verifica que la variable esté configurada correctamente.

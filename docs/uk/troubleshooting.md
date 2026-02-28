@@ -42,7 +42,7 @@ Usage: ai-review [OPTIONS]
 **Перевірте:**
 
 1. **Логи CI job** — чи є помилки?
-2. **API ключ** — чи валідний `GOOGLE_API_KEY`?
+2. **API ключ** — чи валідний `AI_REVIEWER_GOOGLE_API_KEY`?
 3. **Токен** — чи є права на write?
 4. **github_token** — чи передано явно?
 
@@ -60,7 +60,7 @@ Usage: ai-review [OPTIONS]
 
 ---
 
-### "Configuration Error: GOOGLE_API_KEY is too short"
+### "Configuration Error: AI_REVIEWER_GOOGLE_API_KEY is too short"
 
 **Причина:** Ключ не встановлено або він некоректний.
 
