@@ -32,7 +32,16 @@ Detaljan vodič za integraciju sa GitLab CI.
 2. Dodajte varijablu:
     - **Key:** `AI_REVIEWER_GITLAB_TOKEN`
     - **Value:** nalijepite vaš token
-    - **Flags:** označite **Masked** i **Protected**
+    - **Flags:** označite **Masked**, :x: **odznačite** Protected
+
+    Varijabla je automatski dostupna svim job-ovima — nije potreban YAML `variables:` mapping.
+
+!!! warning "Odznačite «Protected»!"
+    Podrazumijevano, GitLab označava nove varijable kao **Protected**. Protected varijable su **dostupne samo u zaštićenim granama** (npr. `main`).
+
+    MR pipeline-i se pokreću na **nezaštićenim** izvornim granama — varijabla će biti prazna i dobićete **401 Unauthorized**.
+
+    **Uvijek odznačite «Protected»** za `AI_REVIEWER_GITLAB_TOKEN` i `AI_REVIEWER_GOOGLE_API_KEY`.
 
 !!! warning "Sačuvajte token"
     GitLab prikazuje token **samo jednom**. Sačuvajte ga odmah na sigurnom mjestu.
@@ -84,8 +93,8 @@ Isto kao PAT — dodajte kao `AI_REVIEWER_GITLAB_TOKEN` u CI/CD Variables:
 
 | Varijabla | Vrijednost | Opcije |
 |----------|-------|---------|
-| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API ključ | Masked |
-| `AI_REVIEWER_GITLAB_TOKEN` | Personal Access Token (scope: `api`) | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API ključ | :white_check_mark: Masked, :x: **Uncheck** Protected |
+| `AI_REVIEWER_GITLAB_TOKEN` | Personal Access Token (scope: `api`) | :white_check_mark: Masked, :x: **Uncheck** Protected |
 
 !!! tip "Masked"
     Uvijek omogućite **Masked** za tajne — neće se prikazivati u logovima.
@@ -211,7 +220,6 @@ AI Code Reviewer automatski koristi:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | Broj MR-a |
 | `CI_SERVER_URL` | GitLab URL |
-| `CI_JOB_TOKEN` | Automatski token (ne može postavljati komentare) |
 
 Ne morate proslijeđivati `--repo` i `--pr` — uzimaju se iz CI-ja automatski.
 

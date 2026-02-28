@@ -100,8 +100,11 @@ Der Schlüssel muss als geheime Variable in Ihrem Repository hinzugefügt werden
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `AI_REVIEWER_GOOGLE_API_KEY` | Ihr Gemini-Schlüssel (`AIza...`) | :white_check_mark: Mask variable |
-    | `AI_REVIEWER_GITLAB_TOKEN` | Token aus Schritt 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Ihr Gemini-Schlüssel (`AIza...`) | :white_check_mark: Mask variable, :x: **Deaktivieren** Sie Protected |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Token aus Schritt 2a | :white_check_mark: Mask variable, :x: **Deaktivieren** Sie Protected |
+
+    !!! warning "«Protected» deaktivieren!"
+        Standardmäßig markiert GitLab neue Variablen als **Protected**. Protected-Variablen sind **nur in geschützten Branches** verfügbar (z.B. `main`), aber MR-Pipelines laufen auf **ungeschützten** Source-Branches — die Variable ist dann leer und Sie erhalten **401 Unauthorized**.
 
     !!! danger "`CI_JOB_TOKEN` funktioniert nicht"
         Verwenden Sie **nicht** GitLabs automatischen `CI_JOB_TOKEN` — er kann keine Kommentare zu Merge Requests posten.

@@ -32,7 +32,16 @@ Guida dettagliata per l'integrazione con GitLab CI.
 2. Aggiungi la variabile:
     - **Key:** `AI_REVIEWER_GITLAB_TOKEN`
     - **Value:** incolla il tuo token
-    - **Flags:** seleziona **Masked** e **Protected**
+    - **Flags:** seleziona **Masked**, :x: **deseleziona** Protected
+
+    La variabile sarà disponibile automaticamente per tutti i job — non serve il mapping YAML `variables:`.
+
+!!! warning "Deseleziona «Protected»!"
+    Per impostazione predefinita, GitLab contrassegna le nuove variabili come **Protected**. Le variabili Protected sono **disponibili solo nei branch protetti** (es. `main`).
+
+    Le pipeline MR vengono eseguite su branch sorgente **non protetti** — la variabile sarà vuota e otterrai **401 Unauthorized**.
+
+    **Deseleziona sempre «Protected»** per `AI_REVIEWER_GITLAB_TOKEN` e `AI_REVIEWER_GOOGLE_API_KEY`.
 
 !!! warning "Salva il token"
     GitLab mostra il token **una sola volta**. Salvalo immediatamente in un luogo sicuro.
@@ -84,8 +93,8 @@ Come il PAT — aggiungi come `AI_REVIEWER_GITLAB_TOKEN` nelle CI/CD Variables:
 
 | Variabile | Valore | Opzioni |
 |-----------|--------|---------|
-| `AI_REVIEWER_GOOGLE_API_KEY` | Chiave API Gemini | Masked |
-| `AI_REVIEWER_GITLAB_TOKEN` | PAT o Project Access Token | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Chiave API Gemini | :white_check_mark: Masked, :x: **Uncheck** Protected |
+| `AI_REVIEWER_GITLAB_TOKEN` | PAT o Project Access Token | :white_check_mark: Masked, :x: **Uncheck** Protected |
 
 !!! tip "Masked"
     Abilita sempre **Masked** per i secret — non verranno mostrati nei log.

@@ -32,7 +32,16 @@
 2. Додайте змінну:
     - **Key:** `AI_REVIEWER_GITLAB_TOKEN`
     - **Value:** вставте ваш токен
-    - **Flags:** увімкніть **Masked** та **Protected**
+    - **Flags:** увімкніть **Masked**, :x: **зніміть** Protected
+
+    The variable is automatically available to all jobs — no YAML `variables:` mapping needed.
+
+!!! warning "Зніміть «Protected»!"
+    За замовчуванням GitLab позначає нові змінні як **Protected**. Protected змінні **доступні лише в захищених гілках** (наприклад, `main`).
+
+    MR pipeline запускається на **незахищених** source гілках — тому змінна буде порожньою і ви отримаєте **401 Unauthorized**.
+
+    **Завжди знімайте «Protected»** для `AI_REVIEWER_GITLAB_TOKEN` та `AI_REVIEWER_GOOGLE_API_KEY`.
 
 !!! warning "Збережіть токен"
     GitLab показує токен **лише один раз**. Збережіть його в безпечному місці одразу.
@@ -85,8 +94,8 @@
 
 | Змінна | Значення | Опції |
 |--------|----------|-------|
-| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API ключ | Masked |
-| `AI_REVIEWER_GITLAB_TOKEN` | PAT (якщо потрібен) | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API ключ | :white_check_mark: Masked, :x: **Uncheck** Protected |
+| `AI_REVIEWER_GITLAB_TOKEN` | PAT (якщо потрібен) | :white_check_mark: Masked, :x: **Uncheck** Protected |
 
 !!! tip "Masked"
     Завжди вмикайте **Masked** для секретів — вони не будуть показані в логах.
@@ -212,7 +221,6 @@ AI Code Reviewer автоматично використовує:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | Номер MR |
 | `CI_SERVER_URL` | URL GitLab |
-| `CI_JOB_TOKEN` | Автоматичний токен (лише читання) |
 
 Вам не потрібно передавати `--repo` та `--pr` — вони беруться з CI автоматично.
 

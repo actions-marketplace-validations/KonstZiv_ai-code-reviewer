@@ -32,9 +32,16 @@ Detailed guide for integration with GitLab CI.
 2. Add variable:
     - **Key:** `AI_REVIEWER_GITLAB_TOKEN`
     - **Value:** paste your token
-    - **Flags:** check **Masked** and **Protected**
+    - **Flags:** check **Masked**, **uncheck Protected**
 
 The variable is automatically available to all jobs — no YAML `variables:` mapping needed.
+
+!!! warning "Uncheck «Protected»!"
+    By default GitLab marks new variables as **Protected**. Protected variables are **only available in protected branches** (e.g. `main`).
+
+    MR pipelines run on **unprotected** source branches — so the variable will be empty and you'll get **401 Unauthorized**.
+
+    **Always uncheck «Protected»** for `AI_REVIEWER_GITLAB_TOKEN` and `AI_REVIEWER_GOOGLE_API_KEY`.
 
 !!! warning "Save the token"
     GitLab shows the token **only once**. Save it in a secure location immediately.
@@ -62,7 +69,7 @@ Available only on **GitLab Premium** and **Ultimate** plans. A good choice if yo
 
 **How to use in CI:**
 
-Same as PAT — add as CI/CD variable with key `AI_REVIEWER_GITLAB_TOKEN` and check **Masked** + **Protected**.
+Same as PAT — add as CI/CD variable with key `AI_REVIEWER_GITLAB_TOKEN` and check **Masked**, **uncheck Protected**.
 
 The variable is automatically available to all jobs — no YAML `variables:` mapping needed.
 
@@ -86,8 +93,8 @@ The variable is automatically available to all jobs — no YAML `variables:` map
 
 | Variable | Value | Options |
 |----------|-------|---------|
-| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API key | Masked |
-| `AI_REVIEWER_GITLAB_TOKEN` | PAT (if needed) | Masked |
+| `AI_REVIEWER_GOOGLE_API_KEY` | Gemini API key | :white_check_mark: Masked, :x: **Uncheck** Protected |
+| `AI_REVIEWER_GITLAB_TOKEN` | PAT (if needed) | :white_check_mark: Masked, :x: **Uncheck** Protected |
 
 !!! tip "Masked"
     Always enable **Masked** for secrets — they won't be shown in logs.
@@ -214,7 +221,6 @@ AI Code Reviewer automatically uses:
 | `CI_PROJECT_PATH` | `owner/repo` |
 | `CI_MERGE_REQUEST_IID` | MR number |
 | `CI_SERVER_URL` | GitLab URL |
-| `CI_JOB_TOKEN` | Automatic token (read-only, cannot post comments) |
 
 You don't need to pass `--repo` and `--pr` — they're taken from CI automatically.
 

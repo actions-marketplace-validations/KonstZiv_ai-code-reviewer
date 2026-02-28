@@ -98,8 +98,11 @@ The key needs to be added as a secret variable in your repository.
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `AI_REVIEWER_GOOGLE_API_KEY` | Your Gemini key (`AIza...`) | :white_check_mark: Mask variable |
-    | `AI_REVIEWER_GITLAB_TOKEN` | Token from step 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Your Gemini key (`AIza...`) | :white_check_mark: Mask variable, :x: **Uncheck** Protected |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Token from step 2a | :white_check_mark: Mask variable, :x: **Uncheck** Protected |
+
+    !!! warning "Uncheck «Protected»!"
+        By default GitLab marks new variables as **Protected**. Protected variables are **only available in protected branches** (e.g. `main`), but MR pipelines run on **unprotected** source branches — the variable will be empty and you'll get **401 Unauthorized**.
 
     !!! danger "`CI_JOB_TOKEN` does not work"
         GitLab's automatic `CI_JOB_TOKEN` **cannot post comments** to Merge Requests.

@@ -98,8 +98,11 @@ Ključ treba dodati kao tajnu varijablu u vašem repozitorijumu.
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `AI_REVIEWER_GOOGLE_API_KEY` | Vaš Gemini ključ (`AIza...`) | :white_check_mark: Mask variable |
-    | `AI_REVIEWER_GITLAB_TOKEN` | Token iz koraka 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Vaš Gemini ključ (`AIza...`) | :white_check_mark: Mask variable, :x: **Odznačite** Protected |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Token iz koraka 2a | :white_check_mark: Mask variable, :x: **Odznačite** Protected |
+
+    !!! warning "Odznačite «Protected»!"
+        Podrazumijevano, GitLab označava nove varijable kao **Protected**. Protected varijable su **dostupne samo u zaštićenim granama** (npr. `main`), ali MR pipeline-i se pokreću na **nezaštićenim** izvornim granama — varijabla će biti prazna i dobićete **401 Unauthorized**.
 
     !!! danger "`CI_JOB_TOKEN` ne radi"
         GitLab-ov automatski `CI_JOB_TOKEN` **ne može postavljati komentare** na Merge Request-e.

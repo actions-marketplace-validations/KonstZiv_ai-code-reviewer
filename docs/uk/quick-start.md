@@ -100,8 +100,11 @@
 
     | Key | Value | Flags |
     |-----|-------|-------|
-    | `AI_REVIEWER_GOOGLE_API_KEY` | Ваш Gemini ключ (`AIza...`) | :white_check_mark: Mask variable |
-    | `AI_REVIEWER_GITLAB_TOKEN` | Токен з кроку 2a | :white_check_mark: Mask variable |
+    | `AI_REVIEWER_GOOGLE_API_KEY` | Ваш Gemini ключ (`AIza...`) | :white_check_mark: Mask variable, :x: **Зніміть** Protected |
+    | `AI_REVIEWER_GITLAB_TOKEN` | Токен з кроку 2a | :white_check_mark: Mask variable, :x: **Зніміть** Protected |
+
+    !!! warning "Зніміть «Protected»!"
+        За замовчуванням GitLab позначає нові змінні як **Protected**. Protected змінні **доступні лише в захищених гілках** (наприклад, `main`), але MR pipeline запускається на **незахищених** source гілках — змінна буде порожньою і ви отримаєте **401 Unauthorized**.
 
     !!! danger "`CI_JOB_TOKEN` не працює"
         Автоматичний `CI_JOB_TOKEN` від GitLab **не може постити коментарі** до Merge Requests.
