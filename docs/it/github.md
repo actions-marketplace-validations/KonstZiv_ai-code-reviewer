@@ -113,24 +113,24 @@ on:
 
 | Secret | Necessario | Descrizione |
 |--------|------------|-------------|
-| `GOOGLE_API_KEY` | :white_check_mark: | Chiave API Gemini |
+| `AI_REVIEWER_GOOGLE_API_KEY` | :white_check_mark: | Chiave API Gemini |
 
 ### Utilizzo
 
 ```yaml
 env:
-  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
 ```
 
 !!! danger "Mai hardcodare i secret"
     ```yaml
     # ❌ SBAGLIATO
     env:
-      GOOGLE_API_KEY: AIza...
+      AI_REVIEWER_GOOGLE_API_KEY: AIza...
 
     # ✅ CORRETTO
     env:
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
 ---
@@ -156,7 +156,7 @@ jobs:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
 ```
 
 !!! info "Informazioni su `GITHUB_TOKEN`"
@@ -191,7 +191,7 @@ jobs:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
           language: uk
           language_mode: adaptive
 ```
@@ -274,7 +274,7 @@ Alla fine della revisione, viene pubblicato un Summary con:
 **Controlla:**
 
 1. `permissions: pull-requests: write` e nel workflow
-2. Il secret `GOOGLE_API_KEY` e impostato
+2. Il secret `AI_REVIEWER_GOOGLE_API_KEY` e impostato
 3. Il PR non e da un repository fork
 
 ### "Resource not accessible by integration"

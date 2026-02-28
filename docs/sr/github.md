@@ -113,24 +113,24 @@ on:
 
 | Tajna | Obavezna | Opis |
 |--------|----------|-------------|
-| `GOOGLE_API_KEY` | :white_check_mark: | Gemini API ključ |
+| `AI_REVIEWER_GOOGLE_API_KEY` | :white_check_mark: | Gemini API ključ |
 
 ### Upotreba
 
 ```yaml
 env:
-  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
 ```
 
 !!! danger "Nikada ne hardkodujte tajne"
     ```yaml
     # ❌ POGREŠNO
     env:
-      GOOGLE_API_KEY: AIza...
+      AI_REVIEWER_GOOGLE_API_KEY: AIza...
 
     # ✅ ISPRAVNO
     env:
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      AI_REVIEWER_GOOGLE_API_KEY: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
     ```
 
 ---
@@ -156,7 +156,7 @@ jobs:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
 ```
 
 !!! info "O `GITHUB_TOKEN`"
@@ -191,7 +191,7 @@ jobs:
       - uses: KonstZiv/ai-code-reviewer@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+          google_api_key: ${{ secrets.AI_REVIEWER_GOOGLE_API_KEY }}
           language: uk
           language_mode: adaptive
 ```
@@ -274,7 +274,7 @@ Na kraju revizije, objavljuje se Rezime sa:
 **Provjerite:**
 
 1. `permissions: pull-requests: write` je u workflow-u
-2. `GOOGLE_API_KEY` tajna je podešena
+2. `AI_REVIEWER_GOOGLE_API_KEY` tajna je podešena
 3. PR nije iz fork repozitorijuma
 
 ### "Resource not accessible by integration"
