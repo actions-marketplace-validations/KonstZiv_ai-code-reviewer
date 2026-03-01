@@ -48,7 +48,7 @@ from ai_reviewer.utils.retry import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ai_reviewer.integrations.base import ReviewSubmission
+    from ai_reviewer.integrations.base import LineComment, ReviewSubmission
     from ai_reviewer.integrations.conversation import BotQuestion
 
 
@@ -163,6 +163,36 @@ def _parse_discussion_notes(
         )
 
     return comments
+
+
+def _build_demoted_summary(
+    summary: str,
+    failed: Sequence[LineComment],
+) -> str:
+    """Append failed inline comments to the summary so feedback is not lost.
+
+    When inline comments cannot be posted (e.g. the line is outside the
+    diff hunk), their content is appended to the MR-level summary note.
+
+    Args:
+        summary: Original review summary text.
+        failed: Inline comments that could not be posted.
+
+    Returns:
+        Summary text with demoted inline comments appended.
+    """
+    if not failed:
+        return summary
+
+    parts = [summary, "\n\n---\n"]
+    parts.append(
+        "**Note:** The following inline comments could not be posted "
+        "and are included here instead:\n"
+    )
+    for lc in failed:
+        body = lc.format_body_with_suggestion()
+        parts.append(f"\n**`{lc.path}:{lc.line}`**\n{body}\n")
+    return "".join(parts)
 
 
 class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
@@ -421,6 +451,7 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
             head_sha = diff_refs.get("head_sha")
 
             # Post inline comments as discussions
+            failed_comments: list[LineComment] = []
             for line_comment in submission.line_comments:
                 # Build position for inline comment
                 position = {
@@ -444,17 +475,29 @@ class GitLabClient(GitProvider, RepositoryProvider, ConversationProvider):
                 try:
                     mr.discussions.create({"body": body, "position": position})
                 except GitlabError as e:
-                    # Log but continue with other comments
                     logger.warning(
                         "Failed to post inline comment at %s:%d: %s",
                         line_comment.path,
                         line_comment.line,
                         e,
                     )
+                    failed_comments.append(line_comment)
 
-            # Post summary as a regular note
-            if submission.summary:
-                mr.notes.create({"body": submission.summary})
+            if failed_comments:
+                logger.info(
+                    "Demoting %d/%d inline comment(s) to summary for MR !%s",
+                    len(failed_comments),
+                    len(submission.line_comments),
+                    mr_id,
+                )
+
+            # Post summary as a regular note (with demoted comments if any)
+            summary = _build_demoted_summary(
+                submission.summary or "",
+                failed_comments,
+            )
+            if summary:
+                mr.notes.create({"body": summary})
 
             logger.info(
                 "Submitted review to MR !%s in %s with %d inline comments",

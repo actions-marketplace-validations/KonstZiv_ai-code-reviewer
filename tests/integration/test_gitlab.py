@@ -492,8 +492,10 @@ class TestGitLabClient:
         mock_mr.notes.create.assert_called_once_with({"body": "LGTM!"})
         mock_mr.discussions.create.assert_not_called()
 
-    def test_submit_review_inline_comment_failure_continues(self, client: GitLabClient) -> None:
-        """Test that inline comment failures don't stop the review."""
+    def test_submit_review_inline_comment_failure_demotes_to_summary(
+        self, client: GitLabClient
+    ) -> None:
+        """Test that failed inline comments are demoted to summary."""
         mock_project = Mock()
         mock_mr = Mock()
         client.gitlab.projects.get.return_value = mock_project
@@ -524,8 +526,46 @@ class TestGitLabClient:
 
         # Both should be attempted
         assert mock_mr.discussions.create.call_count == 2
-        # Summary should still be posted
+        # Summary should include demoted comment
         mock_mr.notes.create.assert_called_once()
+        posted_body = mock_mr.notes.create.call_args[0][0]["body"]
+        assert "Review" in posted_body
+        assert "**`deleted.py:1`**" in posted_body
+        assert "Comment 1" in posted_body
+        # Successful comment should NOT appear in summary
+        assert "existing.py" not in posted_body
+
+    def test_submit_review_all_inline_comments_fail(self, client: GitLabClient) -> None:
+        """Test that all failed inline comments are demoted to summary."""
+        mock_project = Mock()
+        mock_mr = Mock()
+        client.gitlab.projects.get.return_value = mock_project
+        mock_project.mergerequests.get.return_value = mock_mr
+
+        mock_mr.diff_refs = {
+            "base_sha": "abc",
+            "start_sha": "def",
+            "head_sha": "ghi",
+        }
+
+        mock_mr.discussions.create.side_effect = GitlabError("Position not found")
+
+        submission = ReviewSubmission(
+            summary="Review",
+            line_comments=(
+                LineComment(path="a.py", line=10, body="Issue A"),
+                LineComment(path="b.py", line=20, body="Issue B"),
+            ),
+        )
+
+        client.submit_review("owner/repo", 1, submission)
+
+        posted_body = mock_mr.notes.create.call_args[0][0]["body"]
+        assert "**`a.py:10`**" in posted_body
+        assert "Issue A" in posted_body
+        assert "**`b.py:20`**" in posted_body
+        assert "Issue B" in posted_body
+        assert "could not be posted" in posted_body
 
     @patch("ai_reviewer.integrations.gitlab.with_retry", lambda f: f)  # Disable retry for test
     def test_rate_limit_raises_error(self, client: GitLabClient) -> None:
